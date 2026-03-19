@@ -1,0 +1,30 @@
+{
+  "name": "crc-backend-schema",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cloudinary": "^2.5.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.18.0",
+    "morgan": "^1.10.0",
+    "multer": "^2.1.1",
+    "pdfkit": "^0.15.0",
+    "resend": "^6.9.3",
+    "socket.io": "^4.7.5"
+  },
+  "exports": {
+    "./db": "./src/db.js",
+    "./models": "./src/models/index.js"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "seed:groups": "node src/scripts/seedSmsTemplates.js",
+    "seed:group-votes": "node src/scripts/seedGroupVotesAndReminders.js"
+  }
+}

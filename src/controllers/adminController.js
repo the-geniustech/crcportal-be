@@ -1,0 +1,520 @@
+import AppError from "../utils/AppError.js";
+import catchAsync from "../utils/catchAsync.js";
+import sendSuccess from "../utils/sendSuccess.js";
+
+import { GroupModel } from "../models/Group.js";
+import { GroupMembershipModel } from "../models/GroupMembership.js";
+import { ContributionModel } from "../models/Contribution.js";
+import { ProfileModel } from "../models/Profile.js";
+import mongoose from "mongoose";
+
+function clamp(n, min, max) {
+  return Math.min(max, Math.max(min, n));
+}
+
+function pick(obj, allowedKeys) {
+  const out = {};
+  for (const key of allowedKeys) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) out[key] = obj[key];
+  }
+  return out;
+}
+
+function parseMonthYear(req) {
+  const now = new Date();
+  const year = Number(req.query?.year ?? now.getUTCFullYear());
+  const month = Number(req.query?.month ?? now.getUTCMonth() + 1);
+
+  if (!Number.isFinite(year) || year < 2000 || year > 2100) {
+    return { error: "Invalid year" };
+  }
+  if (!Number.isFinite(month) || month < 1 || month > 12) {
+    return { error: "Invalid month" };
+  }
+
+  return { year, month };
+}
+
+function dueDateUtc(year, month1to12, day = 25) {
+  return new Date(Date.UTC(year, month1to12 - 1, day, 23, 59, 59, 999));
+}
+
+function endOfMonthUtc(year, month1to12) {
+  return new Date(Date.UTC(year, month1to12, 0, 23, 59, 59, 999));
+}
+
+export const listAdminGroups = catchAsync(async (req, res, next) => {
+  if (!req.user) return next(new AppError("Not authenticated", 401));
+  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+
+  const manageableGroupIds = await getManageableGroupIds(req);
+
+  const filter = {};
+  if (manageableGroupIds) {
+    filter._id = { $in: manageableGroupIds };
+  }
+
+  if (typeof req.query?.status === "string" && req.query.status.trim()) {
+    filter.status = String(req.query.status).trim();
+  }
+
+  const search = typeof req.query?.search === "string" ? req.query.search.trim() : "";
+  if (search) {
+    filter.groupName = { $regex: search, $options: "i" };
+  }
+
+  const page = Math.max(1, parseInt(String(req.query?.page ?? "1"), 10) || 1);
+  const limit = Math.min(200, Math.max(1, parseInt(String(req.query?.limit ?? "100"), 10) || 100));
+  const skip = (page - 1) * limit;
+
+  const [groups, total] = await Promise.all([
+    GroupModel.find(filter).sort({ groupNumber: 1 }).skip(skip).limit(limit).lean(),
+    GroupModel.countDocuments(filter),
+  ]);
+
+  const includeMetrics = String(req.query?.includeMetrics ?? "true").toLowerCase() !== "false";
+  const monthYear = parseMonthYear(req);
+  if (includeMetrics && monthYear.error) return next(new AppError(monthYear.error, 400));
+
+  if (!includeMetrics || groups.length === 0) {
+    return sendSuccess(res, {
+      statusCode: 200,
+      results: groups.length,
+      total,
+      page,
+      limit,
+      data: { groups },
+    });
+  }
+
+  const { year, month } = monthYear;
+  const groupIds = groups.map((g) => String(g._id));
+  const groupObjectIds = groupIds
+    .filter((id) => mongoose.Types.ObjectId.isValid(id))
+    .map((id) => new mongoose.Types.ObjectId(id));
+
+  const [activeCounts, paidSums] = await Promise.all([
+    GroupMembershipModel.aggregate([
+      { $match: { groupId: { $in: groupObjectIds }, status: "active" } },
+      { $group: { _id: "$groupId", count: { $sum: 1 } } },
+    ]),
+    ContributionModel.aggregate([
+      {
+        $match: {
+          groupId: { $in: groupObjectIds },
+          year,
+          month,
+          contributionType: "regular",
+        },
+      },
+      {
+        $group: {
+          _id: "$groupId",
+          paidAmount: {
+            $sum: {
+              $cond: [{ $in: ["$status", ["verified", "completed"]] }, "$amount", 0],
+            },
+          },
+        },
+      },
+    ]),
+  ]);
+
+  const activeByGroupId = new Map(activeCounts.map((r) => [String(r._id), Number(r.count || 0)]));
+  const paidByGroupId = new Map(paidSums.map((r) => [String(r._id), Number(r.paidAmount || 0)]));
+
+  const enriched = groups.map((g) => {
+    const gid = String(g._id);
+    const activeMembers = activeByGroupId.get(gid) ?? Number(g.memberCount || 0);
+    const expected = Number(g.monthlyContribution || 0) * Math.max(0, Number(activeMembers || 0));
+    const paid = paidByGroupId.get(gid) ?? 0;
+    const rate = expected > 0 ? (paid / expected) * 100 : 0;
+
+    return {
+      ...g,
+      activeMemberCount: activeMembers,
+      contributionPeriod: { year, month },
+      expectedContributions: expected,
+      collectedContributions: paid,
+      collectionRate: clamp(rate, 0, 100),
+    };
+  });
+
+  const withCoordinators = enriched.filter((g) => Boolean(g.coordinatorId)).length;
+  const totalCollected = enriched.reduce((sum, g) => sum + Number(g.collectedContributions || 0), 0);
+
+  const ytdSums = await ContributionModel.aggregate([
+    {
+      $match: {
+        groupId: { $in: groupObjectIds },
+        year,
+        month: { $gte: 1, $lte: month },
+      },
+    },
+    {
+      $group: {
+        _id: "$contributionType",
+        paidAmount: {
+          $sum: {
+            $cond: [{ $in: ["$status", ["verified", "completed"]] }, "$amount", 0],
+          },
+        },
+      },
+    },
+  ]);
+
+  const contributionTypeTotalsYtd = {
+    regular: 0,
+    festival: 0,
+    end_well: 0,
+    special_savings: 0,
+  };
+
+  for (const row of ytdSums) {
+    const key = String(row._id || "");
+    if (!Object.prototype.hasOwnProperty.call(contributionTypeTotalsYtd, key)) continue;
+    contributionTypeTotalsYtd[key] = Number(row.paidAmount || 0);
+  }
+
+  return sendSuccess(res, {
+    statusCode: 200,
+    results: enriched.length,
+    total,
+    page,
+    limit,
+    data: {
+      groups: enriched,
+      summary: {
+        totalGroups: total,
+        withCoordinators,
+        contributionPeriod: { year, month },
+        totalCollected,
+        contributionTypeTotalsYtd,
+      },
+    },
+  });
+});
+
+async function getManageableGroupIds(req) {
+  if (!req.user) throw new AppError("Not authenticated", 401);
+  if (!req.user.profileId) throw new AppError("User profile not found", 400);
+
+  if (req.user.role === "admin") return null;
+
+  if (req.user.role !== "groupCoordinator") {
+    throw new AppError("Insufficient permissions", 403);
+  }
+
+  const coordinatorMemberships = await GroupMembershipModel.find(
+    { userId: req.user.profileId, role: "coordinator", status: "active" },
+    { groupId: 1 },
+  ).lean();
+
+  return coordinatorMemberships.map((m) => String(m.groupId));
+}
+
+export const listMemberApprovals = catchAsync(async (req, res, next) => {
+  if (!req.user) return next(new AppError("Not authenticated", 401));
+  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+
+  const status = String(req.query?.status ?? "pending").trim().toLowerCase();
+  if (!["pending", "active", "rejected"].includes(status)) {
+    return next(new AppError("Invalid status filter", 400));
+  }
+
+  const groupIdParam = req.query?.groupId ? String(req.query.groupId) : null;
+  const manageableGroupIds = await getManageableGroupIds(req);
+
+  const groupScope =
+    manageableGroupIds === null
+      ? null
+      : new Set(manageableGroupIds);
+
+  if (groupIdParam && groupScope && !groupScope.has(groupIdParam)) {
+    return next(new AppError("You cannot manage this group", 403));
+  }
+
+  const filter = { status };
+  if (groupIdParam) {
+    filter.groupId = groupIdParam;
+  } else if (groupScope) {
+    filter.groupId = { $in: manageableGroupIds };
+  }
+
+  const page = Math.max(1, parseInt(String(req.query?.page ?? "1"), 10) || 1);
+  const limit = Math.min(200, Math.max(1, parseInt(String(req.query?.limit ?? "50"), 10) || 50));
+  const skip = (page - 1) * limit;
+
+  const memberships = await GroupMembershipModel.find(filter)
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .populate("userId")
+    .populate("groupId");
+
+  const applicants = memberships.map((m) => {
+    const profile = m.userId && typeof m.userId === "object" ? m.userId : null;
+    const group = m.groupId && typeof m.groupId === "object" ? m.groupId : null;
+
+    return {
+      id: String(m._id),
+      membershipId: String(m._id),
+      profileId: profile?._id ? String(profile._id) : null,
+      groupId: group?._id ? String(group._id) : String(m.groupId),
+      name: profile?.fullName ?? "Member",
+      email: profile?.email ?? "",
+      phone: profile?.phone ?? "",
+      groupName: group?.groupName ?? "Group",
+      applicationDate: (m.requestedAt || m.createdAt || new Date()).toISOString().slice(0, 10),
+      status: m.status === "active" ? "approved" : m.status === "rejected" ? "rejected" : "pending",
+      notes: m.reviewNotes ?? null,
+    };
+  });
+
+  return sendSuccess(res, {
+    statusCode: 200,
+    results: applicants.length,
+    page,
+    limit,
+    data: { applicants },
+  });
+});
+
+export const approveMemberApplication = catchAsync(async (req, res, next) => {
+  if (!req.user) return next(new AppError("Not authenticated", 401));
+  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+
+  const { membershipId } = req.params;
+  const notes = req.body?.notes ? String(req.body.notes).trim() : null;
+
+  const membership = await GroupMembershipModel.findById(membershipId);
+  if (!membership) return next(new AppError("Membership not found", 404));
+
+  const manageableGroupIds = await getManageableGroupIds(req);
+  if (manageableGroupIds && !manageableGroupIds.includes(String(membership.groupId))) {
+    return next(new AppError("You cannot manage this group", 403));
+  }
+
+  const group = await GroupModel.findById(membership.groupId);
+  if (!group) return next(new AppError("Group not found", 404));
+
+  if (membership.status === "active") {
+    return sendSuccess(res, { statusCode: 200, data: { membership } });
+  }
+
+  if (group.memberCount >= group.maxMembers) {
+    return next(new AppError("Group is full", 400));
+  }
+
+  membership.status = "active";
+  membership.reviewedBy = req.user.profileId;
+  membership.reviewedAt = new Date();
+  membership.reviewNotes = notes;
+  membership.requestedAt = membership.requestedAt || membership.createdAt || new Date();
+  membership.joinedAt = membership.joinedAt || new Date();
+  await membership.save({ validateBeforeSave: true });
+
+  await GroupModel.findByIdAndUpdate(group._id, { $inc: { memberCount: 1 } });
+
+  return sendSuccess(res, {
+    statusCode: 200,
+    message: "Member approved",
+    data: { membership },
+  });
+});
+
+export const rejectMemberApplication = catchAsync(async (req, res, next) => {
+  if (!req.user) return next(new AppError("Not authenticated", 401));
+  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+
+  const { membershipId } = req.params;
+  const notes = req.body?.notes ? String(req.body.notes).trim() : null;
+
+  const membership = await GroupMembershipModel.findById(membershipId);
+  if (!membership) return next(new AppError("Membership not found", 404));
+
+  const manageableGroupIds = await getManageableGroupIds(req);
+  if (manageableGroupIds && !manageableGroupIds.includes(String(membership.groupId))) {
+    return next(new AppError("You cannot manage this group", 403));
+  }
+
+  membership.status = "rejected";
+  membership.reviewedBy = req.user.profileId;
+  membership.reviewedAt = new Date();
+  membership.reviewNotes = notes;
+  membership.requestedAt = membership.requestedAt || membership.createdAt || new Date();
+  await membership.save({ validateBeforeSave: true });
+
+  return sendSuccess(res, {
+    statusCode: 200,
+    message: "Member rejected",
+    data: { membership },
+  });
+});
+
+export const listContributionTracker = catchAsync(async (req, res, next) => {
+  if (!req.user) return next(new AppError("Not authenticated", 401));
+  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+
+  const { year, month, error } = parseMonthYear(req);
+  if (error) return next(new AppError(error, 400));
+
+  const manageableGroupIds = await getManageableGroupIds(req);
+  const groupIdParam = req.query?.groupId ? String(req.query.groupId) : null;
+
+  let groupIds = null;
+  if (manageableGroupIds === null) {
+    groupIds = groupIdParam ? [groupIdParam] : null;
+  } else {
+    if (groupIdParam && !manageableGroupIds.includes(groupIdParam)) {
+      return next(new AppError("You cannot manage this group", 403));
+    }
+    groupIds = groupIdParam ? [groupIdParam] : manageableGroupIds;
+  }
+
+  const membershipFilter = { status: "active" };
+  if (groupIds) membershipFilter.groupId = { $in: groupIds };
+
+  const memberships = await GroupMembershipModel.find(membershipFilter, {
+    userId: 1,
+    groupId: 1,
+    joinedAt: 1,
+  }).lean();
+
+  const memberProfiles = await ProfileModel.find(
+    { _id: { $in: memberships.map((m) => m.userId) } },
+    { fullName: 1, email: 1, phone: 1 },
+  ).lean();
+  const profileById = new Map(memberProfiles.map((p) => [String(p._id), p]));
+
+  const groups = await GroupModel.find(
+    { _id: { $in: [...new Set(memberships.map((m) => String(m.groupId)))] } },
+    { groupName: 1, monthlyContribution: 1 },
+  ).lean();
+  const groupById = new Map(groups.map((g) => [String(g._id), g]));
+
+  const scopeGroupIds = groupIds ?? groups.map((g) => String(g._id));
+
+  const sixMonthsBack = 6;
+  const historyMonths = [];
+  for (let i = sixMonthsBack - 1; i >= 0; i -= 1) {
+    const d = new Date(Date.UTC(year, month - 1 - i, 1));
+    historyMonths.push({ year: d.getUTCFullYear(), month: d.getUTCMonth() + 1 });
+  }
+
+  const historyStart = new Date(
+    Date.UTC(historyMonths[0].year, historyMonths[0].month - 1, 1, 0, 0, 0, 0),
+  );
+  const lastHm = historyMonths[historyMonths.length - 1];
+  const historyEnd = endOfMonthUtc(lastHm.year, lastHm.month);
+
+  const contribDocs = await ContributionModel.find(
+    {
+      groupId: { $in: scopeGroupIds },
+      contributionType: "regular",
+      createdAt: { $gte: historyStart, $lte: historyEnd },
+      year: { $in: [...new Set(historyMonths.map((m) => m.year))] },
+    },
+    { userId: 1, groupId: 1, year: 1, month: 1, amount: 1, status: 1 },
+  ).lean();
+
+  const paidByKey = new Map();
+  for (const c of contribDocs) {
+    const k = `${String(c.userId)}|${String(c.groupId)}|${Number(c.year)}|${Number(c.month)}`;
+    const isPaid = ["verified", "completed"].includes(String(c.status));
+    if (!isPaid) continue;
+    paidByKey.set(k, Number(paidByKey.get(k) || 0) + Number(c.amount || 0));
+  }
+
+  const due = dueDateUtc(year, month, 25);
+  const now = new Date();
+
+  const records = memberships.map((m) => {
+    const userId = String(m.userId);
+    const groupId = String(m.groupId);
+    const g = groupById.get(groupId);
+    const p = profileById.get(userId);
+
+    const expectedAmount = Number(g?.monthlyContribution || 0);
+    const currentKey = `${userId}|${groupId}|${year}|${month}`;
+    const paidAmount = Number(paidByKey.get(currentKey) || 0);
+
+    const status =
+      paidAmount >= expectedAmount && expectedAmount > 0
+        ? "paid"
+        : paidAmount > 0
+          ? "partial"
+          : now.getTime() > due.getTime()
+            ? "defaulted"
+            : "pending";
+
+    let monthsDefaulted = 0;
+    const joinedAt = m.joinedAt ? new Date(m.joinedAt) : null;
+    for (const hm of historyMonths) {
+      const monthDue = dueDateUtc(hm.year, hm.month, 25);
+      if (monthDue.getTime() > now.getTime()) continue;
+      if (joinedAt && monthDue.getTime() < joinedAt.getTime()) continue;
+      const k = `${userId}|${groupId}|${hm.year}|${hm.month}`;
+      const paid = Number(paidByKey.get(k) || 0);
+      if (paid <= 0) monthsDefaulted += 1;
+    }
+
+    return {
+      id: `${userId}|${groupId}|${year}|${month}`,
+      userId,
+      groupId,
+      memberName: p?.fullName ?? "Member",
+      groupName: g?.groupName ?? "Group",
+      expectedAmount,
+      paidAmount,
+      dueDate: due.toISOString().slice(0, 10),
+      status,
+      monthsDefaulted: clamp(monthsDefaulted, 0, 12),
+    };
+  });
+
+  return sendSuccess(res, { statusCode: 200, results: records.length, data: { contributions: records } });
+});
+
+export const markContributionPaid = catchAsync(async (req, res, next) => {
+  if (!req.user) return next(new AppError("Not authenticated", 401));
+  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+
+  const userId = String(req.body?.userId || "").trim();
+  const groupId = String(req.body?.groupId || "").trim();
+  const month = Number(req.body?.month);
+  const year = Number(req.body?.year);
+  const amount = Number(req.body?.amount);
+
+  if (!userId || !groupId) return next(new AppError("userId and groupId are required", 400));
+  if (!Number.isFinite(month) || month < 1 || month > 12) return next(new AppError("Invalid month", 400));
+  if (!Number.isFinite(year) || year < 2000 || year > 2100) return next(new AppError("Invalid year", 400));
+  if (!Number.isFinite(amount) || amount <= 0) return next(new AppError("amount must be > 0", 400));
+
+  const manageableGroupIds = await getManageableGroupIds(req);
+  if (manageableGroupIds && !manageableGroupIds.includes(groupId)) {
+    return next(new AppError("You cannot manage this group", 403));
+  }
+
+  const membership = await GroupMembershipModel.findOne({ groupId, userId, status: "active" });
+  if (!membership) return next(new AppError("Member is not active in this group", 400));
+
+  const contribution = await ContributionModel.findOneAndUpdate(
+    { userId, groupId, month, year, contributionType: "regular" },
+    {
+      userId,
+      groupId,
+      month,
+      year,
+      contributionType: "regular",
+      amount,
+      status: "verified",
+      paymentMethod: "manual",
+      verifiedBy: req.user.profileId,
+      verifiedAt: new Date(),
+    },
+    { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true },
+  );
+
+  return sendSuccess(res, { statusCode: 200, message: "Contribution marked as paid", data: { contribution } });
+});
