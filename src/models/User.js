@@ -7,20 +7,12 @@ export const UserSchema = new Schema(
   {
     email: {
       type: String,
-      default: null,
-      unique: true,
-      sparse: true,
       trim: true,
       lowercase: true,
-      index: true,
     },
     phone: {
       type: String,
-      default: null,
-      unique: true,
-      sparse: true,
       trim: true,
-      index: true,
     },
     password: {
       type: String,
@@ -188,5 +180,20 @@ UserSchema.methods.changedPasswordAfter = function (jwtIatSeconds) {
   const changedTimestamp = Math.floor(this.passwordChangedAt.getTime() / 1000);
   return changedTimestamp > jwtIatSeconds;
 };
+
+UserSchema.index(
+  { email: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { email: { $type: "string", $ne: "" } },
+  },
+);
+UserSchema.index(
+  { phone: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { phone: { $type: "string", $ne: "" } },
+  },
+);
 
 export const UserModel = model("User", UserSchema);

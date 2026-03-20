@@ -7,6 +7,7 @@
     "bcryptjs": "^2.4.3",
     "cloudinary": "^2.5.1",
     "cors": "^2.8.5",
+    "csv-parse": "^6.2.1",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
@@ -16,8 +17,8 @@
     "pdfkit": "^0.15.0",
     "qrcode": "^1.5.4",
     "resend": "^6.9.3",
-    "speakeasy": "^2.0.0",
-    "socket.io": "^4.7.5"
+    "socket.io": "^4.7.5",
+    "speakeasy": "^2.0.0"
   },
   "exports": {
     "./db": "./src/db.js",
@@ -26,7 +27,9 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "seed:groups": "node src/scripts/seedSmsTemplates.js",
+    "seed": "node src/scripts/generateMemberSeeds.js",
+    "seed:members": "node src/scripts/seedMembersFromFiles.js",
+    "seed:convert": "powershell -ExecutionPolicy Bypass -File C:\\\\Users\\\\user\\\\Desktop\\\\xlsx-to-csv.ps1 -InFile \"C:\\\\Users\\\\user\\\\Desktop\\\\crs\\\\backend\\\\src\\\\scripts\\\\Champions Revolving Contributions New Membership Registration Form  (Responses) (9).xlsx\" -OutFile \"C:\\\\Users\\\\user\\\\Desktop\\\\crs\\\\backend\\\\src\\\\scripts\\\\Champions Revolving Contributions New Membership Registration Form  (Responses) (9).csv\"",
     "seed:group-votes": "node src/scripts/seedGroupVotesAndReminders.js"
   }
 }

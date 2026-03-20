@@ -22,9 +22,9 @@ const AvatarSchema = new Schema(
 
 export const ProfileSchema = new Schema(
   {
-    email: { type: String, default: null, trim: true, lowercase: true },
+    email: { type: String, trim: true, lowercase: true },
     fullName: { type: String, default: null, trim: true },
-    phone: { type: String, default: null, trim: true },
+    phone: { type: String, trim: true },
     dateOfBirth: { type: Date, default: null },
     address: { type: String, default: null, trim: true },
     city: { type: String, default: null, trim: true },
@@ -44,8 +44,20 @@ export const ProfileSchema = new Schema(
   { timestamps: true },
 );
 
-ProfileSchema.index({ email: 1 }, { unique: true, sparse: true });
-ProfileSchema.index({ phone: 1 }, { unique: true, sparse: true });
+ProfileSchema.index(
+  { email: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { email: { $type: "string", $ne: "" } },
+  },
+);
+ProfileSchema.index(
+  { phone: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { phone: { $type: "string", $ne: "" } },
+  },
+);
 ProfileSchema.index({ membershipStatus: 1 });
 
 export const ProfileModel = model("Profile", ProfileSchema);

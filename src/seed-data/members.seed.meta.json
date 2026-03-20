@@ -1,0 +1,9 @@
+{
+  "inputPath": "C:\\Users\\user\\Desktop\\crs\\backend\\src\\scripts\\Champions Revolving Contributions New Membership Registration Form  (Responses) (9).csv",
+  "sheetName": "CSV",
+  "totalRows": 167,
+  "included": 147,
+  "skippedMissingContact": 0,
+  "skippedDuplicateEmail": 17,
+  "skippedDuplicatePhone": 3
+}
