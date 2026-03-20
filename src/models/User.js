@@ -83,6 +83,21 @@ export const UserSchema = new Schema(
       select: false,
     },
 
+    twoFactorEnabled: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    twoFactorSecret: {
+      type: String,
+      default: null,
+      select: false,
+    },
+    twoFactorEnabledAt: {
+      type: Date,
+      default: null,
+    },
+
     passwordResetTokenHash: {
       type: String,
       default: null,
@@ -119,6 +134,22 @@ export const UserSchema = new Schema(
       type: Boolean,
       default: true,
       select: false,
+    },
+    deletionRequestedAt: {
+      type: Date,
+      default: null,
+    },
+    deletionScheduledFor: {
+      type: Date,
+      default: null,
+    },
+    deletionCancelledAt: {
+      type: Date,
+      default: null,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
     },
     passwordChangedAt: {
       type: Date,

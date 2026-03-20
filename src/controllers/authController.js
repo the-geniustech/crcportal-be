@@ -1,4 +1,6 @@
 ﻿import jwt from "jsonwebtoken";
+import speakeasy from "speakeasy";
+import qrcode from "qrcode";
 import { promisify } from "node:util";
 
 import { UserModel } from "../models/User.js";
@@ -7,11 +9,22 @@ import { PhoneOtpSessionModel } from "../models/PhoneOtpSession.js";
 import { RefreshTokenModel } from "../models/RefreshToken.js";
 import { GroupModel } from "../models/Group.js";
 import { GroupMembershipModel } from "../models/GroupMembership.js";
+import { LoginHistoryModel } from "../models/LoginHistory.js";
 import AppError from "../utils/AppError.js";
 import catchAsync from "../utils/catchAsync.js";
 import sendSuccess from "../utils/sendSuccess.js";
-import { randomId, sha256 } from "../utils/crypto.js";
-import { signAccessToken, signRefreshToken } from "../utils/tokens.js";
+import {
+  decryptSecret,
+  encryptSecret,
+  randomId,
+  sha256,
+} from "../utils/crypto.js";
+import {
+  signAccessToken,
+  signRefreshToken,
+  signTwoFactorToken,
+  verifyTwoFactorToken,
+} from "../utils/tokens.js";
 import { sendEmailVerification } from "../services/mail/sendEmailVerification.js";
 import { sendPasswordResetEmail } from "../services/mail/sendPasswordResetEmail.js";
 import { sendPhoneOtp } from "../services/sms/sendPhoneOtp.js";
@@ -92,6 +105,7 @@ async function sendPhoneOtpIfNeeded(user, req) {
 }
 
 async function buildAuthResponse(user, req) {
+  await ensureActiveGroupMembership(user);
   const safeUser = {
     id: user._id,
     email: user.email,
@@ -127,6 +141,96 @@ async function buildAuthResponse(user, req) {
   });
 
   return { accessToken, refreshToken, user: safeUser, profile };
+}
+
+async function ensureActiveGroupMembership(user) {
+  if (!user) return;
+  const role = String(user.role || "");
+  if (role === "admin") return;
+
+  if (!user.profileId) {
+    throw new AppError(
+      "You are not yet approved in any group. Please ask your group coordinator to add or approve you.",
+      403,
+    );
+  }
+
+  const activeMembership = await GroupMembershipModel.exists({
+    userId: user.profileId,
+    status: "active",
+  });
+
+  if (!activeMembership) {
+    throw new AppError(
+      "You are not yet approved in any group. Please ask your group coordinator to add or approve you.",
+      403,
+    );
+  }
+}
+
+function resolveClientIp(req) {
+  const forwarded = req.headers["x-forwarded-for"];
+  if (typeof forwarded === "string" && forwarded.length > 0) {
+    return forwarded.split(",")[0].trim();
+  }
+  return req.ip || null;
+}
+
+async function recordLoginHistory(user, req, method = "password") {
+  try {
+    await LoginHistoryModel.create({
+      userId: user._id,
+      method,
+      success: true,
+      ip: resolveClientIp(req),
+      userAgent: req.get("user-agent") || null,
+    });
+  } catch (err) {
+    // Don't block auth if audit logging fails
+  }
+}
+
+async function enforceDeletionStatus(user) {
+  if (!user) return;
+  if (user.deletedAt) {
+    throw new AppError(
+      "Account has been deleted. Please contact support if this is a mistake.",
+      403,
+    );
+  }
+
+  if (
+    user.deletionScheduledFor &&
+    new Date(user.deletionScheduledFor).getTime() <= Date.now()
+  ) {
+    user.active = false;
+    user.deletedAt = new Date();
+    await user.save({ validateBeforeSave: false });
+    throw new AppError(
+      "Account has been deleted. Please contact support if this is a mistake.",
+      403,
+    );
+  }
+}
+
+function verifyTwoFactorCodeOrThrow(user, token) {
+  const secret = user?.twoFactorSecret
+    ? decryptSecret(user.twoFactorSecret)
+    : null;
+  if (!secret) {
+    throw new AppError("Two-factor authentication is not configured", 400);
+  }
+
+  const ok = speakeasy.totp.verify({
+    secret,
+    encoding: "base32",
+    token: String(token || "").trim(),
+    window: 1,
+  });
+
+  if (!ok) {
+    throw new AppError("Invalid two-factor code", 401);
+  }
 }
 
 function parseLoginIdentifier(body) {
@@ -558,7 +662,24 @@ export const verifyPhoneOtpLogin = catchAsync(async (req, res, next) => {
     }
   }
 
+  await enforceDeletionStatus(user);
+  await ensureActiveGroupMembership(user);
+
+  if (user.twoFactorEnabled) {
+    const twoFactorToken = signTwoFactorToken({
+      userId: user._id.toString(),
+    });
+    return sendSuccess(res, {
+      statusCode: 200,
+      message: "Two-factor authentication required.",
+      twoFactorRequired: true,
+      twoFactorToken,
+      data: { isNewUser },
+    });
+  }
+
   const data = await buildAuthResponse(user, req);
+  await recordLoginHistory(user, req, "phone_otp");
 
   return sendSuccess(res, {
     statusCode: 200,
@@ -586,7 +707,13 @@ export const login = catchAsync(async (req, res, next) => {
           "+password +active +passwordChangedAt +phoneOtpSentAt",
         );
 
-  if (!user || user.active === false) {
+  if (!user) {
+    return next(new AppError("Invalid login credentials", 401));
+  }
+
+  await enforceDeletionStatus(user);
+
+  if (user.active === false) {
     return next(new AppError("Invalid login credentials", 401));
   }
 
@@ -605,7 +732,22 @@ export const login = catchAsync(async (req, res, next) => {
     return next(new AppError("Phone not verified. OTP sent.", 401));
   }
 
+  await ensureActiveGroupMembership(user);
+
+  if (user.twoFactorEnabled) {
+    const twoFactorToken = signTwoFactorToken({
+      userId: user._id.toString(),
+    });
+    return sendSuccess(res, {
+      statusCode: 200,
+      message: "Two-factor authentication required.",
+      twoFactorRequired: true,
+      twoFactorToken,
+    });
+  }
+
   const data = await buildAuthResponse(user, req);
+  await recordLoginHistory(user, req, "password");
 
   return sendSuccess(res, {
     statusCode: 200,
@@ -660,7 +802,15 @@ export const refresh = catchAsync(async (req, res, next) => {
     "+active +passwordChangedAt",
   );
 
-  if (!user || user.active === false) {
+  if (!user) {
+    return next(
+      new AppError("The user belonging to this token no longer exists", 401),
+    );
+  }
+
+  await enforceDeletionStatus(user);
+
+  if (user.active === false) {
     return next(
       new AppError("The user belonging to this token no longer exists", 401),
     );
@@ -676,6 +826,8 @@ export const refresh = catchAsync(async (req, res, next) => {
       new AppError("User recently changed password. Please log in again.", 401),
     );
   }
+
+  await ensureActiveGroupMembership(user);
 
   const newJti = randomId(16);
   const newRefreshToken = signRefreshToken({
@@ -947,6 +1099,277 @@ export const resetPassword = catchAsync(async (req, res, next) => {
   });
 });
 
+export const getTwoFactorStatus = catchAsync(async (req, res, next) => {
+  if (!req.user) return next(new AppError("Not authenticated", 401));
+
+  const user = await UserModel.findById(req.user._id).select("+twoFactorSecret");
+  if (!user) return next(new AppError("User not found", 404));
+
+  return sendSuccess(res, {
+    statusCode: 200,
+    data: {
+      enabled: Boolean(user.twoFactorEnabled),
+      pendingSetup: Boolean(user.twoFactorSecret && !user.twoFactorEnabled),
+      enabledAt: user.twoFactorEnabledAt,
+    },
+  });
+});
+
+export const setupTwoFactor = catchAsync(async (req, res, next) => {
+  if (!req.user) return next(new AppError("Not authenticated", 401));
+
+  const user = await UserModel.findById(req.user._id).select("+twoFactorSecret");
+  if (!user) return next(new AppError("User not found", 404));
+
+  if (user.twoFactorEnabled) {
+    return next(
+      new AppError("Two-factor authentication is already enabled", 400),
+    );
+  }
+
+  const label = user.email || user.phone || "CRC Connect";
+  const secret = speakeasy.generateSecret({
+    name: `CRC Connect (${label})`,
+  });
+
+  user.twoFactorSecret = encryptSecret(secret.base32);
+  user.twoFactorEnabled = false;
+  user.twoFactorEnabledAt = null;
+  await user.save({ validateBeforeSave: false });
+
+  const qrCodeDataUrl = secret.otpauth_url
+    ? await qrcode.toDataURL(secret.otpauth_url)
+    : null;
+
+  return sendSuccess(res, {
+    statusCode: 200,
+    data: {
+      secret: secret.base32,
+      otpauthUrl: secret.otpauth_url,
+      qrCodeDataUrl,
+    },
+  });
+});
+
+export const enableTwoFactor = catchAsync(async (req, res, next) => {
+  if (!req.user) return next(new AppError("Not authenticated", 401));
+
+  const { code } = req.body || {};
+  if (!code) return next(new AppError("Two-factor code is required", 400));
+
+  const user = await UserModel.findById(req.user._id).select("+twoFactorSecret");
+  if (!user) return next(new AppError("User not found", 404));
+
+  if (!user.twoFactorSecret) {
+    return next(new AppError("Two-factor setup has not been initialized", 400));
+  }
+
+  verifyTwoFactorCodeOrThrow(user, code);
+
+  user.twoFactorEnabled = true;
+  user.twoFactorEnabledAt = new Date();
+  await user.save({ validateBeforeSave: false });
+
+  return sendSuccess(res, {
+    statusCode: 200,
+    message: "Two-factor authentication enabled successfully.",
+    data: {
+      enabled: true,
+      enabledAt: user.twoFactorEnabledAt,
+    },
+  });
+});
+
+export const disableTwoFactor = catchAsync(async (req, res, next) => {
+  if (!req.user) return next(new AppError("Not authenticated", 401));
+
+  const { password, code } = req.body || {};
+  if (!password) return next(new AppError("Password is required", 400));
+  if (!code) return next(new AppError("Two-factor code is required", 400));
+
+  const user = await UserModel.findById(req.user._id).select(
+    "+password +twoFactorSecret",
+  );
+  if (!user) return next(new AppError("User not found", 404));
+
+  const ok = await user.correctPassword(String(password));
+  if (!ok) return next(new AppError("Invalid password", 401));
+
+  verifyTwoFactorCodeOrThrow(user, code);
+
+  user.twoFactorEnabled = false;
+  user.twoFactorSecret = null;
+  user.twoFactorEnabledAt = null;
+  await user.save({ validateBeforeSave: false });
+
+  return sendSuccess(res, {
+    statusCode: 200,
+    message: "Two-factor authentication disabled.",
+    data: { enabled: false },
+  });
+});
+
+export const verifyTwoFactorLogin = catchAsync(async (req, res, next) => {
+  const { token, code } = req.body || {};
+  if (!token || !code) {
+    return next(new AppError("Two-factor token and code are required", 400));
+  }
+
+  const decoded = verifyTwoFactorToken(String(token));
+  if (decoded?.type !== "2fa" || !decoded?.id) {
+    return next(new AppError("Invalid two-factor token", 401));
+  }
+
+  const user = await UserModel.findById(decoded.id).select(
+    "+twoFactorSecret +active",
+  );
+  if (!user) return next(new AppError("User not found", 404));
+
+  await enforceDeletionStatus(user);
+  if (user.active === false) {
+    return next(new AppError("Account is not active", 403));
+  }
+
+  if (!user.twoFactorEnabled) {
+    return next(new AppError("Two-factor authentication is not enabled", 400));
+  }
+
+  verifyTwoFactorCodeOrThrow(user, code);
+  await ensureActiveGroupMembership(user);
+
+  const data = await buildAuthResponse(user, req);
+  await recordLoginHistory(user, req, "two_factor");
+
+  return sendSuccess(res, {
+    statusCode: 200,
+    accessToken: data.accessToken,
+    refreshToken: data.refreshToken,
+    data: { user: data.user, profile: data.profile },
+  });
+});
+
+export const getLoginHistory = catchAsync(async (req, res, next) => {
+  if (!req.user) return next(new AppError("Not authenticated", 401));
+
+  const limit = Math.min(Number(req.query?.limit || 20), 100);
+  const page = Math.max(Number(req.query?.page || 1), 1);
+  const skip = (page - 1) * limit;
+
+  const [items, total] = await Promise.all([
+    LoginHistoryModel.find({ userId: req.user._id })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    LoginHistoryModel.countDocuments({ userId: req.user._id }),
+  ]);
+
+  return sendSuccess(res, {
+    statusCode: 200,
+    data: { history: items },
+    total,
+    page,
+    limit,
+  });
+});
+
+export const getAccountDeletionStatus = catchAsync(async (req, res, next) => {
+  if (!req.user) return next(new AppError("Not authenticated", 401));
+
+  const user = await UserModel.findById(req.user._id);
+  if (!user) return next(new AppError("User not found", 404));
+
+  return sendSuccess(res, {
+    statusCode: 200,
+    data: {
+      requestedAt: user.deletionRequestedAt,
+      scheduledFor: user.deletionScheduledFor,
+      cancelledAt: user.deletionCancelledAt,
+      isPending: Boolean(
+        user.deletionScheduledFor &&
+          new Date(user.deletionScheduledFor).getTime() > Date.now(),
+      ),
+    },
+  });
+});
+
+export const requestAccountDeletion = catchAsync(async (req, res, next) => {
+  if (!req.user) return next(new AppError("Not authenticated", 401));
+
+  const { password, code } = req.body || {};
+  if (!password) return next(new AppError("Password is required", 400));
+
+  const user = await UserModel.findById(req.user._id).select(
+    "+password +twoFactorSecret",
+  );
+  if (!user) return next(new AppError("User not found", 404));
+
+  const ok = await user.correctPassword(String(password));
+  if (!ok) return next(new AppError("Invalid password", 401));
+
+  if (user.twoFactorEnabled) {
+    if (!code) {
+      return next(new AppError("Two-factor code is required", 400));
+    }
+    verifyTwoFactorCodeOrThrow(user, code);
+  }
+
+  const graceDays = Number(process.env.ACCOUNT_DELETION_GRACE_DAYS || 7);
+  const now = new Date();
+  const scheduledFor = new Date(
+    now.getTime() + graceDays * 24 * 60 * 60 * 1000,
+  );
+
+  user.deletionRequestedAt = now;
+  user.deletionScheduledFor = scheduledFor;
+  user.deletionCancelledAt = null;
+  user.deletedAt = null;
+  await user.save({ validateBeforeSave: false });
+
+  return sendSuccess(res, {
+    statusCode: 200,
+    message:
+      "Account deletion scheduled. You can cancel before the scheduled date.",
+    data: {
+      scheduledFor,
+      graceDays,
+    },
+  });
+});
+
+export const cancelAccountDeletion = catchAsync(async (req, res, next) => {
+  if (!req.user) return next(new AppError("Not authenticated", 401));
+
+  const { password, code } = req.body || {};
+  if (!password) return next(new AppError("Password is required", 400));
+
+  const user = await UserModel.findById(req.user._id).select(
+    "+password +twoFactorSecret",
+  );
+  if (!user) return next(new AppError("User not found", 404));
+
+  const ok = await user.correctPassword(String(password));
+  if (!ok) return next(new AppError("Invalid password", 401));
+
+  if (user.twoFactorEnabled) {
+    if (!code) {
+      return next(new AppError("Two-factor code is required", 400));
+    }
+    verifyTwoFactorCodeOrThrow(user, code);
+  }
+
+  user.deletionRequestedAt = null;
+  user.deletionScheduledFor = null;
+  user.deletionCancelledAt = new Date();
+  user.deletedAt = null;
+  await user.save({ validateBeforeSave: false });
+
+  return sendSuccess(res, {
+    statusCode: 200,
+    message: "Account deletion request cancelled.",
+  });
+});
+
 export const protect = catchAsync(async (req, res, next) => {
   let token;
   if (req.headers.authorization?.startsWith("Bearer ")) {
@@ -972,7 +1395,15 @@ export const protect = catchAsync(async (req, res, next) => {
     "+active +passwordChangedAt",
   );
 
-  if (!currentUser || currentUser.active === false) {
+  if (!currentUser) {
+    return next(
+      new AppError("The user belonging to this token no longer exists", 401),
+    );
+  }
+
+  await enforceDeletionStatus(currentUser);
+
+  if (currentUser.active === false) {
     return next(
       new AppError("The user belonging to this token no longer exists", 401),
     );
@@ -983,6 +1414,8 @@ export const protect = catchAsync(async (req, res, next) => {
       new AppError("User recently changed password. Please log in again.", 401),
     );
   }
+
+  await ensureActiveGroupMembership(currentUser);
 
   req.user = currentUser;
   return next();

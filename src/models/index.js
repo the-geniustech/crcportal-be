@@ -49,6 +49,7 @@ export {
 export { TransactionModel, TransactionSchema } from "./Transaction.js";
 export { UserModel, UserSchema } from "./User.js";
 export { RefreshTokenModel, RefreshTokenSchema } from "./RefreshToken.js";
+export { LoginHistoryModel, LoginHistorySchema } from "./LoginHistory.js";
 export {
   PhoneOtpSessionModel,
   PhoneOtpSessionSchema,

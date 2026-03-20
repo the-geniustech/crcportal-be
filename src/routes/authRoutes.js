@@ -3,16 +3,25 @@
 import rateLimit from "../middlewares/rateLimit.js";
 import {
   changePassword,
+  cancelAccountDeletion,
+  disableTwoFactor,
   forgotPassword,
+  getAccountDeletionStatus,
+  getLoginHistory,
+  getTwoFactorStatus,
   login,
   logout,
+  enableTwoFactor,
   protect,
   refresh,
   resendVerification,
   resetPassword,
+  requestAccountDeletion,
+  setupTwoFactor,
   signup,
   verifyEmail,
   verifyPhone,
+  verifyTwoFactorLogin,
   sendPhoneOtpLogin,
   verifyPhoneOtpLogin,
 } from "../controllers/authController.js";
@@ -63,6 +72,16 @@ const otpVerifyLimiter = rateLimit({
   message: "Too many OTP attempts. Please try again later.",
 });
 
+const twoFactorLimiter = rateLimit({
+  windowMs: 10 * 60_000,
+  max: 10,
+  keyGenerator: (req) => {
+    const token = (req.body?.token || "").toString().slice(0, 12);
+    return `2fa:${req.ip}:${token}`;
+  },
+  message: "Too many 2FA attempts. Please try again later.",
+});
+
 const forgotLimiter = rateLimit({
   windowMs: 10 * 60_000,
   max: 8,
@@ -104,6 +123,18 @@ router.post("/forgot-password", forgotLimiter, forgotPassword);
 router.post("/reset-password", resetLimiter, resetPassword);
 
 router.patch("/change-password", protect, changePassword);
+
+router.get("/2fa/status", protect, getTwoFactorStatus);
+router.post("/2fa/setup", protect, setupTwoFactor);
+router.post("/2fa/enable", protect, enableTwoFactor);
+router.post("/2fa/disable", protect, disableTwoFactor);
+router.post("/2fa/login", twoFactorLimiter, verifyTwoFactorLogin);
+
+router.get("/login-history", protect, getLoginHistory);
+
+router.get("/account-deletion", protect, getAccountDeletionStatus);
+router.post("/account-deletion/request", protect, requestAccountDeletion);
+router.post("/account-deletion/cancel", protect, cancelAccountDeletion);
 
 router.get("/me", protect, getMe);
 

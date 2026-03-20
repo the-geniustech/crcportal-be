@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import { Server as SocketIOServer } from "socket.io";
 
 import { UserModel } from "./models/User.js";
+import { GroupMembershipModel } from "./models/GroupMembership.js";
 
 let io = null;
 
@@ -51,6 +52,21 @@ export function initSocket(server) {
       const user = await UserModel.findById(decoded.id).select("+active");
       if (!user || user.active === false) {
         return next(new Error("User not found"));
+      }
+
+      if (String(user.role || "") !== "admin") {
+        const activeMembership = await GroupMembershipModel.exists({
+          userId: user.profileId,
+          status: "active",
+        });
+
+        if (!activeMembership) {
+          return next(
+            new Error(
+              "User is not approved in any group. Please contact your coordinator.",
+            ),
+          );
+        }
       }
 
       socket.data.userId = String(user._id);

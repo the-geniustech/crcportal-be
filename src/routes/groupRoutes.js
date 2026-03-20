@@ -57,9 +57,10 @@ import {
 
 const router = express.Router();
 
+router.get("/", listGroups);
+
 router.use(protect);
 
-router.get("/", listGroups);
 router.post("/", restrictTo("admin", "groupCoordinator"), createGroup);
 
 router.get("/:groupId", loadGroup, loadMyGroupMembership, getGroup);
@@ -72,7 +73,12 @@ router.patch(
 );
 router.delete("/:groupId", restrictTo("admin"), loadGroup, archiveGroup);
 
-router.patch("/:groupId/coordinator", restrictTo("admin"), loadGroup, setCoordinator);
+router.patch(
+  "/:groupId/coordinator",
+  restrictTo("admin"),
+  loadGroup,
+  setCoordinator,
+);
 
 router.post("/:groupId/join", loadGroup, joinGroup);
 router.post("/:groupId/leave", loadGroup, leaveGroup);
