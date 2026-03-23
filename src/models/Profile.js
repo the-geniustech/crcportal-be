@@ -44,20 +44,20 @@ export const ProfileSchema = new Schema(
   { timestamps: true },
 );
 
-ProfileSchema.index(
-  { email: 1 },
-  {
-    unique: true,
-    partialFilterExpression: { email: { $type: "string", $ne: "" } },
-  },
-);
-ProfileSchema.index(
-  { phone: 1 },
-  {
-    unique: true,
-    partialFilterExpression: { phone: { $type: "string", $ne: "" } },
-  },
-);
+// ProfileSchema.index(
+//   { email: 1 },
+//   {
+//     unique: true,
+//     partialFilterExpression: { email: { $type: "string", $ne: "" } },
+//   },
+// );
+// ProfileSchema.index(
+//   { phone: 1 },
+//   {
+//     unique: true,
+//     partialFilterExpression: { phone: { $type: "string", $ne: "" } },
+//   },
+// );
 ProfileSchema.index({ membershipStatus: 1 });
 
 export const ProfileModel = model("Profile", ProfileSchema);

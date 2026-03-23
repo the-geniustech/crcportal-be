@@ -1,7 +1,12 @@
 ﻿import bcrypt from "bcryptjs";
 import { Schema, ObjectId, model } from "./_shared.js";
 
-export const UserRoles = ["member", "groupCoordinator", "groupGuarantor", "admin"];
+export const UserRoles = [
+  "member",
+  "groupCoordinator",
+  "groupGuarantor",
+  "admin",
+];
 
 export const UserSchema = new Schema(
   {
@@ -181,19 +186,19 @@ UserSchema.methods.changedPasswordAfter = function (jwtIatSeconds) {
   return changedTimestamp > jwtIatSeconds;
 };
 
-UserSchema.index(
-  { email: 1 },
-  {
-    unique: true,
-    partialFilterExpression: { email: { $type: "string", $ne: "" } },
-  },
-);
-UserSchema.index(
-  { phone: 1 },
-  {
-    unique: true,
-    partialFilterExpression: { phone: { $type: "string", $ne: "" } },
-  },
-);
+// UserSchema.index(
+//   { email: 1 },
+//   {
+//     unique: true,
+//     partialFilterExpression: { email: { $type: "string", $ne: "" } },
+//   },
+// );
+// UserSchema.index(
+//   { phone: 1 },
+//   {
+//     unique: true,
+//     partialFilterExpression: { phone: { $type: "string", $ne: "" } },
+//   },
+// );
 
 export const UserModel = model("User", UserSchema);

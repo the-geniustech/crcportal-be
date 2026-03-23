@@ -24,6 +24,28 @@ async function getManageableGroupIds(req) {
   return memberships.map((m) => String(m.groupId));
 }
 
+export const ensureAdminLoanAccess = catchAsync(async (req, res, next) => {
+  if (!req.user) return next(new AppError("Not authenticated", 401));
+  if (req.user.role === "admin") return next();
+
+  if (req.user.role !== "groupCoordinator") {
+    return next(new AppError("Insufficient permissions", 403));
+  }
+
+  const loan = req.loanApplication;
+  if (!loan) return next(new AppError("Missing loan context", 500));
+  if (!loan.groupId) {
+    return next(new AppError("Only admins can manage this loan", 403));
+  }
+
+  const manageableGroupIds = await getManageableGroupIds(req);
+  if (!manageableGroupIds || !manageableGroupIds.includes(String(loan.groupId))) {
+    return next(new AppError("You cannot manage loans for this group", 403));
+  }
+
+  return next();
+});
+
 export const listAdminLoanApplications = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
 
@@ -123,4 +145,3 @@ export const reviewAdminLoanApplication = catchAsync(async (req, res, next) => {
 
   return sendSuccess(res, { statusCode: 200, data: { application: app } });
 });
-

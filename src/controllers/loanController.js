@@ -1,7 +1,10 @@
 import AppError from "../utils/AppError.js";
 import catchAsync from "../utils/catchAsync.js";
 import sendSuccess from "../utils/sendSuccess.js";
-import { LoanApplicationModel, LoanApplicationStatuses } from "../models/LoanApplication.js";
+import {
+  LoanApplicationModel,
+  LoanApplicationStatuses,
+} from "../models/LoanApplication.js";
 import { LoanGuarantorModel } from "../models/LoanGuarantor.js";
 import { GuarantorNotificationModel } from "../models/GuarantorNotification.js";
 import { LoanRepaymentScheduleItemModel } from "../models/LoanRepaymentScheduleItem.js";
@@ -49,16 +52,19 @@ function addMonths(date, months) {
   return d;
 }
 
-function buildAmortizedSchedule({ principal, annualRatePct, months, startDate }) {
+function buildAmortizedSchedule({
+  principal,
+  annualRatePct,
+  months,
+  startDate,
+}) {
   const P = Number(principal);
   const n = Math.max(1, Number(months) | 0);
   const annual = Math.max(0, Number(annualRatePct) || 0);
   const r = annual / 100 / 12;
 
   const payment =
-    r === 0
-      ? P / n
-      : (P * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+    r === 0 ? P / n : (P * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
 
   let balance = P;
   const items = [];
@@ -93,7 +99,8 @@ function buildAmortizedSchedule({ principal, annualRatePct, months, startDate })
 }
 
 async function ensureActiveMember(profileId) {
-  const profile = await ProfileModel.findById(profileId).select("membershipStatus");
+  const profile =
+    await ProfileModel.findById(profileId).select("membershipStatus");
   if (!profile) throw new AppError("User profile not found", 400);
   if (profile.membershipStatus !== "active") {
     throw new AppError("Membership is not active", 403);
@@ -103,33 +110,58 @@ async function ensureActiveMember(profileId) {
 
 export const getLoanEligibility = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
-  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
 
-  const profile = await ProfileModel.findById(req.user.profileId).select("createdAt membershipStatus");
+  const profile = await ProfileModel.findById(req.user.profileId).select(
+    "createdAt membershipStatus",
+  );
+  const membership = await GroupMembershipModel.findOne({
+    userId: req.user.profileId,
+    status: "active",
+  });
+
   if (!profile) return next(new AppError("User profile not found", 400));
+  if (!membership) {
+    return next(
+      new AppError("You must be an active member to apply for a loan", 403),
+    );
+  }
 
   const now = new Date();
-  const createdAt = profile.createdAt ? new Date(profile.createdAt) : now;
-  const membershipDuration =
-    Math.max(0, (now.getFullYear() - createdAt.getFullYear()) * 12 + (now.getMonth() - createdAt.getMonth()));
+  // const createdAt = profile.createdAt ? new Date(profile.createdAt) : now;
+  const joinedAt = membership.joinedAt ? new Date(membership.joinedAt) : now;
+  const membershipDuration = Math.max(
+    0,
+    (now.getFullYear() - joinedAt.getFullYear()) * 12 +
+      (now.getMonth() - joinedAt.getMonth()),
+  );
+  console.log("Membership Duration: ", membershipDuration);
 
-  const [groupsJoined, contributionAgg, previousLoans, defaultedLoans] = await Promise.all([
-    GroupMembershipModel.countDocuments({ userId: req.user.profileId, status: "active" }),
-    ContributionModel.aggregate([
-      {
-        $match: {
-          userId: profile._id,
-          status: { $in: ["completed", "verified"] },
+  const [groupsJoined, contributionAgg, previousLoans, defaultedLoans] =
+    await Promise.all([
+      GroupMembershipModel.countDocuments({
+        userId: req.user.profileId,
+        status: "active",
+      }),
+      ContributionModel.aggregate([
+        {
+          $match: {
+            userId: profile._id,
+            status: { $in: ["completed", "verified"] },
+          },
         },
-      },
-      { $group: { _id: null, sum: { $sum: "$amount" } } },
-    ]),
-    LoanApplicationModel.countDocuments({
-      userId: req.user.profileId,
-      status: { $in: ["disbursed", "completed", "defaulted"] },
-    }),
-    LoanApplicationModel.countDocuments({ userId: req.user.profileId, status: "defaulted" }),
-  ]);
+        { $group: { _id: null, sum: { $sum: "$amount" } } },
+      ]),
+      LoanApplicationModel.countDocuments({
+        userId: req.user.profileId,
+        status: { $in: ["disbursed", "completed", "defaulted"] },
+      }),
+      LoanApplicationModel.countDocuments({
+        userId: req.user.profileId,
+        status: "defaulted",
+      }),
+    ]);
 
   const totalContributions = Number(contributionAgg?.[0]?.sum ?? 0);
 
@@ -150,7 +182,8 @@ export const getLoanEligibility = catchAsync(async (req, res, next) => {
 
 export const createLoanApplication = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
-  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
 
   if (req.user.role !== "admin") {
     await ensureActiveMember(req.user.profileId);
@@ -174,7 +207,8 @@ export const createLoanApplication = catchAsync(async (req, res, next) => {
   if (!payload.loanAmount || Number(payload.loanAmount) <= 0) {
     return next(new AppError("loanAmount is required", 400));
   }
-  if (!payload.loanPurpose) return next(new AppError("loanPurpose is required", 400));
+  if (!payload.loanPurpose)
+    return next(new AppError("loanPurpose is required", 400));
   if (!payload.repaymentPeriod || Number(payload.repaymentPeriod) <= 0) {
     return next(new AppError("repaymentPeriod is required", 400));
   }
@@ -191,14 +225,18 @@ export const createLoanApplication = catchAsync(async (req, res, next) => {
         status: "active",
       });
       if (!membership) {
-        return next(new AppError("You must be an active member of this group", 403));
+        return next(
+          new AppError("You must be an active member of this group", 403),
+        );
       }
     }
 
     payload.groupName = payload.groupName || group.groupName;
   }
 
-  const guarantors = Array.isArray(payload.guarantors) ? payload.guarantors : [];
+  const guarantors = Array.isArray(payload.guarantors)
+    ? payload.guarantors
+    : [];
   const memberGuarantors = guarantors.filter((g) => g && g.type === "member");
 
   let liabilitySum = 0;
@@ -206,7 +244,9 @@ export const createLoanApplication = catchAsync(async (req, res, next) => {
 
   for (const g of memberGuarantors) {
     if (!g.profileId) {
-      return next(new AppError("Member guarantors must include profileId", 400));
+      return next(
+        new AppError("Member guarantors must include profileId", 400),
+      );
     }
     const profileId = String(g.profileId);
     if (seenProfiles.has(profileId)) {
@@ -222,7 +262,9 @@ export const createLoanApplication = catchAsync(async (req, res, next) => {
   }
 
   if (liabilitySum > 100) {
-    return next(new AppError("Total liabilityPercentage cannot exceed 100", 400));
+    return next(
+      new AppError("Total liabilityPercentage cannot exceed 100", 400),
+    );
   }
 
   if (group) {
@@ -233,7 +275,12 @@ export const createLoanApplication = catchAsync(async (req, res, next) => {
         status: "active",
       });
       if (!membership) {
-        return next(new AppError("All member guarantors must be active group members", 400));
+        return next(
+          new AppError(
+            "All member guarantors must be active group members",
+            400,
+          ),
+        );
       }
     }
   }
@@ -278,7 +325,9 @@ export const createLoanApplication = catchAsync(async (req, res, next) => {
       sentVia: [],
       readAt: null,
     }));
-    await GuarantorNotificationModel.insertMany(notifications, { ordered: false });
+    await GuarantorNotificationModel.insertMany(notifications, {
+      ordered: false,
+    });
   }
 
   createNotification({
@@ -307,10 +356,17 @@ export const createLoanApplication = catchAsync(async (req, res, next) => {
 
 export const listMyLoanApplications = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
-  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
 
-  const apps = await LoanApplicationModel.find({ userId: req.user.profileId }).sort({ createdAt: -1 });
-  return sendSuccess(res, { statusCode: 200, results: apps.length, data: { applications: apps } });
+  const apps = await LoanApplicationModel.find({
+    userId: req.user.profileId,
+  }).sort({ createdAt: -1 });
+  return sendSuccess(res, {
+    statusCode: 200,
+    results: apps.length,
+    data: { applications: apps },
+  });
 });
 
 export const listLoanApplications = catchAsync(async (req, res) => {
@@ -321,7 +377,8 @@ export const listLoanApplications = catchAsync(async (req, res) => {
     if (LoanApplicationStatuses.includes(status)) filter.status = status;
   }
 
-  const search = typeof req.query?.search === "string" ? req.query.search.trim() : "";
+  const search =
+    typeof req.query?.search === "string" ? req.query.search.trim() : "";
   if (search) {
     filter.$or = [
       { loanCode: { $regex: search, $options: "i" } },
@@ -331,11 +388,17 @@ export const listLoanApplications = catchAsync(async (req, res) => {
   }
 
   const page = Math.max(1, parseInt(String(req.query?.page ?? "1"), 10) || 1);
-  const limit = Math.min(200, Math.max(1, parseInt(String(req.query?.limit ?? "50"), 10) || 50));
+  const limit = Math.min(
+    200,
+    Math.max(1, parseInt(String(req.query?.limit ?? "50"), 10) || 50),
+  );
   const skip = (page - 1) * limit;
 
   const [applications, total] = await Promise.all([
-    LoanApplicationModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+    LoanApplicationModel.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit),
     LoanApplicationModel.countDocuments(filter),
   ]);
 
@@ -350,11 +413,16 @@ export const listLoanApplications = catchAsync(async (req, res) => {
 });
 
 export const getLoanApplication = catchAsync(async (req, res, next) => {
-  if (!req.loanApplication) return next(new AppError("Missing loan context", 500));
+  if (!req.loanApplication)
+    return next(new AppError("Missing loan context", 500));
 
   const [guarantors, schedule] = await Promise.all([
-    LoanGuarantorModel.find({ loanApplicationId: req.loanApplication._id }).sort({ createdAt: -1 }),
-    LoanRepaymentScheduleItemModel.find({ loanApplicationId: req.loanApplication._id }).sort({
+    LoanGuarantorModel.find({
+      loanApplicationId: req.loanApplication._id,
+    }).sort({ createdAt: -1 }),
+    LoanRepaymentScheduleItemModel.find({
+      loanApplicationId: req.loanApplication._id,
+    }).sort({
       installmentNumber: 1,
     }),
   ]);
@@ -371,10 +439,13 @@ export const getLoanApplication = catchAsync(async (req, res, next) => {
 
 export const reviewLoanApplication = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
-  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
-  if (!req.loanApplication) return next(new AppError("Missing loan context", 500));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
+  if (!req.loanApplication)
+    return next(new AppError("Missing loan context", 500));
 
-  const { status, reviewNotes, approvedAmount, approvedInterestRate } = req.body || {};
+  const { status, reviewNotes, approvedAmount, approvedInterestRate } =
+    req.body || {};
 
   const allowedStatuses = new Set(["under_review", "approved", "rejected"]);
   if (!status || !allowedStatuses.has(String(status))) {
@@ -382,7 +453,8 @@ export const reviewLoanApplication = catchAsync(async (req, res, next) => {
   }
 
   req.loanApplication.status = status;
-  req.loanApplication.reviewNotes = reviewNotes ?? req.loanApplication.reviewNotes;
+  req.loanApplication.reviewNotes =
+    reviewNotes ?? req.loanApplication.reviewNotes;
   req.loanApplication.reviewedBy = req.user.profileId;
   req.loanApplication.reviewedAt = new Date();
 
@@ -390,7 +462,10 @@ export const reviewLoanApplication = catchAsync(async (req, res, next) => {
     if (typeof approvedAmount !== "undefined" && approvedAmount !== null) {
       req.loanApplication.approvedAmount = Number(approvedAmount);
     }
-    if (typeof approvedInterestRate !== "undefined" && approvedInterestRate !== null) {
+    if (
+      typeof approvedInterestRate !== "undefined" &&
+      approvedInterestRate !== null
+    ) {
       req.loanApplication.approvedInterestRate = Number(approvedInterestRate);
     }
     req.loanApplication.approvedAt = new Date();
@@ -420,40 +495,72 @@ export const reviewLoanApplication = catchAsync(async (req, res, next) => {
     console.error("Failed to create loan status notification", err);
   });
 
-  return sendSuccess(res, { statusCode: 200, data: { application: req.loanApplication } });
+  return sendSuccess(res, {
+    statusCode: 200,
+    data: { application: req.loanApplication },
+  });
 });
 
 export const disburseLoan = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
-  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
-  if (!req.loanApplication) return next(new AppError("Missing loan context", 500));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
+  if (!req.loanApplication)
+    return next(new AppError("Missing loan context", 500));
 
   if (req.loanApplication.status !== "approved") {
-    return next(new AppError("Loan application must be approved before disbursement", 400));
+    return next(
+      new AppError(
+        "Loan application must be approved before disbursement",
+        400,
+      ),
+    );
   }
 
-  const principal = Number(req.loanApplication.approvedAmount ?? req.loanApplication.loanAmount);
-  const rate = Number(req.loanApplication.approvedInterestRate ?? req.loanApplication.interestRate ?? 0);
+  const principal = Number(
+    req.loanApplication.approvedAmount ?? req.loanApplication.loanAmount,
+  );
+  const rate = Number(
+    req.loanApplication.approvedInterestRate ??
+      req.loanApplication.interestRate ??
+      0,
+  );
   const termMonths = Number(req.loanApplication.repaymentPeriod);
 
-  const guarantors = await LoanGuarantorModel.find({ loanApplicationId: req.loanApplication._id });
+  const guarantors = await LoanGuarantorModel.find({
+    loanApplicationId: req.loanApplication._id,
+  });
   if (!guarantors.length) {
-    return next(new AppError("At least one guarantor is required to disburse this loan", 400));
+    return next(
+      new AppError(
+        "At least one guarantor is required to disburse this loan",
+        400,
+      ),
+    );
   }
 
-  const liabilityTotal = guarantors.reduce((sum, g) => sum + Number(g.liabilityPercentage || 0), 0);
+  const liabilityTotal = guarantors.reduce(
+    (sum, g) => sum + Number(g.liabilityPercentage || 0),
+    0,
+  );
   const allAccepted = guarantors.every((g) => g.status === "accepted");
 
   if (liabilityTotal !== 100) {
-    return next(new AppError("Guarantor liabilityPercentage must total 100 to disburse this loan", 400));
+    return next(
+      new AppError(
+        "Guarantor liabilityPercentage must total 100 to disburse this loan",
+        400,
+      ),
+    );
   }
   if (!allAccepted) {
-    return next(new AppError("All guarantors must accept before disbursement", 400));
+    return next(
+      new AppError("All guarantors must accept before disbursement", 400),
+    );
   }
 
   const repaymentStartDate =
-    parseDateOrNull(req.body?.repaymentStartDate) ||
-    addMonths(new Date(), 1);
+    parseDateOrNull(req.body?.repaymentStartDate) || addMonths(new Date(), 1);
 
   const { items, totalRepayable, monthlyPayment } = buildAmortizedSchedule({
     principal,
@@ -462,7 +569,9 @@ export const disburseLoan = catchAsync(async (req, res, next) => {
     startDate: repaymentStartDate,
   });
 
-  await LoanRepaymentScheduleItemModel.deleteMany({ loanApplicationId: req.loanApplication._id });
+  await LoanRepaymentScheduleItemModel.deleteMany({
+    loanApplicationId: req.loanApplication._id,
+  });
   await LoanRepaymentScheduleItemModel.insertMany(
     items.map((it) => ({
       loanApplicationId: req.loanApplication._id,
@@ -503,19 +612,26 @@ export const disburseLoan = catchAsync(async (req, res, next) => {
 });
 
 export const listLoanSchedule = catchAsync(async (req, res, next) => {
-  if (!req.loanApplication) return next(new AppError("Missing loan context", 500));
+  if (!req.loanApplication)
+    return next(new AppError("Missing loan context", 500));
 
   const schedule = await LoanRepaymentScheduleItemModel.find({
     loanApplicationId: req.loanApplication._id,
   }).sort({ installmentNumber: 1 });
 
-  return sendSuccess(res, { statusCode: 200, results: schedule.length, data: { schedule } });
+  return sendSuccess(res, {
+    statusCode: 200,
+    results: schedule.length,
+    data: { schedule },
+  });
 });
 
 export const recordLoanRepayment = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
-  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
-  if (!req.loanApplication) return next(new AppError("Missing loan context", 500));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
+  if (!req.loanApplication)
+    return next(new AppError("Missing loan context", 500));
 
   if (!["disbursed", "defaulted"].includes(req.loanApplication.status)) {
     return next(new AppError("Loan is not active", 400));
@@ -523,7 +639,8 @@ export const recordLoanRepayment = catchAsync(async (req, res, next) => {
 
   const amount = Number(req.body?.amount);
   const reference = String(req.body?.reference || "").trim();
-  if (!amount || amount <= 0) return next(new AppError("amount is required", 400));
+  if (!amount || amount <= 0)
+    return next(new AppError("amount is required", 400));
   if (!reference) return next(new AppError("reference is required", 400));
 
   const nextItem = await LoanRepaymentScheduleItemModel.findOne({
@@ -536,7 +653,9 @@ export const recordLoanRepayment = catchAsync(async (req, res, next) => {
   }
 
   if (amount < nextItem.totalAmount) {
-    return next(new AppError("Repayment amount must cover the next installment", 400));
+    return next(
+      new AppError("Repayment amount must cover the next installment", 400),
+    );
   }
 
   const tx = await TransactionModel.create({
@@ -559,7 +678,10 @@ export const recordLoanRepayment = catchAsync(async (req, res, next) => {
   nextItem.reference = reference;
   await nextItem.save();
 
-  const remaining = Math.max(0, Number(req.loanApplication.remainingBalance || 0) - nextItem.totalAmount);
+  const remaining = Math.max(
+    0,
+    Number(req.loanApplication.remainingBalance || 0) - nextItem.totalAmount,
+  );
   req.loanApplication.remainingBalance = remaining;
 
   const hasMore = await LoanRepaymentScheduleItemModel.exists({
