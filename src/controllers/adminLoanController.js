@@ -5,6 +5,10 @@ import sendSuccess from "../utils/sendSuccess.js";
 import { LoanApplicationModel, LoanApplicationStatuses } from "../models/LoanApplication.js";
 import { GroupMembershipModel } from "../models/GroupMembership.js";
 import { ProfileModel } from "../models/Profile.js";
+import {
+  getLoanInterestConfig,
+  isInterestRateAllowed,
+} from "../utils/loanPolicy.js";
 
 async function getManageableGroupIds(req) {
   if (!req.user) throw new AppError("Not authenticated", 401);
@@ -136,7 +140,14 @@ export const reviewAdminLoanApplication = catchAsync(async (req, res, next) => {
       app.approvedAmount = Number(approvedAmount);
     }
     if (typeof approvedInterestRate !== "undefined" && approvedInterestRate !== null) {
+      if (!isInterestRateAllowed(app.loanType || "revolving", approvedInterestRate)) {
+        return next(new AppError("approvedInterestRate is not allowed for this loan type", 400));
+      }
       app.approvedInterestRate = Number(approvedInterestRate);
+    }
+    if (!app.interestRateType) {
+      const cfg = getLoanInterestConfig(app.loanType || "revolving");
+      app.interestRateType = cfg.rateType;
     }
     app.approvedAt = new Date();
   }

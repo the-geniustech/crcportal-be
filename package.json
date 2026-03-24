@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "dependencies": {
+    "adm-zip": "^0.5.16",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^2.5.1",
     "cors": "^2.8.5",
@@ -30,6 +31,8 @@
     "seed": "node src/scripts/generateMemberSeeds.js",
     "seed:members": "node src/scripts/seedMembersFromFiles.js",
     "seed:convert": "powershell -ExecutionPolicy Bypass -File C:\\\\Users\\\\user\\\\Desktop\\\\xlsx-to-csv.ps1 -InFile \"C:\\\\Users\\\\user\\\\Desktop\\\\crs\\\\backend\\\\src\\\\scripts\\\\Champions Revolving Contributions New Membership Registration Form  (Responses) (9).xlsx\" -OutFile \"C:\\\\Users\\\\user\\\\Desktop\\\\crs\\\\backend\\\\src\\\\scripts\\\\Champions Revolving Contributions New Membership Registration Form  (Responses) (9).csv\"",
-    "seed:group-votes": "node src/scripts/seedGroupVotesAndReminders.js"
+    "seed:group-votes": "node src/scripts/seedGroupVotesAndReminders.js",
+    "seed:membership-doc:generate": "node src/scripts/parseMembershipDoc.js",
+    "seed:membership-doc": "node src/scripts/seedMembershipDocData.js"
   }
 }

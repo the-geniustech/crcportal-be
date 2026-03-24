@@ -1,4 +1,5 @@
-﻿import { Schema, model } from "./_shared.js";
+﻿// backend/src/models/Profile.js
+import { Schema, model } from "./_shared.js";
 
 export const MembershipStatuses = [
   "pending",

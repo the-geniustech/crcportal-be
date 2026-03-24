@@ -1,4 +1,8 @@
-﻿import { Schema, ObjectId, model } from "./_shared.js";
+import { Schema, ObjectId, model } from "./_shared.js";
+import {
+  LoanFacilityTypes,
+  LoanInterestRateTypes,
+} from "../utils/loanPolicy.js";
 
 export const LoanApplicationStatuses = [
   "pending",
@@ -48,12 +52,24 @@ export const LoanApplicationSchema = new Schema(
     loanNumber: { type: Number, default: null },
     loanCode: { type: String, default: null, trim: true, index: true },
 
+    loanType: {
+      type: String,
+      enum: LoanFacilityTypes,
+      default: "revolving",
+      index: true,
+    },
+
     loanAmount: { type: Number, required: true, min: 0 },
     loanPurpose: { type: String, required: true, trim: true },
     purposeDescription: { type: String, default: "", trim: true },
 
     repaymentPeriod: { type: Number, required: true, min: 1 },
     interestRate: { type: Number, default: null, min: 0 },
+    interestRateType: {
+      type: String,
+      enum: LoanInterestRateTypes,
+      default: "annual",
+    },
     monthlyIncome: { type: Number, default: null, min: 0 },
 
     documents: { type: [LoanDocumentSchema], default: [] },

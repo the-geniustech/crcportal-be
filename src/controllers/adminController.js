@@ -58,17 +58,46 @@ export const listAdminGroups = catchAsync(async (req, res, next) => {
     filter.status = String(req.query.status).trim();
   }
 
+  const category =
+    typeof req.query?.category === "string" ? String(req.query.category).trim() : "";
+  if (category && category !== "All Categories") {
+    filter.category = category;
+  }
+
+  const location =
+    typeof req.query?.location === "string" ? String(req.query.location).trim() : "";
+  if (location && location !== "All Locations") {
+    filter.location = location;
+  }
+
   const search = typeof req.query?.search === "string" ? req.query.search.trim() : "";
   if (search) {
-    filter.groupName = { $regex: search, $options: "i" };
+    filter.$or = [
+      { groupName: { $regex: search, $options: "i" } },
+      { description: { $regex: search, $options: "i" } },
+      { location: { $regex: search, $options: "i" } },
+      { coordinatorName: { $regex: search, $options: "i" } },
+    ];
   }
 
   const page = Math.max(1, parseInt(String(req.query?.page ?? "1"), 10) || 1);
   const limit = Math.min(200, Math.max(1, parseInt(String(req.query?.limit ?? "100"), 10) || 100));
   const skip = (page - 1) * limit;
 
+  const sortKey = typeof req.query?.sort === "string" ? req.query.sort.trim() : "";
+  let sort = { groupNumber: 1 };
+  if (sortKey === "newest") {
+    sort = { createdAt: -1 };
+  } else if (sortKey === "savings") {
+    sort = { totalSavings: -1, groupNumber: 1 };
+  } else if (sortKey === "contribution") {
+    sort = { monthlyContribution: 1, groupNumber: 1 };
+  } else if (sortKey === "popular") {
+    sort = { memberCount: -1, groupNumber: 1 };
+  }
+
   const [groups, total] = await Promise.all([
-    GroupModel.find(filter).sort({ groupNumber: 1 }).skip(skip).limit(limit).lean(),
+    GroupModel.find(filter).sort(sort).skip(skip).limit(limit).lean(),
     GroupModel.countDocuments(filter),
   ]);
 
@@ -76,7 +105,7 @@ export const listAdminGroups = catchAsync(async (req, res, next) => {
   const monthYear = parseMonthYear(req);
   if (includeMetrics && monthYear.error) return next(new AppError(monthYear.error, 400));
 
-  if (!includeMetrics || groups.length === 0) {
+  if (!includeMetrics) {
     return sendSuccess(res, {
       statusCode: 200,
       results: groups.length,
@@ -140,13 +169,41 @@ export const listAdminGroups = catchAsync(async (req, res, next) => {
     };
   });
 
-  const withCoordinators = enriched.filter((g) => Boolean(g.coordinatorId)).length;
-  const totalCollected = enriched.reduce((sum, g) => sum + Number(g.collectedContributions || 0), 0);
+  const allGroups = await GroupModel.find(filter, { _id: 1, coordinatorId: 1, memberCount: 1 }).lean();
+  const allGroupObjectIds = allGroups
+    .map((g) => String(g._id))
+    .filter((id) => mongoose.Types.ObjectId.isValid(id))
+    .map((id) => new mongoose.Types.ObjectId(id));
+
+  const totalMembers = allGroups.reduce(
+    (sum, g) => sum + Number(g.memberCount || 0),
+    0,
+  );
+
+  const [withCoordinators, totalCollectedAgg, categories, locations] = await Promise.all([
+    GroupModel.countDocuments({ ...filter, coordinatorId: { $ne: null } }),
+    ContributionModel.aggregate([
+      {
+        $match: {
+          groupId: { $in: allGroupObjectIds },
+          year,
+          month,
+          contributionType: "regular",
+          status: { $in: ["verified", "completed"] },
+        },
+      },
+      { $group: { _id: null, total: { $sum: "$amount" } } },
+    ]),
+    GroupModel.distinct("category", filter),
+    GroupModel.distinct("location", filter),
+  ]);
+
+  const totalCollected = Number(totalCollectedAgg?.[0]?.total ?? 0);
 
   const ytdSums = await ContributionModel.aggregate([
     {
       $match: {
-        groupId: { $in: groupObjectIds },
+        groupId: { $in: allGroupObjectIds },
         year,
         month: { $gte: 1, $lte: month },
       },
@@ -186,9 +243,12 @@ export const listAdminGroups = catchAsync(async (req, res, next) => {
       groups: enriched,
       summary: {
         totalGroups: total,
+        totalMembers,
         withCoordinators,
         contributionPeriod: { year, month },
         totalCollected,
+        categories: categories.filter(Boolean),
+        locations: locations.filter(Boolean),
         contributionTypeTotalsYtd,
       },
     },

@@ -1,4 +1,5 @@
-﻿import bcrypt from "bcryptjs";
+﻿// backend/src/models/User.js
+import bcrypt from "bcryptjs";
 import { Schema, ObjectId, model } from "./_shared.js";
 
 export const UserRoles = [

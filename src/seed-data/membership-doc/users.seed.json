@@ -1,0 +1,6346 @@
+[
+  {
+    "seedKey": "member-0001",
+    "email": "taiwo.tope@crc.local",
+    "phone": "08010000000",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0001"
+  },
+  {
+    "seedKey": "member-0002",
+    "email": "olatunji.fausat@crc.local",
+    "phone": "08110000001",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0002"
+  },
+  {
+    "seedKey": "member-0003",
+    "email": "arise.timothy@crc.local",
+    "phone": "07010000002",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0003"
+  },
+  {
+    "seedKey": "member-0004",
+    "email": "irabor.joy@crc.local",
+    "phone": "09010000003",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0004"
+  },
+  {
+    "seedKey": "member-0005",
+    "email": "adedeji.ruth@crc.local",
+    "phone": "09110000004",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0005"
+  },
+  {
+    "seedKey": "member-0006",
+    "email": "femi.moses@crc.local",
+    "phone": "08010000005",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0006"
+  },
+  {
+    "seedKey": "member-0007",
+    "email": "solomon.niniola@crc.local",
+    "phone": "08110000006",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0007"
+  },
+  {
+    "seedKey": "member-0008",
+    "email": "irabor.liza@crc.local",
+    "phone": "07010000007",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0008"
+  },
+  {
+    "seedKey": "member-0009",
+    "email": "ogunbowale.bunmi@crc.local",
+    "phone": "09010000008",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0009"
+  },
+  {
+    "seedKey": "member-0010",
+    "email": "mokoolu.kayode@crc.local",
+    "phone": "09110000009",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0010"
+  },
+  {
+    "seedKey": "member-0011",
+    "email": "radedeji013@gmail.com",
+    "phone": "08034138906",
+    "password": "ChangeMe123!",
+    "role": "groupCoordinator",
+    "profileSeedKey": "member-0011"
+  },
+  {
+    "seedKey": "member-0012",
+    "email": "adebambo.micheal@crc.local",
+    "phone": "08010000010",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0012"
+  },
+  {
+    "seedKey": "member-0013",
+    "email": "adekunle.busirat@crc.local",
+    "phone": "08110000011",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0013"
+  },
+  {
+    "seedKey": "member-0014",
+    "email": "ajibade.adeola@crc.local",
+    "phone": "07010000012",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0014"
+  },
+  {
+    "seedKey": "member-0015",
+    "email": "moses.odunayo@crc.local",
+    "phone": "09010000013",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0015"
+  },
+  {
+    "seedKey": "member-0016",
+    "email": "olamide.christianah@crc.local",
+    "phone": "09110000014",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0016"
+  },
+  {
+    "seedKey": "member-0017",
+    "email": "adekunle.adijat@crc.local",
+    "phone": "08010000015",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0017"
+  },
+  {
+    "seedKey": "member-0018",
+    "email": "ayeni.abidemi@crc.local",
+    "phone": "08110000016",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0018"
+  },
+  {
+    "seedKey": "member-0019",
+    "email": "adebayo.funke@crc.local",
+    "phone": "07010000017",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0019"
+  },
+  {
+    "seedKey": "member-0020",
+    "email": "adelowo.abiodun@crc.local",
+    "phone": "09010000018",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0020"
+  },
+  {
+    "seedKey": "member-0021",
+    "email": "ajibade.adenike@crc.local",
+    "phone": "09110000019",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0021"
+  },
+  {
+    "seedKey": "member-0022",
+    "email": "amao.temilola@crc.local",
+    "phone": "08010000020",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0022"
+  },
+  {
+    "seedKey": "member-0023",
+    "email": "cole.elizabeth@crc.local",
+    "phone": "08110000021",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0023"
+  },
+  {
+    "seedKey": "member-0024",
+    "email": "dawotola.elizabeth@crc.local",
+    "phone": "07010000022",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0024"
+  },
+  {
+    "seedKey": "member-0025",
+    "email": "gafari.aina@crc.local",
+    "phone": "09010000023",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0025"
+  },
+  {
+    "seedKey": "member-0026",
+    "email": "kehinde.omotayo@crc.local",
+    "phone": "09110000024",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0026"
+  },
+  {
+    "seedKey": "member-0027",
+    "email": "micheal.bose@crc.local",
+    "phone": "08010000025",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0027"
+  },
+  {
+    "seedKey": "member-0028",
+    "email": "ogunniyi.dupe@crc.local",
+    "phone": "08110000026",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0028"
+  },
+  {
+    "seedKey": "member-0029",
+    "email": "olamilekan.temitope@crc.local",
+    "phone": "07010000027",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0029"
+  },
+  {
+    "seedKey": "member-0030",
+    "email": "olaonipekun.aderemi@crc.local",
+    "phone": "09010000028",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0030"
+  },
+  {
+    "seedKey": "member-0031",
+    "email": "rasaq.ramota@crc.local",
+    "phone": "09110000029",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0031"
+  },
+  {
+    "seedKey": "member-0032",
+    "email": "soyemi.oluwakemi@crc.local",
+    "phone": "08010000030",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0032"
+  },
+  {
+    "seedKey": "member-0033",
+    "email": "yusuf.suilat@crc.local",
+    "phone": "08110000031",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0033"
+  },
+  {
+    "seedKey": "member-0034",
+    "email": "kadiri.bimbo@crc.local",
+    "phone": "07010000032",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0034"
+  },
+  {
+    "seedKey": "member-0035",
+    "email": "enitinwa.bukola@crc.local",
+    "phone": "09010000033",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0035"
+  },
+  {
+    "seedKey": "member-0036",
+    "email": "gbadeyan.victoria@crc.local",
+    "phone": "09110000034",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0036"
+  },
+  {
+    "seedKey": "member-0037",
+    "email": "adeoye.adeeko@crc.local",
+    "phone": "08010000035",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0037"
+  },
+  {
+    "seedKey": "member-0038",
+    "email": "ajayi.comfort@crc.local",
+    "phone": "08110000036",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0038"
+  },
+  {
+    "seedKey": "member-0039",
+    "email": "ajibola.abidemi@crc.local",
+    "phone": "07010000037",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0039"
+  },
+  {
+    "seedKey": "member-0040",
+    "email": "akinleye.nofisat@crc.local",
+    "phone": "09010000038",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0040"
+  },
+  {
+    "seedKey": "member-0041",
+    "email": "arowolo.idayat@crc.local",
+    "phone": "09110000039",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0041"
+  },
+  {
+    "seedKey": "member-0042",
+    "email": "david.grace@crc.local",
+    "phone": "08010000040",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0042"
+  },
+  {
+    "seedKey": "member-0043",
+    "email": "meshinoye.mubo@crc.local",
+    "phone": "08110000041",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0043"
+  },
+  {
+    "seedKey": "member-0044",
+    "email": "muheed.olamilekan@crc.local",
+    "phone": "07010000042",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0044"
+  },
+  {
+    "seedKey": "member-0045",
+    "email": "oyeniran.ayodele@crc.local",
+    "phone": "09010000043",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0045"
+  },
+  {
+    "seedKey": "member-0046",
+    "email": "taiwo.sulaimon@crc.local",
+    "phone": "09110000044",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0046"
+  },
+  {
+    "seedKey": "member-0047",
+    "email": "adebiyi.florence@crc.local",
+    "phone": "08010000045",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0047"
+  },
+  {
+    "seedKey": "member-0048",
+    "email": "adekunle.ibrahim@crc.local",
+    "phone": "08110000046",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0048"
+  },
+  {
+    "seedKey": "member-0049",
+    "email": "akinpelu.folasade@crc.local",
+    "phone": "07010000047",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0049"
+  },
+  {
+    "seedKey": "member-0050",
+    "email": "durojaye.fatimo@crc.local",
+    "phone": "09010000048",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0050"
+  },
+  {
+    "seedKey": "member-0051",
+    "email": "adelakun.balikis@crc.local",
+    "phone": "09110000049",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0051"
+  },
+  {
+    "seedKey": "member-0052",
+    "email": "akinola.wemimo@crc.local",
+    "phone": "08010000050",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0052"
+  },
+  {
+    "seedKey": "member-0053",
+    "email": "ashiru.olatunde@crc.local",
+    "phone": "08110000051",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0053"
+  },
+  {
+    "seedKey": "member-0054",
+    "email": "tijani.busirat@crc.local",
+    "phone": "07010000052",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0054"
+  },
+  {
+    "seedKey": "member-0055",
+    "email": "agbebiyi.sola@crc.local",
+    "phone": "09010000053",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0055"
+  },
+  {
+    "seedKey": "member-0056",
+    "email": "ibraheem.mojeed@crc.local",
+    "phone": "09110000054",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0056"
+  },
+  {
+    "seedKey": "member-0057",
+    "email": "makinde.sofiat@crc.local",
+    "phone": "08010000055",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0057"
+  },
+  {
+    "seedKey": "member-0058",
+    "email": "olawoyin.taiwo@crc.local",
+    "phone": "08110000056",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0058"
+  },
+  {
+    "seedKey": "member-0059",
+    "email": "olotu.sola@crc.local",
+    "phone": "07010000057",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0059"
+  },
+  {
+    "seedKey": "member-0060",
+    "email": "raji.zainab@crc.local",
+    "phone": "09010000058",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0060"
+  },
+  {
+    "seedKey": "member-0061",
+    "email": "ajibade.fatimo@crc.local",
+    "phone": "09110000059",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0061"
+  },
+  {
+    "seedKey": "member-0062",
+    "email": "ogunrinde.elizabeth@crc.local",
+    "phone": "08010000060",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0062"
+  },
+  {
+    "seedKey": "member-0063",
+    "email": "olatunde.raphael@crc.local",
+    "phone": "08110000061",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0063"
+  },
+  {
+    "seedKey": "member-0064",
+    "email": "raji.barakat@crc.local",
+    "phone": "07010000062",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0064"
+  },
+  {
+    "seedKey": "member-0065",
+    "email": "rotimi.funke@crc.local",
+    "phone": "09010000063",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0065"
+  },
+  {
+    "seedKey": "member-0066",
+    "email": "ashiru.ololade@crc.local",
+    "phone": "09110000064",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0066"
+  },
+  {
+    "seedKey": "member-0067",
+    "email": "francis.adogbeji@crc.local",
+    "phone": "08010000065",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0067"
+  },
+  {
+    "seedKey": "member-0068",
+    "email": "cole.oluwatobi@crc.local",
+    "phone": "08110000066",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0068"
+  },
+  {
+    "seedKey": "member-0069",
+    "email": "tawakalituadekunle256@gmail.com",
+    "phone": "08035332698",
+    "password": "ChangeMe123!",
+    "role": "groupCoordinator",
+    "profileSeedKey": "member-0069"
+  },
+  {
+    "seedKey": "member-0070",
+    "email": "adekunle.hammed@crc.local",
+    "phone": "07010000067",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0070"
+  },
+  {
+    "seedKey": "member-0071",
+    "email": "adekunle.olabisi@crc.local",
+    "phone": "09010000068",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0071"
+  },
+  {
+    "seedKey": "member-0072",
+    "email": "folarin.basirat@crc.local",
+    "phone": "09110000069",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0072"
+  },
+  {
+    "seedKey": "member-0073",
+    "email": "adeleke.bukola@crc.local",
+    "phone": "08010000070",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0073"
+  },
+  {
+    "seedKey": "member-0074",
+    "email": "adelekerisikat123@gmail.com",
+    "phone": "07062096397",
+    "password": "ChangeMe123!",
+    "role": "groupCoordinator",
+    "profileSeedKey": "member-0074"
+  },
+  {
+    "seedKey": "member-0075",
+    "email": "kasali.rebecca@crc.local",
+    "phone": "08110000071",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0075"
+  },
+  {
+    "seedKey": "member-0076",
+    "email": "osoba.adebola@crc.local",
+    "phone": "07010000072",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0076"
+  },
+  {
+    "seedKey": "member-0077",
+    "email": "sogbamu.racheal@crc.local",
+    "phone": "09010000073",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0077"
+  },
+  {
+    "seedKey": "member-0078",
+    "email": "alabi.elizabeth@crc.local",
+    "phone": "09110000074",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0078"
+  },
+  {
+    "seedKey": "member-0079",
+    "email": "bankole.felicial@crc.local",
+    "phone": "08010000075",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0079"
+  },
+  {
+    "seedKey": "member-0080",
+    "email": "kudeti.sherifat@crc.local",
+    "phone": "08110000076",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0080"
+  },
+  {
+    "seedKey": "member-0081",
+    "email": "ojoye.sariyu@crc.local",
+    "phone": "07010000077",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0081"
+  },
+  {
+    "seedKey": "member-0082",
+    "email": "okunola.ojumirayo@crc.local",
+    "phone": "09010000078",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0082"
+  },
+  {
+    "seedKey": "member-0083",
+    "email": "oyebamiji.folake@crc.local",
+    "phone": "09110000079",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0083"
+  },
+  {
+    "seedKey": "member-0084",
+    "email": "erinoso.idris@crc.local",
+    "phone": "08010000080",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0084"
+  },
+  {
+    "seedKey": "member-0085",
+    "email": "oriade.motunrayo@crc.local",
+    "phone": "08110000081",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0085"
+  },
+  {
+    "seedKey": "member-0086",
+    "email": "adeyinka.samson@crc.local",
+    "phone": "07010000082",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0086"
+  },
+  {
+    "seedKey": "member-0087",
+    "email": "awolere.grace@crc.local",
+    "phone": "09010000083",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0087"
+  },
+  {
+    "seedKey": "member-0088",
+    "email": "babajide.adijat@crc.local",
+    "phone": "09110000084",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0088"
+  },
+  {
+    "seedKey": "member-0089",
+    "email": "egunleti.fausat@crc.local",
+    "phone": "08010000085",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0089"
+  },
+  {
+    "seedKey": "member-0090",
+    "email": "fatoki.temitope@crc.local",
+    "phone": "08110000086",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0090"
+  },
+  {
+    "seedKey": "member-0091",
+    "email": "ojeniyi.florence@crc.local",
+    "phone": "07010000087",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0091"
+  },
+  {
+    "seedKey": "member-0092",
+    "email": "ogunleye.comfort@crc.local",
+    "phone": "09010000088",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0092"
+  },
+  {
+    "seedKey": "member-0093",
+    "email": "fatoki.janet@crc.local",
+    "phone": "09110000089",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0093"
+  },
+  {
+    "seedKey": "member-0094",
+    "email": "ogundele.racheal@crc.local",
+    "phone": "08010000090",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0094"
+  },
+  {
+    "seedKey": "member-0095",
+    "email": "omolekan.adetolani@crc.local",
+    "phone": "08110000091",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0095"
+  },
+  {
+    "seedKey": "member-0096",
+    "email": "omolekan.felicia@crc.local",
+    "phone": "07010000092",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0096"
+  },
+  {
+    "seedKey": "member-0097",
+    "email": "opaleye.toyin@crc.local",
+    "phone": "09010000093",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0097"
+  },
+  {
+    "seedKey": "member-0098",
+    "email": "taiwo.rasheedat@crc.local",
+    "phone": "09110000094",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0098"
+  },
+  {
+    "seedKey": "member-0099",
+    "email": "emmanuel.gbenga@crc.local",
+    "phone": "08010000095",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0099"
+  },
+  {
+    "seedKey": "member-0100",
+    "email": "omolekan.adedamola@crc.local",
+    "phone": "08110000096",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0100"
+  },
+  {
+    "seedKey": "member-0101",
+    "email": "omolekan.adebola@crc.local",
+    "phone": "07010000097",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0101"
+  },
+  {
+    "seedKey": "member-0102",
+    "email": "adams.olushola@crc.local",
+    "phone": "09010000098",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0102"
+  },
+  {
+    "seedKey": "member-0103",
+    "email": "benjamen.olalekan@crc.local",
+    "phone": "09110000099",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0103"
+  },
+  {
+    "seedKey": "member-0104",
+    "email": "fatunbi.felix@crc.local",
+    "phone": "08010000100",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0104"
+  },
+  {
+    "seedKey": "member-0105",
+    "email": "odunbaku.temilade@crc.local",
+    "phone": "08110000101",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0105"
+  },
+  {
+    "seedKey": "member-0106",
+    "email": "akinade.funmilayo@crc.local",
+    "phone": "07010000102",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0106"
+  },
+  {
+    "seedKey": "member-0107",
+    "email": "olabode.funmilayo@crc.local",
+    "phone": "09010000103",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0107"
+  },
+  {
+    "seedKey": "member-0108",
+    "email": "aderogba.abosede@crc.local",
+    "phone": "09110000104",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0108"
+  },
+  {
+    "seedKey": "member-0109",
+    "email": "agboola.odunola@crc.local",
+    "phone": "08010000105",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0109"
+  },
+  {
+    "seedKey": "member-0110",
+    "email": "otun.sidikat@crc.local",
+    "phone": "08110000106",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0110"
+  },
+  {
+    "seedKey": "member-0111",
+    "email": "awokoya.oluwatoyin@crc.local",
+    "phone": "07010000107",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0111"
+  },
+  {
+    "seedKey": "member-0112",
+    "email": "adu.florence@crc.local",
+    "phone": "09010000108",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0112"
+  },
+  {
+    "seedKey": "member-0113",
+    "email": "balogun.oluwaseun@crc.local",
+    "phone": "09110000109",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0113"
+  },
+  {
+    "seedKey": "member-0114",
+    "email": "adebanjo.oluwakemi@crc.local",
+    "phone": "08010000110",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0114"
+  },
+  {
+    "seedKey": "member-0115",
+    "email": "marcus.yemisi@crc.local",
+    "phone": "08110000111",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0115"
+  },
+  {
+    "seedKey": "member-0116",
+    "email": "funmilayoakinade144@gmail.com",
+    "phone": "08037143738",
+    "password": "ChangeMe123!",
+    "role": "groupCoordinator",
+    "profileSeedKey": "member-0116"
+  },
+  {
+    "seedKey": "member-0117",
+    "email": "ajayi.olawoyin@crc.local",
+    "phone": "07010000112",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0117"
+  },
+  {
+    "seedKey": "member-0118",
+    "email": "soyemi.sakirat@crc.local",
+    "phone": "09010000113",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0118"
+  },
+  {
+    "seedKey": "member-0119",
+    "email": "adesope.elizabeth@crc.local",
+    "phone": "09110000114",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0119"
+  },
+  {
+    "seedKey": "member-0120",
+    "email": "akintonde.rebecca@crc.local",
+    "phone": "08010000115",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0120"
+  },
+  {
+    "seedKey": "member-0121",
+    "email": "adeogoyemi.rebecca@crc.local",
+    "phone": "08110000116",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0121"
+  },
+  {
+    "seedKey": "member-0122",
+    "email": "ogunsola.monsurat@crc.local",
+    "phone": "07010000117",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0122"
+  },
+  {
+    "seedKey": "member-0123",
+    "email": "adewale.julihana@crc.local",
+    "phone": "09010000118",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0123"
+  },
+  {
+    "seedKey": "member-0124",
+    "email": "olaniyi.mojisola@crc.local",
+    "phone": "09110000119",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0124"
+  },
+  {
+    "seedKey": "member-0125",
+    "email": "akintonde.jacob@crc.local",
+    "phone": "08010000120",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0125"
+  },
+  {
+    "seedKey": "member-0126",
+    "email": "adegbola.sunday@crc.local",
+    "phone": "08110000121",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0126"
+  },
+  {
+    "seedKey": "member-0127",
+    "email": "rebecca.adebunmi@gmail.com",
+    "phone": "07067278360",
+    "password": "ChangeMe123!",
+    "role": "groupCoordinator",
+    "profileSeedKey": "member-0127"
+  },
+  {
+    "seedKey": "member-0128",
+    "email": "babarinlo.kehinde@crc.local",
+    "phone": "07010000122",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0128"
+  },
+  {
+    "seedKey": "member-0129",
+    "email": "adeyeye.abosede@crc.local",
+    "phone": "09010000123",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0129"
+  },
+  {
+    "seedKey": "member-0130",
+    "email": "akinsanya.folasade@crc.local",
+    "phone": "09110000124",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0130"
+  },
+  {
+    "seedKey": "member-0131",
+    "email": "mr.olusipo.femi@crc.local",
+    "phone": "08010000125",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0131"
+  },
+  {
+    "seedKey": "member-0132",
+    "email": "ajayi.emmanuel@crc.local",
+    "phone": "08110000126",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0132"
+  },
+  {
+    "seedKey": "member-0133",
+    "email": "ayobolu.tunrayo@crc.local",
+    "phone": "07010000127",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0133"
+  },
+  {
+    "seedKey": "member-0134",
+    "email": "olowu.naimat@crc.local",
+    "phone": "09010000128",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0134"
+  },
+  {
+    "seedKey": "member-0135",
+    "email": "kuponiyi.titilayo@crc.local",
+    "phone": "09110000129",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0135"
+  },
+  {
+    "seedKey": "member-0136",
+    "email": "olukoga.enuice@crc.local",
+    "phone": "08010000130",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0136"
+  },
+  {
+    "seedKey": "member-0137",
+    "email": "adeniji.grace@crc.local",
+    "phone": "08110000131",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0137"
+  },
+  {
+    "seedKey": "member-0138",
+    "email": "hammed.serifat@crc.local",
+    "phone": "07010000132",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0138"
+  },
+  {
+    "seedKey": "member-0139",
+    "email": "awokunle.janet@crc.local",
+    "phone": "09010000133",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0139"
+  },
+  {
+    "seedKey": "member-0140",
+    "email": "adeoye.james@crc.local",
+    "phone": "09110000134",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0140"
+  },
+  {
+    "seedKey": "member-0141",
+    "email": "odebiyi.funmilayo@crc.local",
+    "phone": "08010000135",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0141"
+  },
+  {
+    "seedKey": "member-0142",
+    "email": "adeaga.ruth@crc.local",
+    "phone": "08110000136",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0142"
+  },
+  {
+    "seedKey": "member-0143",
+    "email": "babarinlo@gmail.com",
+    "phone": "08069662349",
+    "password": "ChangeMe123!",
+    "role": "groupCoordinator",
+    "profileSeedKey": "member-0143"
+  },
+  {
+    "seedKey": "member-0144",
+    "email": "akinremi.saheed@crc.local",
+    "phone": "07010000137",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0144"
+  },
+  {
+    "seedKey": "member-0145",
+    "email": "ayankojo.elizabeth@crc.local",
+    "phone": "09010000138",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0145"
+  },
+  {
+    "seedKey": "member-0146",
+    "email": "bamigbola.ayodele@crc.local",
+    "phone": "09110000139",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0146"
+  },
+  {
+    "seedKey": "member-0147",
+    "email": "felix.robert@crc.local",
+    "phone": "08010000140",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0147"
+  },
+  {
+    "seedKey": "member-0148",
+    "email": "morakinyo.ridiwan@crc.local",
+    "phone": "08110000141",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0148"
+  },
+  {
+    "seedKey": "member-0149",
+    "email": "oyekanmi.gbemiro@crc.local",
+    "phone": "07010000142",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0149"
+  },
+  {
+    "seedKey": "member-0150",
+    "email": "salami.samuel@crc.local",
+    "phone": "09010000143",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0150"
+  },
+  {
+    "seedKey": "member-0151",
+    "email": "akinremi.monsuru@crc.local",
+    "phone": "09110000144",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0151"
+  },
+  {
+    "seedKey": "member-0152",
+    "email": "ayankojo.ebenezer@crc.local",
+    "phone": "08010000145",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0152"
+  },
+  {
+    "seedKey": "member-0153",
+    "email": "bamigbola.nike@crc.local",
+    "phone": "08110000146",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0153"
+  },
+  {
+    "seedKey": "member-0154",
+    "email": "matthew.bola@crc.local",
+    "phone": "07010000147",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0154"
+  },
+  {
+    "seedKey": "member-0155",
+    "email": "abu.oluwakemi@crc.local",
+    "phone": "09010000148",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0155"
+  },
+  {
+    "seedKey": "member-0156",
+    "email": "aina.tolulope@crc.local",
+    "phone": "09110000149",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0156"
+  },
+  {
+    "seedKey": "member-0157",
+    "email": "fashina.ayodele@crc.local",
+    "phone": "08010000150",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0157"
+  },
+  {
+    "seedKey": "member-0158",
+    "email": "abimbola.kehinde@crc.local",
+    "phone": "08110000151",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0158"
+  },
+  {
+    "seedKey": "member-0159",
+    "email": "ahmed.rukayat@crc.local",
+    "phone": "07010000152",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0159"
+  },
+  {
+    "seedKey": "member-0160",
+    "email": "bamgboye.modupe@crc.local",
+    "phone": "09010000153",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0160"
+  },
+  {
+    "seedKey": "member-0161",
+    "email": "oyekanmi.kemi@crc.local",
+    "phone": "09110000154",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0161"
+  },
+  {
+    "seedKey": "member-0162",
+    "email": "john.bola@crc.local",
+    "phone": "08010000155",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0162"
+  },
+  {
+    "seedKey": "member-0163",
+    "email": "adeleke.dare@crc.local",
+    "phone": "08110000156",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0163"
+  },
+  {
+    "seedKey": "member-0164",
+    "email": "animashaun.sharafat@crc.local",
+    "phone": "07010000157",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0164"
+  },
+  {
+    "seedKey": "member-0165",
+    "email": "adebayo.abiola@crc.local",
+    "phone": "09010000158",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0165"
+  },
+  {
+    "seedKey": "member-0166",
+    "email": "hassan.olalekan@crc.local",
+    "phone": "09110000159",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0166"
+  },
+  {
+    "seedKey": "member-0167",
+    "email": "sanni.foluke@crc.local",
+    "phone": "08010000160",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0167"
+  },
+  {
+    "seedKey": "member-0168",
+    "email": "kolawole.abiola@crc.local",
+    "phone": "08110000161",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0168"
+  },
+  {
+    "seedKey": "member-0169",
+    "email": "ldowu.damilola@crc.local",
+    "phone": "07010000162",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0169"
+  },
+  {
+    "seedKey": "member-0170",
+    "email": "adeyemo.john@crc.local",
+    "phone": "09010000163",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0170"
+  },
+  {
+    "seedKey": "member-0171",
+    "email": "olagunju.samuel@crc.local",
+    "phone": "09110000164",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0171"
+  },
+  {
+    "seedKey": "member-0172",
+    "email": "mrsnikebamigbola@gmail.com",
+    "phone": "08020670521",
+    "password": "ChangeMe123!",
+    "role": "groupCoordinator",
+    "profileSeedKey": "member-0172"
+  },
+  {
+    "seedKey": "member-0173",
+    "email": "adeola.omolayo@crc.local",
+    "phone": "08010000165",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0173"
+  },
+  {
+    "seedKey": "member-0174",
+    "email": "akinrule.folasade@crc.local",
+    "phone": "08110000166",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0174"
+  },
+  {
+    "seedKey": "member-0175",
+    "email": "enu.lucky@crc.local",
+    "phone": "07010000167",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0175"
+  },
+  {
+    "seedKey": "member-0176",
+    "email": "jimoh.bola@crc.local",
+    "phone": "09010000168",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0176"
+  },
+  {
+    "seedKey": "member-0177",
+    "email": "olawoyin.azeezat@crc.local",
+    "phone": "09110000169",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0177"
+  },
+  {
+    "seedKey": "member-0178",
+    "email": "sunday.folasade@crc.local",
+    "phone": "08010000170",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0178"
+  },
+  {
+    "seedKey": "member-0179",
+    "email": "adebowale.comfort@crc.local",
+    "phone": "08110000171",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0179"
+  },
+  {
+    "seedKey": "member-0180",
+    "email": "adeyemi.jumoke@crc.local",
+    "phone": "07010000172",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0180"
+  },
+  {
+    "seedKey": "member-0181",
+    "email": "akamo.iyabo@crc.local",
+    "phone": "09010000173",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0181"
+  },
+  {
+    "seedKey": "member-0182",
+    "email": "akinyemi.remilekun@crc.local",
+    "phone": "09110000174",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0182"
+  },
+  {
+    "seedKey": "member-0183",
+    "email": "balogun.damilola@crc.local",
+    "phone": "08010000175",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0183"
+  },
+  {
+    "seedKey": "member-0184",
+    "email": "fagbemi.jephta@crc.local",
+    "phone": "08110000176",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0184"
+  },
+  {
+    "seedKey": "member-0185",
+    "email": "fanifosi.funmilola@crc.local",
+    "phone": "07010000177",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0185"
+  },
+  {
+    "seedKey": "member-0186",
+    "email": "ikwe.joy@crc.local",
+    "phone": "09010000178",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0186"
+  },
+  {
+    "seedKey": "member-0187",
+    "email": "ganiyu.morufat@crc.local",
+    "phone": "09110000179",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0187"
+  },
+  {
+    "seedKey": "member-0188",
+    "email": "ojobo.comfort@crc.local",
+    "phone": "08010000180",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0188"
+  },
+  {
+    "seedKey": "member-0189",
+    "email": "yakubu.esther@crc.local",
+    "phone": "08110000181",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0189"
+  },
+  {
+    "seedKey": "member-0190",
+    "email": "shokunbi.sekinat@crc.local",
+    "phone": "07010000182",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0190"
+  },
+  {
+    "seedKey": "member-0191",
+    "email": "awe.olutayo@crc.local",
+    "phone": "09010000183",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0191"
+  },
+  {
+    "seedKey": "member-0192",
+    "email": "oluomo.odunayo@crc.local",
+    "phone": "09110000184",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0192"
+  },
+  {
+    "seedKey": "member-0193",
+    "email": "oluomo.taiwo@crc.local",
+    "phone": "08010000185",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0193"
+  },
+  {
+    "seedKey": "member-0194",
+    "email": "adeyanju.julianna@crc.local",
+    "phone": "08110000186",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0194"
+  },
+  {
+    "seedKey": "member-0195",
+    "email": "akiwowo.aderonke@crc.local",
+    "phone": "07010000187",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0195"
+  },
+  {
+    "seedKey": "member-0196",
+    "email": "bada.adesola@crc.local",
+    "phone": "09010000188",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0196"
+  },
+  {
+    "seedKey": "member-0197",
+    "email": "gabriel.mary@crc.local",
+    "phone": "09110000189",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0197"
+  },
+  {
+    "seedKey": "member-0198",
+    "email": "kareem.adegbenro@crc.local",
+    "phone": "08010000190",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0198"
+  },
+  {
+    "seedKey": "member-0199",
+    "email": "ogunsola.olabimpe@crc.local",
+    "phone": "08110000191",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0199"
+  },
+  {
+    "seedKey": "member-0200",
+    "email": "olawuyi.kehinde@crc.local",
+    "phone": "07010000192",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0200"
+  },
+  {
+    "seedKey": "member-0201",
+    "email": "ogungbade.iyabo@crc.local",
+    "phone": "09010000193",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0201"
+  },
+  {
+    "seedKey": "member-0202",
+    "email": "olabode.olabisi@crc.local",
+    "phone": "09110000194",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0202"
+  },
+  {
+    "seedKey": "member-0203",
+    "email": "adewuyi.samson@crc.local",
+    "phone": "08010000195",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0203"
+  },
+  {
+    "seedKey": "member-0204",
+    "email": "alayo.oluwatosin@crc.local",
+    "phone": "08110000196",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0204"
+  },
+  {
+    "seedKey": "member-0205",
+    "email": "solanke.olufemi@crc.local",
+    "phone": "07010000197",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0205"
+  },
+  {
+    "seedKey": "member-0206",
+    "email": "solanke.rita@crc.local",
+    "phone": "09010000198",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0206"
+  },
+  {
+    "seedKey": "member-0207",
+    "email": "oluseye.temitope@crc.local",
+    "phone": "09110000199",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0207"
+  },
+  {
+    "seedKey": "member-0208",
+    "email": "akinbile.ganiyat@crc.local",
+    "phone": "08010000200",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0208"
+  },
+  {
+    "seedKey": "member-0209",
+    "email": "akinwunmi.abigail@crc.local",
+    "phone": "08110000201",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0209"
+  },
+  {
+    "seedKey": "member-0210",
+    "email": "akinwunmi.samuel@crc.local",
+    "phone": "07010000202",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0210"
+  },
+  {
+    "seedKey": "member-0211",
+    "email": "bada.adepeju@crc.local",
+    "phone": "09010000203",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0211"
+  },
+  {
+    "seedKey": "member-0212",
+    "email": "alayo.abayomi@crc.local",
+    "phone": "09110000204",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0212"
+  },
+  {
+    "seedKey": "member-0213",
+    "email": "sopeju.adeola@crc.local",
+    "phone": "08010000205",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0213"
+  },
+  {
+    "seedKey": "member-0214",
+    "email": "olayoyinoyeniyi@gmail.com",
+    "phone": "08060707575",
+    "password": "ChangeMe123!",
+    "role": "groupCoordinator",
+    "profileSeedKey": "member-0214"
+  },
+  {
+    "seedKey": "member-0215",
+    "email": "gbadeyan.adedoyin@crc.local",
+    "phone": "08110000206",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0215"
+  },
+  {
+    "seedKey": "member-0216",
+    "email": "erinle.olurotimi@crc.local",
+    "phone": "07010000207",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0216"
+  },
+  {
+    "seedKey": "member-0217",
+    "email": "adesina.busayo@crc.local",
+    "phone": "09010000208",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0217"
+  },
+  {
+    "seedKey": "member-0218",
+    "email": "kelani.oluwatotyin@crc.local",
+    "phone": "09110000209",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0218"
+  },
+  {
+    "seedKey": "member-0219",
+    "email": "gbadeyan.adeyinka@crc.local",
+    "phone": "08010000210",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0219"
+  },
+  {
+    "seedKey": "member-0220",
+    "email": "adenekan.bose@crc.local",
+    "phone": "08110000211",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0220"
+  },
+  {
+    "seedKey": "member-0221",
+    "email": "joel.rebecca@crc.local",
+    "phone": "07010000212",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0221"
+  },
+  {
+    "seedKey": "member-0222",
+    "email": "tella.temitope@crc.local",
+    "phone": "09010000213",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0222"
+  },
+  {
+    "seedKey": "member-0223",
+    "email": "akinbode.bukola@crc.local",
+    "phone": "09110000214",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0223"
+  },
+  {
+    "seedKey": "member-0224",
+    "email": "olutayo.toyin@crc.local",
+    "phone": "08010000215",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0224"
+  },
+  {
+    "seedKey": "member-0225",
+    "email": "ogunmokun.oluyemisi@crc.local",
+    "phone": "08110000216",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0225"
+  },
+  {
+    "seedKey": "member-0226",
+    "email": "aina.james@crc.local",
+    "phone": "07010000217",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0226"
+  },
+  {
+    "seedKey": "member-0227",
+    "email": "afu.temitope@crc.local",
+    "phone": "09010000218",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0227"
+  },
+  {
+    "seedKey": "member-0228",
+    "email": "atiku.eniola@crc.local",
+    "phone": "09110000219",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0228"
+  },
+  {
+    "seedKey": "member-0229",
+    "email": "akinbola.ruth@crc.local",
+    "phone": "08010000220",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0229"
+  },
+  {
+    "seedKey": "member-0230",
+    "email": "enilolobo.damilola@crc.local",
+    "phone": "08110000221",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0230"
+  },
+  {
+    "seedKey": "member-0231",
+    "email": "salami.kazeem@crc.local",
+    "phone": "07010000222",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0231"
+  },
+  {
+    "seedKey": "member-0232",
+    "email": "atiku.omotayo@crc.local",
+    "phone": "09010000223",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0232"
+  },
+  {
+    "seedKey": "member-0233",
+    "email": "oludotun.oluwakemi@crc.local",
+    "phone": "09110000224",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0233"
+  },
+  {
+    "seedKey": "member-0234",
+    "email": "fasere.akinpelu@crc.local",
+    "phone": "08010000225",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0234"
+  },
+  {
+    "seedKey": "member-0235",
+    "email": "adewusi.olabisi@crc.local",
+    "phone": "08110000226",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0235"
+  },
+  {
+    "seedKey": "member-0236",
+    "email": "ojelade.dorcas@crc.local",
+    "phone": "07010000227",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0236"
+  },
+  {
+    "seedKey": "member-0237",
+    "email": "gbadeyan.olusoji@crc.local",
+    "phone": "09010000228",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0237"
+  },
+  {
+    "seedKey": "member-0238",
+    "email": "solaja.idowu@crc.local",
+    "phone": "09110000229",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0238"
+  },
+  {
+    "seedKey": "member-0239",
+    "email": "kehinde.tolulope@crc.local",
+    "phone": "08010000230",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0239"
+  },
+  {
+    "seedKey": "member-0240",
+    "email": "komolafe.olubunmi@crc.local",
+    "phone": "08110000231",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0240"
+  },
+  {
+    "seedKey": "member-0241",
+    "email": "okuntunbo.adeola@crc.local",
+    "phone": "07010000232",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0241"
+  },
+  {
+    "seedKey": "member-0242",
+    "email": "bamgbaye.fumilayo@crc.local",
+    "phone": "09010000233",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0242"
+  },
+  {
+    "seedKey": "member-0243",
+    "email": "ikotun.rachel@crc.local",
+    "phone": "09110000234",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0243"
+  },
+  {
+    "seedKey": "member-0244",
+    "email": "olusola.mary@crc.local",
+    "phone": "08010000235",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0244"
+  },
+  {
+    "seedKey": "member-0245",
+    "email": "gentry.bukola@crc.local",
+    "phone": "08110000236",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0245"
+  },
+  {
+    "seedKey": "member-0246",
+    "email": "ojuronngbe.eunie.olanike@crc.local",
+    "phone": "07010000237",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0246"
+  },
+  {
+    "seedKey": "member-0247",
+    "email": "lizecrown4real84@gmail.com",
+    "phone": "08036490809",
+    "password": "ChangeMe123!",
+    "role": "groupCoordinator",
+    "profileSeedKey": "member-0247"
+  },
+  {
+    "seedKey": "member-0248",
+    "email": "faleye.folake@crc.local",
+    "phone": "09010000238",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0248"
+  },
+  {
+    "seedKey": "member-0249",
+    "email": "faleye.femi@crc.local",
+    "phone": "09110000239",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0249"
+  },
+  {
+    "seedKey": "member-0250",
+    "email": "sanwo.oludare@crc.local",
+    "phone": "08010000240",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0250"
+  },
+  {
+    "seedKey": "member-0251",
+    "email": "kayode.joseph.adedotun@crc.local",
+    "phone": "08110000241",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0251"
+  },
+  {
+    "seedKey": "member-0252",
+    "email": "hassan.oluwatomiwa.olamide@crc.local",
+    "phone": "07010000242",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0252"
+  },
+  {
+    "seedKey": "member-0253",
+    "email": "ogundeyi.ayodeji.nathaniel@crc.local",
+    "phone": "09010000243",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0253"
+  },
+  {
+    "seedKey": "member-0254",
+    "email": "adebodun.badmus@crc.local",
+    "phone": "09110000244",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0254"
+  },
+  {
+    "seedKey": "member-0255",
+    "email": "amusa.taiwo.olayinka@crc.local",
+    "phone": "08010000245",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0255"
+  },
+  {
+    "seedKey": "member-0256",
+    "email": "olatunji.ayanfunke@crc.local",
+    "phone": "08110000246",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0256"
+  },
+  {
+    "seedKey": "member-0257",
+    "email": "olatunji.victoria@crc.local",
+    "phone": "07010000247",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0257"
+  },
+  {
+    "seedKey": "member-0258",
+    "email": "hassan.folasade.omolara@crc.local",
+    "phone": "09010000248",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0258"
+  },
+  {
+    "seedKey": "member-0259",
+    "email": "agbeje.ezekiel@crc.local",
+    "phone": "09110000249",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0259"
+  },
+  {
+    "seedKey": "member-0260",
+    "email": "oke.adebisi@crc.local",
+    "phone": "08010000250",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0260"
+  },
+  {
+    "seedKey": "member-0261",
+    "email": "akinremi.jelilat@crc.local",
+    "phone": "08110000251",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0261"
+  },
+  {
+    "seedKey": "member-0262",
+    "email": "adedokun.deborah@crc.local",
+    "phone": "07010000252",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0262"
+  },
+  {
+    "seedKey": "member-0263",
+    "email": "adedokun.jacob@crc.local",
+    "phone": "09010000253",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0263"
+  },
+  {
+    "seedKey": "member-0264",
+    "email": "adedokun.tosin.christiana@crc.local",
+    "phone": "09110000254",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0264"
+  },
+  {
+    "seedKey": "member-0265",
+    "email": "babayeju.temidayo@crc.local",
+    "phone": "08010000255",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0265"
+  },
+  {
+    "seedKey": "member-0266",
+    "email": "fagbemi.damilola@crc.local",
+    "phone": "08110000256",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0266"
+  },
+  {
+    "seedKey": "member-0267",
+    "email": "fagbemi.oluwaseyi@crc.local",
+    "phone": "07010000257",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0267"
+  },
+  {
+    "seedKey": "member-0268",
+    "email": "tobalase.cynthia@crc.local",
+    "phone": "09010000258",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0268"
+  },
+  {
+    "seedKey": "member-0269",
+    "email": "tobalase.gbenga@crc.local",
+    "phone": "09110000259",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0269"
+  },
+  {
+    "seedKey": "member-0270",
+    "email": "ogunleye.oluwaseyi.patient@crc.local",
+    "phone": "08010000260",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0270"
+  },
+  {
+    "seedKey": "member-0271",
+    "email": "ogunleye.ranti@crc.local",
+    "phone": "08110000261",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0271"
+  },
+  {
+    "seedKey": "member-0272",
+    "email": "ogunleye.samuel@crc.local",
+    "phone": "07010000262",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0272"
+  },
+  {
+    "seedKey": "member-0273",
+    "email": "amusa.awal@crc.local",
+    "phone": "09010000263",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0273"
+  },
+  {
+    "seedKey": "member-0274",
+    "email": "dauda.patience@crc.local",
+    "phone": "09110000264",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0274"
+  },
+  {
+    "seedKey": "member-0275",
+    "email": "dotun.ezekiel.hon@crc.local",
+    "phone": "08010000265",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0275"
+  },
+  {
+    "seedKey": "member-0276",
+    "email": "dotun.lekan@crc.local",
+    "phone": "08110000266",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0276"
+  },
+  {
+    "seedKey": "member-0277",
+    "email": "ireti.olu.ifo@crc.local",
+    "phone": "07010000267",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0277"
+  },
+  {
+    "seedKey": "member-0278",
+    "email": "ireti.olu.itori@crc.local",
+    "phone": "09010000268",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0278"
+  },
+  {
+    "seedKey": "member-0279",
+    "email": "olaniyan.deborah@crc.local",
+    "phone": "09110000269",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0279"
+  },
+  {
+    "seedKey": "member-0280",
+    "email": "dosunmu.busola@crc.local",
+    "phone": "08010000270",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0280"
+  },
+  {
+    "seedKey": "member-0281",
+    "email": "ayanleke.oluwasegun@crc.local",
+    "phone": "08110000271",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0281"
+  },
+  {
+    "seedKey": "member-0282",
+    "email": "idowu.olusola@crc.local",
+    "phone": "07010000272",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0282"
+  },
+  {
+    "seedKey": "member-0283",
+    "email": "akindele.comfort@crc.local",
+    "phone": "09010000273",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0283"
+  },
+  {
+    "seedKey": "member-0284",
+    "email": "ogundeko.dunni@crc.local",
+    "phone": "09110000274",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0284"
+  },
+  {
+    "seedKey": "member-0285",
+    "email": "folasadehassan595@gmail.com",
+    "phone": "08035770132",
+    "password": "ChangeMe123!",
+    "role": "groupCoordinator",
+    "profileSeedKey": "member-0285"
+  },
+  {
+    "seedKey": "member-0286",
+    "email": "sowemimo.esther@crc.local",
+    "phone": "08010000275",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0286"
+  },
+  {
+    "seedKey": "member-0287",
+    "email": "elegbede.florence@crc.local",
+    "phone": "08110000276",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0287"
+  },
+  {
+    "seedKey": "member-0288",
+    "email": "fasasi.kafila@crc.local",
+    "phone": "07010000277",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0288"
+  },
+  {
+    "seedKey": "member-0289",
+    "email": "ikimot.kehinde@crc.local",
+    "phone": "09010000278",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0289"
+  },
+  {
+    "seedKey": "member-0290",
+    "email": "adewunsi.margaret@crc.local",
+    "phone": "09110000279",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0290"
+  },
+  {
+    "seedKey": "member-0291",
+    "email": "laguda.zaccheus@crc.local",
+    "phone": "08010000280",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0291"
+  },
+  {
+    "seedKey": "member-0292",
+    "email": "adeosun.dorcas.folakemi@crc.local",
+    "phone": "08110000281",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0292"
+  },
+  {
+    "seedKey": "member-0293",
+    "email": "esan.abiodun@crc.local",
+    "phone": "07010000282",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0293"
+  },
+  {
+    "seedKey": "member-0294",
+    "email": "salako.abel@crc.local",
+    "phone": "09010000283",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0294"
+  },
+  {
+    "seedKey": "member-0295",
+    "email": "shodiya.oladimeji@crc.local",
+    "phone": "09110000284",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0295"
+  },
+  {
+    "seedKey": "member-0296",
+    "email": "abiba.jimoh@crc.local",
+    "phone": "08010000285",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0296"
+  },
+  {
+    "seedKey": "member-0297",
+    "email": "kushimo.kehinde@crc.local",
+    "phone": "08110000286",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0297"
+  },
+  {
+    "seedKey": "member-0298",
+    "email": "segun.liadi@crc.local",
+    "phone": "07010000287",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0298"
+  },
+  {
+    "seedKey": "member-0299",
+    "email": "sedangoji.tosin@crc.local",
+    "phone": "09010000288",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0299"
+  },
+  {
+    "seedKey": "member-0300",
+    "email": "olaniyi.olabisi@crc.local",
+    "phone": "09110000289",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0300"
+  },
+  {
+    "seedKey": "member-0301",
+    "email": "dada.kusumi@crc.local",
+    "phone": "08010000290",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0301"
+  },
+  {
+    "seedKey": "member-0302",
+    "email": "obasola.babatunde@crc.local",
+    "phone": "08110000291",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0302"
+  },
+  {
+    "seedKey": "member-0303",
+    "email": "akinbide.olugbuyi.o@crc.local",
+    "phone": "07010000292",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0303"
+  },
+  {
+    "seedKey": "member-0304",
+    "email": "oyetayo.sunday@crc.local",
+    "phone": "09010000293",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0304"
+  },
+  {
+    "seedKey": "member-0305",
+    "email": "dayo.ige@crc.local",
+    "phone": "09110000294",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0305"
+  },
+  {
+    "seedKey": "member-0306",
+    "email": "ajibola.olorungbebe@crc.local",
+    "phone": "08010000295",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0306"
+  },
+  {
+    "seedKey": "member-0307",
+    "email": "ariyibi.elizabeth@crc.local",
+    "phone": "08110000296",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0307"
+  },
+  {
+    "seedKey": "member-0308",
+    "email": "olusola.israel@crc.local",
+    "phone": "07010000297",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0308"
+  },
+  {
+    "seedKey": "member-0309",
+    "email": "beatrice.shobola@crc.local",
+    "phone": "09010000298",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0309"
+  },
+  {
+    "seedKey": "member-0310",
+    "email": "oyeleye.olalekan@crc.local",
+    "phone": "09110000299",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0310"
+  },
+  {
+    "seedKey": "member-0311",
+    "email": "umuefon.temitope@crc.local",
+    "phone": "08010000300",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0311"
+  },
+  {
+    "seedKey": "member-0312",
+    "email": "onifade.mamoo@crc.local",
+    "phone": "08110000301",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0312"
+  },
+  {
+    "seedKey": "member-0313",
+    "email": "esan.david@crc.local",
+    "phone": "07010000302",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0313"
+  },
+  {
+    "seedKey": "member-0314",
+    "email": "oloyede.mulikat@crc.local",
+    "phone": "09010000303",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0314"
+  },
+  {
+    "seedKey": "member-0315",
+    "email": "taiwo.mojisola.olajide@crc.local",
+    "phone": "09110000304",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0315"
+  },
+  {
+    "seedKey": "member-0316",
+    "email": "babajide.kehinde@crc.local",
+    "phone": "08010000305",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0316"
+  },
+  {
+    "seedKey": "member-0317",
+    "email": "alawode.oluwafunke@crc.local",
+    "phone": "08110000306",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0317"
+  },
+  {
+    "seedKey": "member-0318",
+    "email": "salvador.mujidat@crc.local",
+    "phone": "07010000307",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0318"
+  },
+  {
+    "seedKey": "member-0319",
+    "email": "olanrewaju.damilola@crc.local",
+    "phone": "09010000308",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0319"
+  },
+  {
+    "seedKey": "member-0320",
+    "email": "richard.adebowale@crc.local",
+    "phone": "09110000309",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0320"
+  },
+  {
+    "seedKey": "member-0321",
+    "email": "james.oluwaseun@crc.local",
+    "phone": "08010000310",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0321"
+  },
+  {
+    "seedKey": "member-0322",
+    "email": "adeoye.fatima@crc.local",
+    "phone": "08110000311",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0322"
+  },
+  {
+    "seedKey": "member-0323",
+    "email": "ganiyu.oluwatosin@crc.local",
+    "phone": "07010000312",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0323"
+  },
+  {
+    "seedKey": "member-0324",
+    "email": "gabriel.olalowo@crc.local",
+    "phone": "09010000313",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0324"
+  },
+  {
+    "seedKey": "member-0325",
+    "email": "lawal.adedayo@crc.local",
+    "phone": "09110000314",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0325"
+  },
+  {
+    "seedKey": "member-0326",
+    "email": "ojo.comfort@crc.local",
+    "phone": "08010000315",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0326"
+  },
+  {
+    "seedKey": "member-0327",
+    "email": "olaniyonu.babatunde@crc.local",
+    "phone": "08110000316",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0327"
+  },
+  {
+    "seedKey": "member-0328",
+    "email": "folajimi.olakiitan@crc.local",
+    "phone": "07010000317",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0328"
+  },
+  {
+    "seedKey": "member-0329",
+    "email": "olaonipekun.nasimot@crc.local",
+    "phone": "09010000318",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0329"
+  },
+  {
+    "seedKey": "member-0330",
+    "email": "ige.babatunde@crc.local",
+    "phone": "09110000319",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0330"
+  },
+  {
+    "seedKey": "member-0331",
+    "email": "oluwapelumi.ajayi@crc.local",
+    "phone": "08010000320",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0331"
+  },
+  {
+    "seedKey": "member-0332",
+    "email": "oladele.rachael@crc.local",
+    "phone": "08110000321",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0332"
+  },
+  {
+    "seedKey": "member-0333",
+    "email": "oloyede.idiat.o@crc.local",
+    "phone": "07010000322",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0333"
+  },
+  {
+    "seedKey": "member-0334",
+    "email": "olaniyonu.bolanle@crc.local",
+    "phone": "09010000323",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0334"
+  },
+  {
+    "seedKey": "member-0335",
+    "email": "adedokun.odunayo@crc.local",
+    "phone": "09110000324",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0335"
+  },
+  {
+    "seedKey": "member-0336",
+    "email": "omidiji.seliat.o@crc.local",
+    "phone": "08010000325",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0336"
+  },
+  {
+    "seedKey": "member-0337",
+    "email": "adewunsi.johnson@crc.local",
+    "phone": "08110000326",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0337"
+  },
+  {
+    "seedKey": "member-0338",
+    "email": "oyediran.adiat.b@crc.local",
+    "phone": "07010000327",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0338"
+  },
+  {
+    "seedKey": "member-0339",
+    "email": "akindele.babalola@crc.local",
+    "phone": "09010000328",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0339"
+  },
+  {
+    "seedKey": "member-0340",
+    "email": "omotayo.busayo@crc.local",
+    "phone": "09110000329",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0340"
+  },
+  {
+    "seedKey": "member-0341",
+    "email": "ekundayo.busayo.buseyem@crc.local",
+    "phone": "08010000330",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0341"
+  },
+  {
+    "seedKey": "member-0342",
+    "email": "preciousoyetayo@gmail.com",
+    "phone": "07060623837",
+    "password": "ChangeMe123!",
+    "role": "groupCoordinator",
+    "profileSeedKey": "member-0342"
+  },
+  {
+    "seedKey": "member-0343",
+    "email": "1.adesanya.aminat@crc.local",
+    "phone": "08110000331",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0343"
+  },
+  {
+    "seedKey": "member-0344",
+    "email": "2.akeem.rasaki@crc.local",
+    "phone": "07010000332",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0344"
+  },
+  {
+    "seedKey": "member-0345",
+    "email": "3.kiladese.abiodun@crc.local",
+    "phone": "09010000333",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0345"
+  },
+  {
+    "seedKey": "member-0346",
+    "email": "4.oluseye.olamide@crc.local",
+    "phone": "09110000334",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0346"
+  },
+  {
+    "seedKey": "member-0347",
+    "email": "5.akindele.kehinde@crc.local",
+    "phone": "08010000335",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0347"
+  },
+  {
+    "seedKey": "member-0348",
+    "email": "6.hammed.raseedat@crc.local",
+    "phone": "08110000336",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0348"
+  },
+  {
+    "seedKey": "member-0349",
+    "email": "7.ibrahim.adisa@crc.local",
+    "phone": "07010000337",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0349"
+  },
+  {
+    "seedKey": "member-0350",
+    "email": "8.jimoh.bolanle@crc.local",
+    "phone": "09010000338",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0350"
+  },
+  {
+    "seedKey": "member-0351",
+    "email": "9.salaudeen.baraka@crc.local",
+    "phone": "09110000339",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0351"
+  },
+  {
+    "seedKey": "member-0352",
+    "email": "10.salau.fatimot@crc.local",
+    "phone": "08010000340",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0352"
+  },
+  {
+    "seedKey": "member-0353",
+    "email": "11.muhammad.umar@crc.local",
+    "phone": "08110000341",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0353"
+  },
+  {
+    "seedKey": "member-0354",
+    "email": "12.oladipupo.rukayat@crc.local",
+    "phone": "07010000342",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0354"
+  },
+  {
+    "seedKey": "member-0355",
+    "email": "13.jimoh.fausat@crc.local",
+    "phone": "09010000343",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0355"
+  },
+  {
+    "seedKey": "member-0356",
+    "email": "14.hamizat.muritala@crc.local",
+    "phone": "09110000344",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0356"
+  },
+  {
+    "seedKey": "member-0357",
+    "email": "15.odegbaro.hafeez@crc.local",
+    "phone": "08010000345",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0357"
+  },
+  {
+    "seedKey": "member-0358",
+    "email": "16.olayiwola.hamod@crc.local",
+    "phone": "08110000346",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0358"
+  },
+  {
+    "seedKey": "member-0359",
+    "email": "17.olasupo.olawale@crc.local",
+    "phone": "07010000347",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0359"
+  },
+  {
+    "seedKey": "member-0360",
+    "email": "18.sarafa.adepoju.dee.one@crc.local",
+    "phone": "09010000348",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0360"
+  },
+  {
+    "seedKey": "member-0361",
+    "email": "jimohfausat2000@gmail.com",
+    "phone": "08025109746",
+    "password": "ChangeMe123!",
+    "role": "groupCoordinator",
+    "profileSeedKey": "member-0361"
+  },
+  {
+    "seedKey": "member-0362",
+    "email": "kehinde.rachael@crc.local",
+    "phone": "09110000349",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0362"
+  },
+  {
+    "seedKey": "member-0363",
+    "email": "lasisi.morufat@crc.local",
+    "phone": "08010000350",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0363"
+  },
+  {
+    "seedKey": "member-0364",
+    "email": "bello.bukola@crc.local",
+    "phone": "08110000351",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0364"
+  },
+  {
+    "seedKey": "member-0365",
+    "email": "otojamiu.israel@crc.local",
+    "phone": "07010000352",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0365"
+  },
+  {
+    "seedKey": "member-0366",
+    "email": "akindele.folake@crc.local",
+    "phone": "09010000353",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0366"
+  },
+  {
+    "seedKey": "member-0367",
+    "email": "akindele.toyin@crc.local",
+    "phone": "09110000354",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0367"
+  },
+  {
+    "seedKey": "member-0368",
+    "email": "bankole.felicia@crc.local",
+    "phone": "08010000355",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0368"
+  },
+  {
+    "seedKey": "member-0369",
+    "email": "kehinde.mulikat@crc.local",
+    "phone": "08110000356",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0369"
+  },
+  {
+    "seedKey": "member-0370",
+    "email": "seweje.grace@crc.local",
+    "phone": "07010000357",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0370"
+  },
+  {
+    "seedKey": "member-0371",
+    "email": "tijani.kazeem@crc.local",
+    "phone": "09010000358",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0371"
+  },
+  {
+    "seedKey": "member-0372",
+    "email": "idowu.oluwole@crc.local",
+    "phone": "09110000359",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0372"
+  },
+  {
+    "seedKey": "member-0373",
+    "email": "akinbode.nimota@crc.local",
+    "phone": "08010000360",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0373"
+  },
+  {
+    "seedKey": "member-0374",
+    "email": "badru.habib@crc.local",
+    "phone": "08110000361",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0374"
+  },
+  {
+    "seedKey": "member-0375",
+    "email": "adejumo.adedapo@crc.local",
+    "phone": "07010000362",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0375"
+  },
+  {
+    "seedKey": "member-0376",
+    "email": "akinhanmi.titilope@crc.local",
+    "phone": "09010000363",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0376"
+  },
+  {
+    "seedKey": "member-0377",
+    "email": "akindele.busayo@crc.local",
+    "phone": "09110000364",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0377"
+  },
+  {
+    "seedKey": "member-0378",
+    "email": "bamgbose.kemi@crc.local",
+    "phone": "08010000365",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0378"
+  },
+  {
+    "seedKey": "member-0379",
+    "email": "adeboye.grace@crc.local",
+    "phone": "08110000366",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0379"
+  },
+  {
+    "seedKey": "member-0380",
+    "email": "uchechi.katherine@crc.local",
+    "phone": "07010000367",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0380"
+  },
+  {
+    "seedKey": "member-0381",
+    "email": "akindele.yetunde@crc.local",
+    "phone": "09010000368",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0381"
+  },
+  {
+    "seedKey": "member-0382",
+    "email": "adekoniye.glory@crc.local",
+    "phone": "09110000369",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0382"
+  },
+  {
+    "seedKey": "member-0383",
+    "email": "odewunmi.grace@crc.local",
+    "phone": "08010000370",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0383"
+  },
+  {
+    "seedKey": "member-0384",
+    "email": "oguntolu.bisi@crc.local",
+    "phone": "08110000371",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0384"
+  },
+  {
+    "seedKey": "member-0385",
+    "email": "olaleye.oluwafunke@crc.local",
+    "phone": "07010000372",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0385"
+  },
+  {
+    "seedKey": "member-0386",
+    "email": "oluyemikehinde44@gmail.com",
+    "phone": "07031191572",
+    "password": "ChangeMe123!",
+    "role": "groupCoordinator",
+    "profileSeedKey": "member-0386"
+  },
+  {
+    "seedKey": "member-0387",
+    "email": "agboola.ajayi@crc.local",
+    "phone": "09010000373",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0387"
+  },
+  {
+    "seedKey": "member-0388",
+    "email": "agboola.mary@crc.local",
+    "phone": "09110000374",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0388"
+  },
+  {
+    "seedKey": "member-0389",
+    "email": "anthony.patric@crc.local",
+    "phone": "08010000375",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0389"
+  },
+  {
+    "seedKey": "member-0390",
+    "email": "babatundge.sulaimon@crc.local",
+    "phone": "08110000376",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0390"
+  },
+  {
+    "seedKey": "member-0391",
+    "email": "bellow.jamiu@crc.local",
+    "phone": "07010000377",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0391"
+  },
+  {
+    "seedKey": "member-0392",
+    "email": "daramola.oluwaseun@crc.local",
+    "phone": "09010000378",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0392"
+  },
+  {
+    "seedKey": "member-0393",
+    "email": "maboreje.victoria@crc.local",
+    "phone": "09110000379",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0393"
+  },
+  {
+    "seedKey": "member-0394",
+    "email": "maboreje.dorcas@crc.local",
+    "phone": "08010000380",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0394"
+  },
+  {
+    "seedKey": "member-0395",
+    "email": "fadipe.yemisi@crc.local",
+    "phone": "08110000381",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0395"
+  },
+  {
+    "seedKey": "member-0396",
+    "email": "fadipe.elizabeth@crc.local",
+    "phone": "07010000382",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0396"
+  },
+  {
+    "seedKey": "member-0397",
+    "email": "omobolanle.oluwatosin@crc.local",
+    "phone": "09010000383",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0397"
+  },
+  {
+    "seedKey": "member-0398",
+    "email": "jinadu.temitayo@crc.local",
+    "phone": "09110000384",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0398"
+  },
+  {
+    "seedKey": "member-0399",
+    "email": "folarin.mathew@crc.local",
+    "phone": "08010000385",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0399"
+  },
+  {
+    "seedKey": "member-0400",
+    "email": "oladipupo.bukola@crc.local",
+    "phone": "08110000386",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0400"
+  },
+  {
+    "seedKey": "member-0401",
+    "email": "olubunmi.abimbola@crc.local",
+    "phone": "07010000387",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0401"
+  },
+  {
+    "seedKey": "member-0402",
+    "email": "ibikunle.deborah@crc.local",
+    "phone": "09010000388",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0402"
+  },
+  {
+    "seedKey": "member-0403",
+    "email": "babatunde.samson.onifade@crc.local",
+    "phone": "09110000389",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0403"
+  },
+  {
+    "seedKey": "member-0404",
+    "email": "maboreje.kayode@crc.local",
+    "phone": "08010000390",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0404"
+  },
+  {
+    "seedKey": "member-0405",
+    "email": "logjameskay@gmail.com",
+    "phone": "08032380704",
+    "password": "ChangeMe123!",
+    "role": "groupCoordinator",
+    "profileSeedKey": "member-0405"
+  },
+  {
+    "seedKey": "member-0406",
+    "email": "agbaje.fatimoh@crc.local",
+    "phone": "08110000391",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0406"
+  },
+  {
+    "seedKey": "member-0407",
+    "email": "ajayi.anuoluwapo@crc.local",
+    "phone": "07010000392",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0407"
+  },
+  {
+    "seedKey": "member-0408",
+    "email": "akinbo.olawale@crc.local",
+    "phone": "09010000393",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0408"
+  },
+  {
+    "seedKey": "member-0409",
+    "email": "lemo.oluwatoyin@crc.local",
+    "phone": "09110000394",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0409"
+  },
+  {
+    "seedKey": "member-0410",
+    "email": "michaeloluranti13@gmail.com",
+    "phone": "08025672379",
+    "password": "ChangeMe123!",
+    "role": "groupCoordinator",
+    "profileSeedKey": "member-0410"
+  },
+  {
+    "seedKey": "member-0411",
+    "email": "ojo.abosede@crc.local",
+    "phone": "08010000395",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0411"
+  },
+  {
+    "seedKey": "member-0412",
+    "email": "oyetayo.bolaji@crc.local",
+    "phone": "08110000396",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0412"
+  },
+  {
+    "seedKey": "member-0413",
+    "email": "solomon.bosede@crc.local",
+    "phone": "07010000397",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0413"
+  },
+  {
+    "seedKey": "member-0414",
+    "email": "adeosun.deborah@crc.local",
+    "phone": "09010000398",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0414"
+  },
+  {
+    "seedKey": "member-0415",
+    "email": "eniolawun.adeola@crc.local",
+    "phone": "09110000399",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0415"
+  },
+  {
+    "seedKey": "member-0416",
+    "email": "azaka.cyril@crc.local",
+    "phone": "08010000400",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0416"
+  },
+  {
+    "seedKey": "member-0417",
+    "email": "babarinde.gbemisola@crc.local",
+    "phone": "08110000401",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0417"
+  },
+  {
+    "seedKey": "member-0418",
+    "email": "bakare.mobolaji@crc.local",
+    "phone": "07010000402",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0418"
+  },
+  {
+    "seedKey": "member-0419",
+    "email": "dada.rebecca@crc.local",
+    "phone": "09010000403",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0419"
+  },
+  {
+    "seedKey": "member-0420",
+    "email": "giwa.alaba@crc.local",
+    "phone": "09110000404",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0420"
+  },
+  {
+    "seedKey": "member-0421",
+    "email": "hassan.mojisola@crc.local",
+    "phone": "08010000405",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0421"
+  },
+  {
+    "seedKey": "member-0422",
+    "email": "michael.peculiar@crc.local",
+    "phone": "08110000406",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0422"
+  },
+  {
+    "seedKey": "member-0423",
+    "email": "popoola.adedoyin@crc.local",
+    "phone": "07010000407",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0423"
+  },
+  {
+    "seedKey": "member-0424",
+    "email": "popoola.damilola@crc.local",
+    "phone": "09010000408",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0424"
+  },
+  {
+    "seedKey": "member-0425",
+    "email": "akintayo.esther@crc.local",
+    "phone": "09110000409",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0425"
+  },
+  {
+    "seedKey": "member-0426",
+    "email": "raji.azeemat@crc.local",
+    "phone": "08010000410",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0426"
+  },
+  {
+    "seedKey": "member-0427",
+    "email": "raji.sahaadat@crc.local",
+    "phone": "08110000411",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0427"
+  },
+  {
+    "seedKey": "member-0428",
+    "email": "rufai.mojisola@crc.local",
+    "phone": "07010000412",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0428"
+  },
+  {
+    "seedKey": "member-0429",
+    "email": "aina.yakubu@crc.local",
+    "phone": "09010000413",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0429"
+  },
+  {
+    "seedKey": "member-0430",
+    "email": "oyelere.bisola@crc.local",
+    "phone": "09110000414",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0430"
+  },
+  {
+    "seedKey": "member-0431",
+    "email": "azaka.arinola@crc.local",
+    "phone": "08010000415",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0431"
+  },
+  {
+    "seedKey": "member-0432",
+    "email": "olabisi.bimpe@crc.local",
+    "phone": "08110000416",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0432"
+  },
+  {
+    "seedKey": "member-0433",
+    "email": "ayuba.mariam@crc.local",
+    "phone": "07010000417",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0433"
+  },
+  {
+    "seedKey": "member-0434",
+    "email": "ojo.oyeniyi@crc.local",
+    "phone": "09010000418",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0434"
+  },
+  {
+    "seedKey": "member-0435",
+    "email": "akinyode.sunday@crc.local",
+    "phone": "09110000419",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0435"
+  },
+  {
+    "seedKey": "member-0436",
+    "email": "adebanjo.folasade@crc.local",
+    "phone": "08010000420",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0436"
+  },
+  {
+    "seedKey": "member-0437",
+    "email": "oladele.oluwaseun@crc.local",
+    "phone": "08110000421",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0437"
+  },
+  {
+    "seedKey": "member-0438",
+    "email": "adio.alice@crc.local",
+    "phone": "07010000422",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0438"
+  },
+  {
+    "seedKey": "member-0439",
+    "email": "oladele.temitppe@crc.local",
+    "phone": "09010000423",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0439"
+  },
+  {
+    "seedKey": "member-0440",
+    "email": "sotunbo.temitppe@crc.local",
+    "phone": "09110000424",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0440"
+  },
+  {
+    "seedKey": "member-0441",
+    "email": "sotayo.busayo@crc.local",
+    "phone": "08010000425",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0441"
+  },
+  {
+    "seedKey": "member-0442",
+    "email": "oladele.victoria@crc.local",
+    "phone": "08110000426",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0442"
+  },
+  {
+    "seedKey": "member-0443",
+    "email": "oboh.osse@crc.local",
+    "phone": "07010000427",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0443"
+  },
+  {
+    "seedKey": "member-0444",
+    "email": "araoyel.enanna@crc.local",
+    "phone": "09010000428",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0444"
+  },
+  {
+    "seedKey": "member-0445",
+    "email": "fatunbi.elizabeth@crc.local",
+    "phone": "09110000429",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0445"
+  },
+  {
+    "seedKey": "member-0446",
+    "email": "jayeola.mulikat@crc.local",
+    "phone": "08010000430",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0446"
+  },
+  {
+    "seedKey": "member-0447",
+    "email": "ogundusi.olusola@crc.local",
+    "phone": "08110000431",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0447"
+  },
+  {
+    "seedKey": "member-0448",
+    "email": "ojeyinka.grace@crc.local",
+    "phone": "07010000432",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0448"
+  },
+  {
+    "seedKey": "member-0449",
+    "email": "omidiji.muyideen@crc.local",
+    "phone": "09010000433",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0449"
+  },
+  {
+    "seedKey": "member-0450",
+    "email": "alimi.tunrayo@crc.local",
+    "phone": "09110000434",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0450"
+  },
+  {
+    "seedKey": "member-0451",
+    "email": "adelaka.mary@crc.local",
+    "phone": "08010000435",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0451"
+  },
+  {
+    "seedKey": "member-0452",
+    "email": "ayuba.mariam.1@crc.local",
+    "phone": "08110000436",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0452"
+  },
+  {
+    "seedKey": "member-0453",
+    "email": "musolihudeen.fausat@crc.local",
+    "phone": "07010000437",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0453"
+  },
+  {
+    "seedKey": "member-0454",
+    "email": "oladeleoluwaseunajoke@gmail.com",
+    "phone": "08066332805",
+    "password": "ChangeMe123!",
+    "role": "groupCoordinator",
+    "profileSeedKey": "member-0454"
+  },
+  {
+    "seedKey": "member-0455",
+    "email": "jegede.omolola@crc.local",
+    "phone": "09010000438",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0455"
+  },
+  {
+    "seedKey": "member-0456",
+    "email": "johnson.deborah@crc.local",
+    "phone": "09110000439",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0456"
+  },
+  {
+    "seedKey": "member-0457",
+    "email": "lawal.sarah@crc.local",
+    "phone": "08010000440",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0457"
+  },
+  {
+    "seedKey": "member-0458",
+    "email": "adenekon.morenikeji@crc.local",
+    "phone": "08110000441",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0458"
+  },
+  {
+    "seedKey": "member-0459",
+    "email": "sotayo.kehinde@crc.local",
+    "phone": "07010000442",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0459"
+  },
+  {
+    "seedKey": "member-0460",
+    "email": "nasiru.blessing@crc.local",
+    "phone": "09010000443",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0460"
+  },
+  {
+    "seedKey": "member-0461",
+    "email": "ayodele.samuel@crc.local",
+    "phone": "09110000444",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0461"
+  },
+  {
+    "seedKey": "member-0462",
+    "email": "adolire.ijeoma@crc.local",
+    "phone": "08010000445",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0462"
+  },
+  {
+    "seedKey": "member-0463",
+    "email": "agboola.yinka@crc.local",
+    "phone": "08110000446",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0463"
+  },
+  {
+    "seedKey": "member-0464",
+    "email": "akindunjoye.bosede@crc.local",
+    "phone": "07010000447",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0464"
+  },
+  {
+    "seedKey": "member-0465",
+    "email": "akinsowan.ifedayo@crc.local",
+    "phone": "09010000448",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0465"
+  },
+  {
+    "seedKey": "member-0466",
+    "email": "akintepede.grace@crc.local",
+    "phone": "09110000449",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0466"
+  },
+  {
+    "seedKey": "member-0467",
+    "email": "amusa.alice@crc.local",
+    "phone": "08010000450",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0467"
+  },
+  {
+    "seedKey": "member-0468",
+    "email": "ayodele.oluwatosin@crc.local",
+    "phone": "08110000451",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0468"
+  },
+  {
+    "seedKey": "member-0469",
+    "email": "akinyemi.idowu@crc.local",
+    "phone": "07010000452",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0469"
+  },
+  {
+    "seedKey": "member-0470",
+    "email": "ilelakinwa.ibidapo@crc.local",
+    "phone": "09010000453",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0470"
+  },
+  {
+    "seedKey": "member-0471",
+    "email": "kareem.oluwagbeminiyi@crc.local",
+    "phone": "09110000454",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0471"
+  },
+  {
+    "seedKey": "member-0472",
+    "email": "ogunleye.bankole@crc.local",
+    "phone": "08010000455",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0472"
+  },
+  {
+    "seedKey": "member-0473",
+    "email": "olanrewaju.temitayo@crc.local",
+    "phone": "08110000456",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0473"
+  },
+  {
+    "seedKey": "member-0474",
+    "email": "olagunju.grace@crc.local",
+    "phone": "07010000457",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0474"
+  },
+  {
+    "seedKey": "member-0475",
+    "email": "olanrewaju.jeffrey@crc.local",
+    "phone": "09010000458",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0475"
+  },
+  {
+    "seedKey": "member-0476",
+    "email": "oluwasomidotun.faith@crc.local",
+    "phone": "09110000459",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0476"
+  },
+  {
+    "seedKey": "member-0477",
+    "email": "omotoyinbo.esther@crc.local",
+    "phone": "08010000460",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0477"
+  },
+  {
+    "seedKey": "member-0478",
+    "email": "allpower.wisdom@crc.local",
+    "phone": "08110000461",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0478"
+  },
+  {
+    "seedKey": "member-0479",
+    "email": "orimoyegun.seun@crc.local",
+    "phone": "07010000462",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0479"
+  },
+  {
+    "seedKey": "member-0480",
+    "email": "saanu.olanrewaju@crc.local",
+    "phone": "09010000463",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0480"
+  },
+  {
+    "seedKey": "member-0481",
+    "email": "samuel.olanrewaju@crc.local",
+    "phone": "09110000464",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0481"
+  },
+  {
+    "seedKey": "member-0482",
+    "email": "samuel.olawale@crc.local",
+    "phone": "08010000465",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0482"
+  },
+  {
+    "seedKey": "member-0483",
+    "email": "soneye.abiola@crc.local",
+    "phone": "08110000466",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0483"
+  },
+  {
+    "seedKey": "member-0484",
+    "email": "soremekun.tunde@crc.local",
+    "phone": "07010000467",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0484"
+  },
+  {
+    "seedKey": "member-0485",
+    "email": "john.evelyn@crc.local",
+    "phone": "09010000468",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0485"
+  },
+  {
+    "seedKey": "member-0486",
+    "email": "nasiru.olaniran@crc.local",
+    "phone": "09110000469",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0486"
+  },
+  {
+    "seedKey": "member-0487",
+    "email": "odu.hassan@crc.local",
+    "phone": "08010000470",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0487"
+  },
+  {
+    "seedKey": "member-0488",
+    "email": "tiamiyu.blessing@crc.local",
+    "phone": "08110000471",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0488"
+  },
+  {
+    "seedKey": "member-0489",
+    "email": "adegbite.funke@crc.local",
+    "phone": "07010000472",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0489"
+  },
+  {
+    "seedKey": "member-0490",
+    "email": "fawehinmi.racheal@crc.local",
+    "phone": "09010000473",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0490"
+  },
+  {
+    "seedKey": "member-0491",
+    "email": "odu.nasirat@crc.local",
+    "phone": "09110000474",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0491"
+  },
+  {
+    "seedKey": "member-0492",
+    "email": "ogunlade.busayo@crc.local",
+    "phone": "08010000475",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0492"
+  },
+  {
+    "seedKey": "member-0493",
+    "email": "ogunlade.deborah@crc.local",
+    "phone": "08110000476",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0493"
+  },
+  {
+    "seedKey": "member-0494",
+    "email": "ogunlade.micheal@crc.local",
+    "phone": "07010000477",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0494"
+  },
+  {
+    "seedKey": "member-0495",
+    "email": "ojemuyiwa.sola@crc.local",
+    "phone": "09010000478",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0495"
+  },
+  {
+    "seedKey": "member-0496",
+    "email": "olanrewaju.oyinda@crc.local",
+    "phone": "09110000479",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0496"
+  },
+  {
+    "seedKey": "member-0497",
+    "email": "sodehinde.hannah@crc.local",
+    "phone": "08010000480",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0497"
+  },
+  {
+    "seedKey": "member-0498",
+    "email": "sodipe.oluwakemi@crc.local",
+    "phone": "08110000481",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0498"
+  },
+  {
+    "seedKey": "member-0499",
+    "email": "sodiya.bosede@crc.local",
+    "phone": "07010000482",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0499"
+  },
+  {
+    "seedKey": "member-0500",
+    "email": "muhammed.olayemi@crc.local",
+    "phone": "09010000483",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0500"
+  },
+  {
+    "seedKey": "member-0501",
+    "email": "akinyemi.toyin@crc.local",
+    "phone": "09110000484",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0501"
+  },
+  {
+    "seedKey": "member-0502",
+    "email": "ayoola.balikis@crc.local",
+    "phone": "08010000485",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0502"
+  },
+  {
+    "seedKey": "member-0503",
+    "email": "olowoyeye.deborah@crc.local",
+    "phone": "08110000486",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0503"
+  },
+  {
+    "seedKey": "member-0504",
+    "email": "osunsanmi.olabisi@crc.local",
+    "phone": "07010000487",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0504"
+  },
+  {
+    "seedKey": "member-0505",
+    "email": "adedokun.grace@crc.local",
+    "phone": "09010000488",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0505"
+  },
+  {
+    "seedKey": "member-0506",
+    "email": "adeniji.mary@crc.local",
+    "phone": "09110000489",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0506"
+  },
+  {
+    "seedKey": "member-0507",
+    "email": "mutairu.deborah@crc.local",
+    "phone": "08010000490",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0507"
+  },
+  {
+    "seedKey": "member-0508",
+    "email": "ogunjimi.bolatito@crc.local",
+    "phone": "08110000491",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0508"
+  },
+  {
+    "seedKey": "member-0509",
+    "email": "ojo.eunis@crc.local",
+    "phone": "07010000492",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0509"
+  },
+  {
+    "seedKey": "member-0510",
+    "email": "badaru.sherifat@crc.local",
+    "phone": "09010000493",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0510"
+  },
+  {
+    "seedKey": "member-0511",
+    "email": "ogunmuyiwa.elizabeth@crc.local",
+    "phone": "09110000494",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0511"
+  },
+  {
+    "seedKey": "member-0512",
+    "email": "abubakar.femi@crc.local",
+    "phone": "08010000495",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0512"
+  },
+  {
+    "seedKey": "member-0513",
+    "email": "adeniji.bisi@crc.local",
+    "phone": "08110000496",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0513"
+  },
+  {
+    "seedKey": "member-0514",
+    "email": "odunuga.seyan@crc.local",
+    "phone": "07010000497",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0514"
+  },
+  {
+    "seedKey": "member-0515",
+    "email": "adekomaya.abosede@crc.local",
+    "phone": "09010000498",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0515"
+  },
+  {
+    "seedKey": "member-0516",
+    "email": "john.sunday@crc.local",
+    "phone": "09110000499",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0516"
+  },
+  {
+    "seedKey": "member-0517",
+    "email": "mutairu.elizabeth@crc.local",
+    "phone": "08010000500",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0517"
+  },
+  {
+    "seedKey": "member-0518",
+    "email": "mutairu.joshua@crc.local",
+    "phone": "08110000501",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0518"
+  },
+  {
+    "seedKey": "member-0519",
+    "email": "oluyede.ajoke@crc.local",
+    "phone": "07010000502",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0519"
+  },
+  {
+    "seedKey": "member-0520",
+    "email": "ogunmuyiwa.funmi@crc.local",
+    "phone": "09010000503",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0520"
+  },
+  {
+    "seedKey": "member-0521",
+    "email": "adebiyi.christian@crc.local",
+    "phone": "09110000504",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0521"
+  },
+  {
+    "seedKey": "member-0522",
+    "email": "adebayo.imole@crc.local",
+    "phone": "08010000505",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0522"
+  },
+  {
+    "seedKey": "member-0523",
+    "email": "fawehinmi.anthony@crc.local",
+    "phone": "08110000506",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0523"
+  },
+  {
+    "seedKey": "member-0524",
+    "email": "obasa.caroline@crc.local",
+    "phone": "07010000507",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0524"
+  },
+  {
+    "seedKey": "member-0525",
+    "email": "olanrewaju.temiloluwa@crc.local",
+    "phone": "09010000508",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0525"
+  },
+  {
+    "seedKey": "member-0526",
+    "email": "mutairu.peter@crc.local",
+    "phone": "09110000509",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0526"
+  },
+  {
+    "seedKey": "member-0527",
+    "email": "adebolaab418@gmail.com",
+    "phone": "07039362614",
+    "password": "ChangeMe123!",
+    "role": "groupCoordinator",
+    "profileSeedKey": "member-0527"
+  },
+  {
+    "seedKey": "member-0528",
+    "email": "olanrewaju.temitope@crc.local",
+    "phone": "08010000510",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0528"
+  },
+  {
+    "seedKey": "member-0529",
+    "email": "olatule.olanrewaju@crc.local",
+    "phone": "08110000511",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0529"
+  },
+  {
+    "seedKey": "member-0530",
+    "email": "asogbon.evelyn@crc.local",
+    "phone": "07010000512",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0530"
+  },
+  {
+    "seedKey": "member-0531",
+    "email": "adolire.gbenga@crc.local",
+    "phone": "09010000513",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0531"
+  },
+  {
+    "seedKey": "member-0532",
+    "email": "emmanuel.titilayo@crc.local",
+    "phone": "09110000514",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0532"
+  },
+  {
+    "seedKey": "member-0533",
+    "email": "ogulade.odunayo@crc.local",
+    "phone": "08010000515",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0533"
+  },
+  {
+    "seedKey": "member-0534",
+    "email": "ogundeyi.abdulazeez@crc.local",
+    "phone": "08110000516",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0534"
+  },
+  {
+    "seedKey": "member-0535",
+    "email": "group.name.beatrice.olunyo@crc.local",
+    "phone": "07010000517",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0535"
+  },
+  {
+    "seedKey": "member-0536",
+    "email": "akinwumi.omoseke@crc.local",
+    "phone": "09010000518",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0536"
+  },
+  {
+    "seedKey": "member-0537",
+    "email": "otokola.oluwakemi@crc.local",
+    "phone": "09110000519",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0537"
+  },
+  {
+    "seedKey": "member-0538",
+    "email": "anthony.christiana@crc.local",
+    "phone": "08010000520",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0538"
+  },
+  {
+    "seedKey": "member-0539",
+    "email": "esther.saka@crc.local",
+    "phone": "08110000521",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0539"
+  },
+  {
+    "seedKey": "member-0540",
+    "email": "ogunyinka.esther@crc.local",
+    "phone": "07010000522",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0540"
+  },
+  {
+    "seedKey": "member-0541",
+    "email": "olamilekan.saka@crc.local",
+    "phone": "09010000523",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0541"
+  },
+  {
+    "seedKey": "member-0542",
+    "email": "omogoye.taye@crc.local",
+    "phone": "09110000524",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0542"
+  },
+  {
+    "seedKey": "member-0543",
+    "email": "mustapha.oluwakemi@crc.local",
+    "phone": "08010000525",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0543"
+  },
+  {
+    "seedKey": "member-0544",
+    "email": "david.bose@crc.local",
+    "phone": "08110000526",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0544"
+  },
+  {
+    "seedKey": "member-0545",
+    "email": "adeniji.alimot@crc.local",
+    "phone": "07010000527",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0545"
+  },
+  {
+    "seedKey": "member-0546",
+    "email": "abioga.hannah@crc.local",
+    "phone": "09010000528",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0546"
+  },
+  {
+    "seedKey": "member-0547",
+    "email": "adisa.samson@crc.local",
+    "phone": "09110000529",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0547"
+  },
+  {
+    "seedKey": "member-0548",
+    "email": "akinola.ruth@crc.local",
+    "phone": "08010000530",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0548"
+  },
+  {
+    "seedKey": "member-0549",
+    "email": "ibiyeye.saidi@crc.local",
+    "phone": "08110000531",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0549"
+  },
+  {
+    "seedKey": "member-0550",
+    "email": "aladejobi.elizabeth@crc.local",
+    "phone": "07010000532",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0550"
+  },
+  {
+    "seedKey": "member-0551",
+    "email": "oje.foluke@crc.local",
+    "phone": "09010000533",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0551"
+  },
+  {
+    "seedKey": "member-0552",
+    "email": "omonitan.folake@crc.local",
+    "phone": "09110000534",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0552"
+  },
+  {
+    "seedKey": "member-0553",
+    "email": "olunyo.beatrice@crc.local",
+    "phone": "08010000535",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0553"
+  },
+  {
+    "seedKey": "member-0554",
+    "email": "sholola.aderonke@crc.local",
+    "phone": "08110000536",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0554"
+  },
+  {
+    "seedKey": "member-0555",
+    "email": "jolaosho.ganiyat@crc.local",
+    "phone": "07010000537",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0555"
+  },
+  {
+    "seedKey": "member-0556",
+    "email": "abdurahim.funke@crc.local",
+    "phone": "09010000538",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0556"
+  },
+  {
+    "seedKey": "member-0557",
+    "email": "amidu.kehinde@crc.local",
+    "phone": "09110000539",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0557"
+  },
+  {
+    "seedKey": "member-0558",
+    "email": "sekoni.mayowa@crc.local",
+    "phone": "08010000540",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0558"
+  },
+  {
+    "seedKey": "member-0559",
+    "email": "olaonipekun.damilola@crc.local",
+    "phone": "08110000541",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0559"
+  },
+  {
+    "seedKey": "member-0560",
+    "email": "hassan.rukayat@crc.local",
+    "phone": "07010000542",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0560"
+  },
+  {
+    "seedKey": "member-0561",
+    "email": "akinyemi.stephen@crc.local",
+    "phone": "09010000543",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0561"
+  },
+  {
+    "seedKey": "member-0562",
+    "email": "eden.john@crc.local",
+    "phone": "09110000544",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0562"
+  },
+  {
+    "seedKey": "member-0563",
+    "email": "agbalaja.emmanuel@crc.local",
+    "phone": "08010000545",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0563"
+  },
+  {
+    "seedKey": "member-0564",
+    "email": "ogunlade.yemi@crc.local",
+    "phone": "08110000546",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0564"
+  },
+  {
+    "seedKey": "member-0565",
+    "email": "oke.damilare@crc.local",
+    "phone": "07010000547",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0565"
+  },
+  {
+    "seedKey": "member-0566",
+    "email": "adeyemi.lekan@crc.local",
+    "phone": "09010000548",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0566"
+  },
+  {
+    "seedKey": "member-0567",
+    "email": "nofiu.ibrahim@crc.local",
+    "phone": "09110000549",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0567"
+  },
+  {
+    "seedKey": "member-0568",
+    "email": "ilori.arike@crc.local",
+    "phone": "08010000550",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0568"
+  },
+  {
+    "seedKey": "member-0569",
+    "email": "olorunda.margret@crc.local",
+    "phone": "08110000551",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0569"
+  },
+  {
+    "seedKey": "member-0570",
+    "email": "adegbite.omobolanle@crc.local",
+    "phone": "07010000552",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0570"
+  },
+  {
+    "seedKey": "member-0571",
+    "email": "oke.grace@crc.local",
+    "phone": "09010000553",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0571"
+  },
+  {
+    "seedKey": "member-0572",
+    "email": "adeniji.adiat@crc.local",
+    "phone": "09110000554",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0572"
+  },
+  {
+    "seedKey": "member-0573",
+    "email": "saidu.ganiyat@crc.local",
+    "phone": "08010000555",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0573"
+  },
+  {
+    "seedKey": "member-0574",
+    "email": "adebayo.temilade@crc.local",
+    "phone": "08110000556",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0574"
+  },
+  {
+    "seedKey": "member-0575",
+    "email": "james.mary@crc.local",
+    "phone": "07010000557",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0575"
+  },
+  {
+    "seedKey": "member-0576",
+    "email": "abudu.solomon@crc.local",
+    "phone": "09010000558",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0576"
+  },
+  {
+    "seedKey": "member-0577",
+    "email": "animasahun.remilekun@crc.local",
+    "phone": "09110000559",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0577"
+  },
+  {
+    "seedKey": "member-0578",
+    "email": "salako.opeyemi@crc.local",
+    "phone": "08010000560",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0578"
+  },
+  {
+    "seedKey": "member-0579",
+    "email": "group.name.oyediji.christianah@crc.local",
+    "phone": "08110000561",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0579"
+  },
+  {
+    "seedKey": "member-0580",
+    "email": "ayodele.ayomide@crc.local",
+    "phone": "07010000562",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0580"
+  },
+  {
+    "seedKey": "member-0581",
+    "email": "fagbenro.olufunsho@crc.local",
+    "phone": "09010000563",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0581"
+  },
+  {
+    "seedKey": "member-0582",
+    "email": "jude.felix@crc.local",
+    "phone": "09110000564",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0582"
+  },
+  {
+    "seedKey": "member-0583",
+    "email": "olalere.jacob@crc.local",
+    "phone": "08010000565",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0583"
+  },
+  {
+    "seedKey": "member-0584",
+    "email": "fateru.patrick@crc.local",
+    "phone": "08110000566",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0584"
+  },
+  {
+    "seedKey": "member-0585",
+    "email": "oyelowo.rebecca@crc.local",
+    "phone": "07010000567",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0585"
+  },
+  {
+    "seedKey": "member-0586",
+    "email": "falola.christianah@crc.local",
+    "phone": "09010000568",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0586"
+  },
+  {
+    "seedKey": "member-0587",
+    "email": "adebunmi.adebukola@crc.local",
+    "phone": "09110000569",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0587"
+  },
+  {
+    "seedKey": "member-0588",
+    "email": "ajibade.christianah@crc.local",
+    "phone": "08010000570",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0588"
+  },
+  {
+    "seedKey": "member-0589",
+    "email": "akanbi.toyin@crc.local",
+    "phone": "08110000571",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0589"
+  },
+  {
+    "seedKey": "member-0590",
+    "email": "oyewole.samuel@crc.local",
+    "phone": "07010000572",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0590"
+  },
+  {
+    "seedKey": "member-0591",
+    "email": "babalola.bukola@crc.local",
+    "phone": "09010000573",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0591"
+  },
+  {
+    "seedKey": "member-0592",
+    "email": "oyediji.christianah@crc.local",
+    "phone": "09110000574",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0592"
+  },
+  {
+    "seedKey": "member-0593",
+    "email": "adebiyi.micheal@crc.local",
+    "phone": "08010000575",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0593"
+  },
+  {
+    "seedKey": "member-0594",
+    "email": "sorungbe.nofisat@crc.local",
+    "phone": "08110000576",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0594"
+  },
+  {
+    "seedKey": "member-0595",
+    "email": "akinsanmi.samuel@crc.local",
+    "phone": "07010000577",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0595"
+  },
+  {
+    "seedKey": "member-0596",
+    "email": "adebakin.kayode@crc.local",
+    "phone": "09010000578",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0596"
+  },
+  {
+    "seedKey": "member-0597",
+    "email": "group.name.oyebola.oyeniyi@crc.local",
+    "phone": "09110000579",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0597"
+  },
+  {
+    "seedKey": "member-0598",
+    "email": "oyeniyi.oyebola@crc.local",
+    "phone": "08010000580",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0598"
+  },
+  {
+    "seedKey": "member-0599",
+    "email": "adegboye.gloria@crc.local",
+    "phone": "08110000581",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0599"
+  },
+  {
+    "seedKey": "member-0600",
+    "email": "alayemi.emmanuel@crc.local",
+    "phone": "07010000582",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0600"
+  },
+  {
+    "seedKey": "member-0601",
+    "email": "aremu.tomisin@crc.local",
+    "phone": "09010000583",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0601"
+  },
+  {
+    "seedKey": "member-0602",
+    "email": "adeleke.oyewunmi@crc.local",
+    "phone": "09110000584",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0602"
+  },
+  {
+    "seedKey": "member-0603",
+    "email": "oyeyemi.oyeniyi@crc.local",
+    "phone": "08010000585",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0603"
+  },
+  {
+    "seedKey": "member-0604",
+    "email": "oyebisi.oyeniyi@crc.local",
+    "phone": "08110000586",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0604"
+  },
+  {
+    "seedKey": "member-0605",
+    "email": "adesope.josiah.rev.d@crc.local",
+    "phone": "07010000587",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0605"
+  },
+  {
+    "seedKey": "member-0606",
+    "email": "oyelami.olamide@crc.local",
+    "phone": "09010000588",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0606"
+  },
+  {
+    "seedKey": "member-0607",
+    "email": "bello.rasidat@crc.local",
+    "phone": "09110000589",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0607"
+  },
+  {
+    "seedKey": "member-0608",
+    "email": "olusanjo.olayinka@crc.local",
+    "phone": "08010000590",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0608"
+  },
+  {
+    "seedKey": "member-0609",
+    "email": "osinubi.funmilayo@crc.local",
+    "phone": "08110000591",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0609"
+  },
+  {
+    "seedKey": "member-0610",
+    "email": "sodunke.gbonjubola@crc.local",
+    "phone": "07010000592",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0610"
+  },
+  {
+    "seedKey": "member-0611",
+    "email": "salami.adetokunbo@crc.local",
+    "phone": "09010000593",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0611"
+  },
+  {
+    "seedKey": "member-0612",
+    "email": "akintunde.nathaniel.rev.d@crc.local",
+    "phone": "09110000594",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0612"
+  },
+  {
+    "seedKey": "member-0613",
+    "email": "ige.abidemi@crc.local",
+    "phone": "08010000595",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0613"
+  },
+  {
+    "seedKey": "member-0614",
+    "email": "sodiya.john@crc.local",
+    "phone": "08110000596",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0614"
+  },
+  {
+    "seedKey": "member-0615",
+    "email": "sogunle.folasade@crc.local",
+    "phone": "07010000597",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0615"
+  },
+  {
+    "seedKey": "member-0616",
+    "email": "adelakun.nathaniel.rev.d@crc.local",
+    "phone": "09010000598",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0616"
+  },
+  {
+    "seedKey": "member-0617",
+    "email": "akinde.lukmon@crc.local",
+    "phone": "09110000599",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0617"
+  },
+  {
+    "seedKey": "member-0618",
+    "email": "amao.olajide.prof@crc.local",
+    "phone": "08010000600",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0618"
+  },
+  {
+    "seedKey": "member-0619",
+    "email": "shodiya.fatima@crc.local",
+    "phone": "08110000601",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0619"
+  },
+  {
+    "seedKey": "member-0620",
+    "email": "sholesi.rebecca@crc.local",
+    "phone": "07010000602",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0620"
+  },
+  {
+    "seedKey": "member-0621",
+    "email": "amosu.temitope@crc.local",
+    "phone": "09010000603",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0621"
+  },
+  {
+    "seedKey": "member-0622",
+    "email": "obasa.mosunmola@crc.local",
+    "phone": "09110000604",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0622"
+  },
+  {
+    "seedKey": "member-0623",
+    "email": "obasa.toyin@crc.local",
+    "phone": "08010000605",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0623"
+  },
+  {
+    "seedKey": "member-0624",
+    "email": "oladipupo.tunde.ramon@crc.local",
+    "phone": "08110000606",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0624"
+  },
+  {
+    "seedKey": "member-0625",
+    "email": "olayanju.fauziyat@crc.local",
+    "phone": "07010000607",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0625"
+  },
+  {
+    "seedKey": "member-0626",
+    "email": "payne.more.nike@crc.local",
+    "phone": "09010000608",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0626"
+  },
+  {
+    "seedKey": "member-0627",
+    "email": "ogundiran.hosea@crc.local",
+    "phone": "09110000609",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0627"
+  },
+  {
+    "seedKey": "member-0628",
+    "email": "ajah.morufat@crc.local",
+    "phone": "08010000610",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0628"
+  },
+  {
+    "seedKey": "member-0629",
+    "email": "oyedele.christianah@crc.local",
+    "phone": "08110000611",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0629"
+  },
+  {
+    "seedKey": "member-0630",
+    "email": "ayeyemi.florence@crc.local",
+    "phone": "07010000612",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0630"
+  },
+  {
+    "seedKey": "member-0631",
+    "email": "babalola.abosede@crc.local",
+    "phone": "09010000613",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0631"
+  },
+  {
+    "seedKey": "member-0632",
+    "email": "oyekan.mary@crc.local",
+    "phone": "09110000614",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0632"
+  },
+  {
+    "seedKey": "member-0633",
+    "email": "oyeniyi.rebecca@crc.local",
+    "phone": "08010000615",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0633"
+  },
+  {
+    "seedKey": "member-0634",
+    "email": "oyeniyi.solomon.rev.d@crc.local",
+    "phone": "08110000616",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0634"
+  },
+  {
+    "seedKey": "member-0635",
+    "email": "salako.abimbola@crc.local",
+    "phone": "07010000617",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0635"
+  },
+  {
+    "seedKey": "member-0636",
+    "email": "ojo.bola@crc.local",
+    "phone": "09010000618",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0636"
+  },
+  {
+    "seedKey": "member-0637",
+    "email": "ojo.samuel@crc.local",
+    "phone": "09110000619",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0637"
+  },
+  {
+    "seedKey": "member-0638",
+    "email": "aluko.christianah@crc.local",
+    "phone": "08010000620",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0638"
+  },
+  {
+    "seedKey": "member-0639",
+    "email": "olaleye.maria@crc.local",
+    "phone": "08110000621",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0639"
+  },
+  {
+    "seedKey": "member-0640",
+    "email": "olalekan.precious@crc.local",
+    "phone": "07010000622",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0640"
+  },
+  {
+    "seedKey": "member-0641",
+    "email": "rebecca.oyeniyi@crc.local",
+    "phone": "09010000623",
+    "password": "ChangeMe123!",
+    "role": "groupCoordinator",
+    "profileSeedKey": "member-0641"
+  },
+  {
+    "seedKey": "member-0642",
+    "email": "amosun.ldiat@crc.local",
+    "phone": "09110000624",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0642"
+  },
+  {
+    "seedKey": "member-0643",
+    "email": "james.femi@crc.local",
+    "phone": "08010000625",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0643"
+  },
+  {
+    "seedKey": "member-0644",
+    "email": "olalude.sola@crc.local",
+    "phone": "08110000626",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0644"
+  },
+  {
+    "seedKey": "member-0645",
+    "email": "olanrewaju.beatrice@crc.local",
+    "phone": "07010000627",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0645"
+  },
+  {
+    "seedKey": "member-0646",
+    "email": "adelakun.khadija@crc.local",
+    "phone": "09010000628",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0646"
+  },
+  {
+    "seedKey": "member-0647",
+    "email": "david.ogunsola.foluke@crc.local",
+    "phone": "09110000629",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0647"
+  },
+  {
+    "seedKey": "member-0648",
+    "email": "fatai.seidat@crc.local",
+    "phone": "08010000630",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0648"
+  },
+  {
+    "seedKey": "member-0649",
+    "email": "lapite.adenike@crc.local",
+    "phone": "08110000631",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0649"
+  },
+  {
+    "seedKey": "member-0650",
+    "email": "kasali.ayisat@crc.local",
+    "phone": "07010000632",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0650"
+  },
+  {
+    "seedKey": "member-0651",
+    "email": "olayiwola.salimo@crc.local",
+    "phone": "09010000633",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0651"
+  },
+  {
+    "seedKey": "member-0652",
+    "email": "olude.abiola@crc.local",
+    "phone": "09110000634",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0652"
+  },
+  {
+    "seedKey": "member-0653",
+    "email": "olusesi.adenike@crc.local",
+    "phone": "08010000635",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0653"
+  },
+  {
+    "seedKey": "member-0654",
+    "email": "sabitu.kofoworola@crc.local",
+    "phone": "08110000636",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0654"
+  },
+  {
+    "seedKey": "member-0655",
+    "email": "sabitu.raimot@crc.local",
+    "phone": "07010000637",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0655"
+  },
+  {
+    "seedKey": "member-0656",
+    "email": "abati.edmond@crc.local",
+    "phone": "09010000638",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0656"
+  },
+  {
+    "seedKey": "member-0657",
+    "email": "ajamu.oluwatoyin@crc.local",
+    "phone": "09110000639",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0657"
+  },
+  {
+    "seedKey": "member-0658",
+    "email": "oladipupo.racheal@crc.local",
+    "phone": "08010000640",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0658"
+  },
+  {
+    "seedKey": "member-0659",
+    "email": "sanni.omoyeni.adijat@crc.local",
+    "phone": "08110000641",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0659"
+  },
+  {
+    "seedKey": "member-0660",
+    "email": "gbadebo.daniel@crc.local",
+    "phone": "07010000642",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0660"
+  },
+  {
+    "seedKey": "member-0661",
+    "email": "sabitu.zainab@crc.local",
+    "phone": "09010000643",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0661"
+  },
+  {
+    "seedKey": "member-0662",
+    "email": "onasanya.bolanle@crc.local",
+    "phone": "09110000644",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0662"
+  },
+  {
+    "seedKey": "member-0663",
+    "email": "bankole.fausat@crc.local",
+    "phone": "08010000645",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0663"
+  },
+  {
+    "seedKey": "member-0664",
+    "email": "omojola.grace@crc.local",
+    "phone": "08110000646",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0664"
+  },
+  {
+    "seedKey": "member-0665",
+    "email": "onasanya.falilat.mary@crc.local",
+    "phone": "07010000647",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0665"
+  },
+  {
+    "seedKey": "member-0666",
+    "email": "onifade.sakirat.adufe@crc.local",
+    "phone": "09010000648",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0666"
+  },
+  {
+    "seedKey": "member-0667",
+    "email": "shokunbi.nnena@crc.local",
+    "phone": "09110000649",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0667"
+  },
+  {
+    "seedKey": "member-0668",
+    "email": "jimoh.nurudeen@crc.local",
+    "phone": "08010000650",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0668"
+  },
+  {
+    "seedKey": "member-0669",
+    "email": "adesola.johnson.rev.d@crc.local",
+    "phone": "08110000651",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0669"
+  },
+  {
+    "seedKey": "member-0670",
+    "email": "olawunmi.bose@crc.local",
+    "phone": "07010000652",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0670"
+  },
+  {
+    "seedKey": "member-0671",
+    "email": "salako.oluwabunmi@crc.local",
+    "phone": "09010000653",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0671"
+  },
+  {
+    "seedKey": "member-0672",
+    "email": "shodiya.modupe@crc.local",
+    "phone": "09110000654",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0672"
+  },
+  {
+    "seedKey": "member-0673",
+    "email": "keshinro.bola@crc.local",
+    "phone": "08010000655",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0673"
+  },
+  {
+    "seedKey": "member-0674",
+    "email": "olude.olabisi@crc.local",
+    "phone": "08110000656",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0674"
+  },
+  {
+    "seedKey": "member-0675",
+    "email": "shodiya.ololade@crc.local",
+    "phone": "07010000657",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0675"
+  },
+  {
+    "seedKey": "member-0676",
+    "email": "attoe.vivian@crc.local",
+    "phone": "09010000658",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0676"
+  },
+  {
+    "seedKey": "member-0677",
+    "email": "otegbeye.funke@crc.local",
+    "phone": "09110000659",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0677"
+  },
+  {
+    "seedKey": "member-0678",
+    "email": "sabitu.grace.folasade@crc.local",
+    "phone": "08010000660",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0678"
+  },
+  {
+    "seedKey": "member-0679",
+    "email": "sabitu.olatunbosun@crc.local",
+    "phone": "08110000661",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0679"
+  },
+  {
+    "seedKey": "member-0680",
+    "email": "sofade.abati@crc.local",
+    "phone": "07010000662",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0680"
+  },
+  {
+    "seedKey": "member-0681",
+    "email": "jimoh.muinat@crc.local",
+    "phone": "09010000663",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0681"
+  },
+  {
+    "seedKey": "member-0682",
+    "email": "sabitu.adesola@crc.local",
+    "phone": "09110000664",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0682"
+  },
+  {
+    "seedKey": "member-0683",
+    "email": "sabitu.opeyemi@crc.local",
+    "phone": "08010000665",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0683"
+  },
+  {
+    "seedKey": "member-0684",
+    "email": "abati.omolara@crc.local",
+    "phone": "08110000666",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0684"
+  },
+  {
+    "seedKey": "member-0685",
+    "email": "sabitugracefolashade@gmail.com",
+    "phone": "08167288252",
+    "password": "ChangeMe123!",
+    "role": "groupCoordinator",
+    "profileSeedKey": "member-0685"
+  },
+  {
+    "seedKey": "member-0686",
+    "email": "oladele.bolaji@crc.local",
+    "phone": "07010000667",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0686"
+  },
+  {
+    "seedKey": "member-0687",
+    "email": "adebayo.tobi@crc.local",
+    "phone": "09010000668",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0687"
+  },
+  {
+    "seedKey": "member-0688",
+    "email": "adedosu.tomisin@crc.local",
+    "phone": "09110000669",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0688"
+  },
+  {
+    "seedKey": "member-0689",
+    "email": "ajayi.folake@crc.local",
+    "phone": "08010000670",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0689"
+  },
+  {
+    "seedKey": "member-0690",
+    "email": "anibijuwon.temilade@crc.local",
+    "phone": "08110000671",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0690"
+  },
+  {
+    "seedKey": "member-0691",
+    "email": "ayoade.temilade@crc.local",
+    "phone": "07010000672",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0691"
+  },
+  {
+    "seedKey": "member-0692",
+    "email": "ayoade.adegbola@crc.local",
+    "phone": "09010000673",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0692"
+  },
+  {
+    "seedKey": "member-0693",
+    "email": "bankole.atinuke@crc.local",
+    "phone": "09110000674",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0693"
+  },
+  {
+    "seedKey": "member-0694",
+    "email": "bewaji.modupe@crc.local",
+    "phone": "08010000675",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0694"
+  },
+  {
+    "seedKey": "member-0695",
+    "email": "fasakin.adetoun@crc.local",
+    "phone": "08110000676",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0695"
+  },
+  {
+    "seedKey": "member-0696",
+    "email": "opatola.samuel@crc.local",
+    "phone": "07010000677",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0696"
+  },
+  {
+    "seedKey": "member-0697",
+    "email": "opeyemi.abass@crc.local",
+    "phone": "09010000678",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0697"
+  },
+  {
+    "seedKey": "member-0698",
+    "email": "shittu.funmilola@crc.local",
+    "phone": "09110000679",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0698"
+  },
+  {
+    "seedKey": "member-0699",
+    "email": "akintayo.titilope@crc.local",
+    "phone": "08010000680",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0699"
+  },
+  {
+    "seedKey": "member-0700",
+    "email": "igwenta.rose@crc.local",
+    "phone": "08110000681",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0700"
+  },
+  {
+    "seedKey": "member-0701",
+    "email": "mr.adediran@crc.local",
+    "phone": "07010000682",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0701"
+  },
+  {
+    "seedKey": "member-0702",
+    "email": "akande.olufunke@crc.local",
+    "phone": "09010000683",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0702"
+  },
+  {
+    "seedKey": "member-0703",
+    "email": "akande.olukayode@crc.local",
+    "phone": "09110000684",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0703"
+  },
+  {
+    "seedKey": "member-0704",
+    "email": "adekola.falola@crc.local",
+    "phone": "08010000685",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0704"
+  },
+  {
+    "seedKey": "member-0705",
+    "email": "akinsooto.bamidele@crc.local",
+    "phone": "08110000686",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0705"
+  },
+  {
+    "seedKey": "member-0706",
+    "email": "awe.lawrence@crc.local",
+    "phone": "07010000687",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0706"
+  },
+  {
+    "seedKey": "member-0707",
+    "email": "fadare.grace@crc.local",
+    "phone": "09010000688",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0707"
+  },
+  {
+    "seedKey": "member-0708",
+    "email": "omonijo.beatrice@crc.local",
+    "phone": "09110000689",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0708"
+  },
+  {
+    "seedKey": "member-0709",
+    "email": "adeleke.sunday@crc.local",
+    "phone": "08010000690",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0709"
+  },
+  {
+    "seedKey": "member-0710",
+    "email": "ogunyinka.ezekiel@crc.local",
+    "phone": "08110000691",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0710"
+  },
+  {
+    "seedKey": "member-0711",
+    "email": "fadare.femi@crc.local",
+    "phone": "07010000692",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0711"
+  },
+  {
+    "seedKey": "member-0712",
+    "email": "ogunrinola.folake@crc.local",
+    "phone": "09010000693",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0712"
+  },
+  {
+    "seedKey": "member-0713",
+    "email": "oladimeji.tayo@crc.local",
+    "phone": "09110000694",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0713"
+  },
+  {
+    "seedKey": "member-0714",
+    "email": "jegede.toyin@crc.local",
+    "phone": "08010000695",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0714"
+  },
+  {
+    "seedKey": "member-0715",
+    "email": "anibijuwon.ifeoluwa@crc.local",
+    "phone": "08110000696",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0715"
+  },
+  {
+    "seedKey": "member-0716",
+    "email": "funmilolashittu715@gmail.com",
+    "phone": "08085576729",
+    "password": "ChangeMe123!",
+    "role": "groupCoordinator",
+    "profileSeedKey": "member-0716"
+  },
+  {
+    "seedKey": "member-0717",
+    "email": "oyewole.sunday@crc.local",
+    "phone": "07010000697",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0717"
+  },
+  {
+    "seedKey": "member-0718",
+    "email": "sanusi.wuraola@crc.local",
+    "phone": "09010000698",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0718"
+  },
+  {
+    "seedKey": "member-0719",
+    "email": "sobayo.bukunmi@crc.local",
+    "phone": "09110000699",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0719"
+  },
+  {
+    "seedKey": "member-0720",
+    "email": "odetola.olutunmise@crc.local",
+    "phone": "08010000700",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0720"
+  },
+  {
+    "seedKey": "member-0721",
+    "email": "sotayo.ruth@crc.local",
+    "phone": "08110000701",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0721"
+  },
+  {
+    "seedKey": "member-0722",
+    "email": "adejoro.ruth@crc.local",
+    "phone": "07010000702",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0722"
+  },
+  {
+    "seedKey": "member-0723",
+    "email": "babalola.abosede.1@crc.local",
+    "phone": "09010000703",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0723"
+  },
+  {
+    "seedKey": "member-0724",
+    "email": "akinola.bayo@crc.local",
+    "phone": "09110000704",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0724"
+  },
+  {
+    "seedKey": "member-0725",
+    "email": "ojediran.oluwabukola@crc.local",
+    "phone": "08010000705",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0725"
+  },
+  {
+    "seedKey": "member-0726",
+    "email": "folukemi.adeeko@crc.local",
+    "phone": "08110000706",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0726"
+  },
+  {
+    "seedKey": "member-0727",
+    "email": "daniel.akinlabi@crc.local",
+    "phone": "07010000707",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0727"
+  },
+  {
+    "seedKey": "member-0728",
+    "email": "motundebabalola@gmail.com",
+    "phone": "08065662768",
+    "password": "ChangeMe123!",
+    "role": "groupCoordinator",
+    "profileSeedKey": "member-0728"
+  },
+  {
+    "seedKey": "member-0729",
+    "email": "olayiwola.salami@crc.local",
+    "phone": "09010000708",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0729"
+  },
+  {
+    "seedKey": "member-0730",
+    "email": "adesoji.oyesanwo@crc.local",
+    "phone": "09110000709",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0730"
+  },
+  {
+    "seedKey": "member-0731",
+    "email": "akamo.omolabake@crc.local",
+    "phone": "08010000710",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0731"
+  },
+  {
+    "seedKey": "member-0732",
+    "email": "yusuf.ronke@crc.local",
+    "phone": "08110000711",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0732"
+  },
+  {
+    "seedKey": "member-0733",
+    "email": "samson.olabode@crc.local",
+    "phone": "07010000712",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0733"
+  },
+  {
+    "seedKey": "member-0734",
+    "email": "rachel.fatiroti@crc.local",
+    "phone": "09010000713",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0734"
+  },
+  {
+    "seedKey": "member-0735",
+    "email": "bankole.adedotun@crc.local",
+    "phone": "09110000714",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0735"
+  },
+  {
+    "seedKey": "member-0736",
+    "email": "bankole.toyin@crc.local",
+    "phone": "08010000715",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0736"
+  },
+  {
+    "seedKey": "member-0737",
+    "email": "yusuf.oluwabukunmi@crc.local",
+    "phone": "08110000716",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0737"
+  },
+  {
+    "seedKey": "member-0738",
+    "email": "yusuf.oluasanmi@crc.local",
+    "phone": "07010000717",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0738"
+  },
+  {
+    "seedKey": "member-0739",
+    "email": "yusuf.oluwatimileyin@crc.local",
+    "phone": "09010000718",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0739"
+  },
+  {
+    "seedKey": "member-0740",
+    "email": "yusuf.oluwatunmise@crc.local",
+    "phone": "09110000719",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0740"
+  },
+  {
+    "seedKey": "member-0741",
+    "email": "osikanmi.olayemi@crc.local",
+    "phone": "08010000720",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0741"
+  },
+  {
+    "seedKey": "member-0742",
+    "email": "odugbose.oluwaseun@crc.local",
+    "phone": "08110000721",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0742"
+  },
+  {
+    "seedKey": "member-0743",
+    "email": "oparaku.sixtus@crc.local",
+    "phone": "07010000722",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0743"
+  },
+  {
+    "seedKey": "member-0744",
+    "email": "famuyiwa.david@crc.local",
+    "phone": "09010000723",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0744"
+  },
+  {
+    "seedKey": "member-0745",
+    "email": "famuyiwa.toyin@crc.local",
+    "phone": "09110000724",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0745"
+  },
+  {
+    "seedKey": "member-0746",
+    "email": "hassan.mariam@crc.local",
+    "phone": "08010000725",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0746"
+  },
+  {
+    "seedKey": "member-0747",
+    "email": "ronkeoshinkanmi@gmail.com",
+    "phone": "07065958899",
+    "password": "ChangeMe123!",
+    "role": "groupCoordinator",
+    "profileSeedKey": "member-0747"
+  },
+  {
+    "seedKey": "member-0748",
+    "email": "group.name.omotayo.amonimo@crc.local",
+    "phone": "08110000726",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0748"
+  },
+  {
+    "seedKey": "member-0749",
+    "email": "daramola.isaac@crc.local",
+    "phone": "07010000727",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0749"
+  },
+  {
+    "seedKey": "member-0750",
+    "email": "ahoya.olayinka@crc.local",
+    "phone": "09010000728",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0750"
+  },
+  {
+    "seedKey": "member-0751",
+    "email": "olutola.temitope@crc.local",
+    "phone": "09110000729",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0751"
+  },
+  {
+    "seedKey": "member-0752",
+    "email": "uthman.michael@crc.local",
+    "phone": "08010000730",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0752"
+  },
+  {
+    "seedKey": "member-0753",
+    "email": "abioye.ifeoluwa@crc.local",
+    "phone": "08110000731",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0753"
+  },
+  {
+    "seedKey": "member-0754",
+    "email": "ejiroghene.blessing@crc.local",
+    "phone": "07010000732",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0754"
+  },
+  {
+    "seedKey": "member-0755",
+    "email": "tijani.bukola@crc.local",
+    "phone": "09010000733",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0755"
+  },
+  {
+    "seedKey": "member-0756",
+    "email": "bolanle.omiyale@crc.local",
+    "phone": "09110000734",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0756"
+  },
+  {
+    "seedKey": "member-0757",
+    "email": "williams.folasade@crc.local",
+    "phone": "08010000735",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0757"
+  },
+  {
+    "seedKey": "member-0758",
+    "email": "akinrodolu.esther@crc.local",
+    "phone": "08110000736",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0758"
+  },
+  {
+    "seedKey": "member-0759",
+    "email": "balogun.mary@crc.local",
+    "phone": "07010000737",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0759"
+  },
+  {
+    "seedKey": "member-0760",
+    "email": "olusanya.omolola@crc.local",
+    "phone": "09010000738",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0760"
+  },
+  {
+    "seedKey": "member-0761",
+    "email": "omotade.deborah@crc.local",
+    "phone": "09110000739",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0761"
+  },
+  {
+    "seedKey": "member-0762",
+    "email": "akapo.yewande@crc.local",
+    "phone": "08010000740",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0762"
+  },
+  {
+    "seedKey": "member-0763",
+    "email": "alecheni.mercy@crc.local",
+    "phone": "08110000741",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0763"
+  },
+  {
+    "seedKey": "member-0764",
+    "email": "olagunju.eniola@crc.local",
+    "phone": "07010000742",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0764"
+  },
+  {
+    "seedKey": "member-0765",
+    "email": "obasa.oluwayemisi@crc.local",
+    "phone": "09010000743",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0765"
+  },
+  {
+    "seedKey": "member-0766",
+    "email": "olagunju.grace.1@crc.local",
+    "phone": "09110000744",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0766"
+  },
+  {
+    "seedKey": "member-0767",
+    "email": "adedokun.ikeola@crc.local",
+    "phone": "08010000745",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0767"
+  },
+  {
+    "seedKey": "member-0768",
+    "email": "ndubuisi.akwarandu@crc.local",
+    "phone": "08110000746",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0768"
+  },
+  {
+    "seedKey": "member-0769",
+    "email": "amonimo.omotayo@crc.local",
+    "phone": "07010000747",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0769"
+  },
+  {
+    "seedKey": "member-0770",
+    "email": "ibukun.fagbemi@crc.local",
+    "phone": "09010000748",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0770"
+  },
+  {
+    "seedKey": "member-0771",
+    "email": "dayo.onifade@crc.local",
+    "phone": "09110000749",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0771"
+  },
+  {
+    "seedKey": "member-0772",
+    "email": "innocent.okwuchime@crc.local",
+    "phone": "08010000750",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0772"
+  },
+  {
+    "seedKey": "member-0773",
+    "email": "olaniyi.esther@crc.local",
+    "phone": "08110000751",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0773"
+  },
+  {
+    "seedKey": "member-0774",
+    "email": "eledu.victoria@crc.local",
+    "phone": "07010000752",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0774"
+  },
+  {
+    "seedKey": "member-0775",
+    "email": "omoteh.eze@crc.local",
+    "phone": "09010000753",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0775"
+  },
+  {
+    "seedKey": "member-0776",
+    "email": "jacob.damilare@crc.local",
+    "phone": "09110000754",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0776"
+  },
+  {
+    "seedKey": "member-0777",
+    "email": "innopet.okwuchime@crc.local",
+    "phone": "08010000755",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0777"
+  },
+  {
+    "seedKey": "member-0778",
+    "email": "henryonoopemipo@crc.local",
+    "phone": "08110000756",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0778"
+  },
+  {
+    "seedKey": "member-0779",
+    "email": "timothy.adio@crc.local",
+    "phone": "07010000757",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0779"
+  },
+  {
+    "seedKey": "member-0780",
+    "email": "uttah.umah@crc.local",
+    "phone": "09010000758",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0780"
+  },
+  {
+    "seedKey": "member-0781",
+    "email": "udeh.sarah@crc.local",
+    "phone": "09110000759",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0781"
+  },
+  {
+    "seedKey": "member-0782",
+    "email": "ononobi.chinedu@crc.local",
+    "phone": "08010000760",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0782"
+  },
+  {
+    "seedKey": "member-0783",
+    "email": "fagbemi.sunday@crc.local",
+    "phone": "08110000761",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0783"
+  },
+  {
+    "seedKey": "member-0784",
+    "email": "fagbemi.funmilola@crc.local",
+    "phone": "07010000762",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0784"
+  },
+  {
+    "seedKey": "member-0785",
+    "email": "udehsarah52@gmail.com",
+    "phone": "09021032851",
+    "password": "ChangeMe123!",
+    "role": "groupCoordinator",
+    "profileSeedKey": "member-0785"
+  },
+  {
+    "seedKey": "member-0786",
+    "email": "omolara.ayinde@crc.local",
+    "phone": "09010000763",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0786"
+  },
+  {
+    "seedKey": "member-0787",
+    "email": "fiyinfolwa.akinbo@crc.local",
+    "phone": "09110000764",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0787"
+  },
+  {
+    "seedKey": "member-0788",
+    "email": "deborah.akintunde@crc.local",
+    "phone": "08010000765",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0788"
+  },
+  {
+    "seedKey": "member-0789",
+    "email": "jesulayomi.babarinde@crc.local",
+    "phone": "08110000766",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0789"
+  },
+  {
+    "seedKey": "member-0790",
+    "email": "imoleayo.olufunmilayo@crc.local",
+    "phone": "07010000767",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0790"
+  },
+  {
+    "seedKey": "member-0791",
+    "email": "tunde.amos@crc.local",
+    "phone": "09010000768",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0791"
+  },
+  {
+    "seedKey": "member-0792",
+    "email": "bukola.dauda@crc.local",
+    "phone": "09110000769",
+    "password": "ChangeMe123!",
+    "role": "member",
+    "profileSeedKey": "member-0792"
+  },
+  {
+    "seedKey": "member-0793",
+    "email": "damilareadoeye5@gmail.com",
+    "phone": "08064748074",
+    "password": "ChangeMe123!",
+    "role": "groupCoordinator",
+    "profileSeedKey": "member-0793"
+  }
+]

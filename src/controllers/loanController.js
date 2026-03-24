@@ -14,6 +14,16 @@ import { GroupModel } from "../models/Group.js";
 import { GroupMembershipModel } from "../models/GroupMembership.js";
 import { ContributionModel } from "../models/Contribution.js";
 import { createNotification } from "../services/notificationService.js";
+import {
+  ContributionWindow,
+  LoanFacilityTypes,
+  getLoanFacility,
+  getLoanInterestConfig,
+  getLoanRepaymentDeadline,
+  isInterestRateAllowed,
+  isLoanFacilityAvailable,
+  resolveInterestRate,
+} from "../utils/loanPolicy.js";
 
 function pick(obj, allowedKeys) {
   const out = {};
@@ -52,25 +62,71 @@ function addMonths(date, months) {
   return d;
 }
 
-function buildAmortizedSchedule({
+function buildRepaymentSchedule({
   principal,
-  annualRatePct,
+  ratePct,
+  rateType,
   months,
   startDate,
 }) {
   const P = Number(principal);
   const n = Math.max(1, Number(months) | 0);
-  const annual = Math.max(0, Number(annualRatePct) || 0);
-  const r = annual / 100 / 12;
+  const rate = Math.max(0, Number(ratePct) || 0);
+  const normalizedType = rateType || "annual";
 
-  const payment =
-    r === 0 ? P / n : (P * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
-
-  let balance = P;
   const items = [];
 
+  if (normalizedType === "total") {
+    const totalInterest = Math.round(P * (rate / 100));
+    const basePayment = (P + totalInterest) / n;
+    let remainingPrincipal = P;
+    let remainingInterest = totalInterest;
+
+    for (let i = 1; i <= n; i += 1) {
+      const interest =
+        i === n
+          ? remainingInterest
+          : Math.round(totalInterest / n);
+      const principalPaid =
+        i === n
+          ? remainingPrincipal
+          : Math.round(basePayment - interest);
+      const total = principalPaid + interest;
+
+      remainingPrincipal = Math.max(0, remainingPrincipal - principalPaid);
+      remainingInterest = Math.max(0, remainingInterest - interest);
+
+      const dueDate = addMonths(startDate, i - 1);
+
+      items.push({
+        installmentNumber: i,
+        dueDate,
+        principalAmount: Math.round(principalPaid),
+        interestAmount: Math.round(interest),
+        totalAmount: Math.round(total),
+        status: i === 1 ? "pending" : "upcoming",
+      });
+    }
+
+    const totalRepayable = items.reduce((sum, it) => sum + it.totalAmount, 0);
+    const monthlyPayment = items[0]?.totalAmount ?? Math.round(basePayment);
+
+    return { items, totalRepayable, monthlyPayment };
+  }
+
+  const monthlyRate =
+    normalizedType === "monthly" ? rate / 100 : rate / 100 / 12;
+
+  const payment =
+    monthlyRate === 0
+      ? P / n
+      : (P * monthlyRate * Math.pow(1 + monthlyRate, n)) /
+        (Math.pow(1 + monthlyRate, n) - 1);
+
+  let balance = P;
+
   for (let i = 1; i <= n; i += 1) {
-    const interest = r === 0 ? 0 : balance * r;
+    const interest = monthlyRate === 0 ? 0 : balance * monthlyRate;
     let principalPaid = payment - interest;
 
     if (i === n) {
@@ -138,32 +194,63 @@ export const getLoanEligibility = catchAsync(async (req, res, next) => {
   );
   console.log("Membership Duration: ", membershipDuration);
 
-  const [groupsJoined, contributionAgg, previousLoans, defaultedLoans] =
-    await Promise.all([
-      GroupMembershipModel.countDocuments({
-        userId: req.user.profileId,
-        status: "active",
-      }),
-      ContributionModel.aggregate([
-        {
-          $match: {
-            userId: profile._id,
-            status: { $in: ["completed", "verified"] },
-          },
+  const [
+    groupsJoined,
+    contributionAgg,
+    previousLoans,
+    defaultedLoans,
+    overdueContributions,
+    activeLoans,
+  ] = await Promise.all([
+    GroupMembershipModel.countDocuments({
+      userId: req.user.profileId,
+      status: "active",
+    }),
+    ContributionModel.aggregate([
+      {
+        $match: {
+          userId: profile._id,
+          status: { $in: ["completed", "verified"] },
         },
-        { $group: { _id: null, sum: { $sum: "$amount" } } },
-      ]),
-      LoanApplicationModel.countDocuments({
+      },
+      { $group: { _id: null, sum: { $sum: "$amount" } } },
+    ]),
+    LoanApplicationModel.countDocuments({
+      userId: req.user.profileId,
+      status: { $in: ["disbursed", "completed", "defaulted"] },
+    }),
+    LoanApplicationModel.countDocuments({
+      userId: req.user.profileId,
+      status: "defaulted",
+    }),
+    ContributionModel.countDocuments({
+      userId: req.user.profileId,
+      status: "overdue",
+    }),
+    LoanApplicationModel.find(
+      {
         userId: req.user.profileId,
-        status: { $in: ["disbursed", "completed", "defaulted"] },
-      }),
-      LoanApplicationModel.countDocuments({
-        userId: req.user.profileId,
-        status: "defaulted",
-      }),
-    ]);
+        status: { $in: ["disbursed", "defaulted"] },
+      },
+      { _id: 1 },
+    ).lean(),
+  ]);
 
   const totalContributions = Number(contributionAgg?.[0]?.sum ?? 0);
+  const activeLoanIds = activeLoans.map((l) => l._id);
+  const overdueRepayments =
+    activeLoanIds.length === 0
+      ? 0
+      : await LoanRepaymentScheduleItemModel.countDocuments({
+          loanApplicationId: { $in: activeLoanIds },
+          $or: [
+            { status: "overdue" },
+            {
+              status: { $in: ["pending", "upcoming"] },
+              dueDate: { $lt: now },
+            },
+          ],
+        });
 
   const eligibility = {
     savingsBalance: totalContributions,
@@ -174,7 +261,14 @@ export const getLoanEligibility = catchAsync(async (req, res, next) => {
     contributionStreak: 12,
     previousLoans,
     defaultedLoans,
+    overdueContributions,
+    overdueRepayments,
     creditScore: 850,
+    contributionWindow: {
+      startDay: ContributionWindow.startDay,
+      endDay: ContributionWindow.endDay,
+      isOpen: now.getDate() >= ContributionWindow.startDay || now.getDate() <= ContributionWindow.endDay,
+    },
   };
 
   return sendSuccess(res, { statusCode: 200, data: { eligibility } });
@@ -192,6 +286,7 @@ export const createLoanApplication = catchAsync(async (req, res, next) => {
   const allowed = [
     "groupId",
     "groupName",
+    "loanType",
     "loanAmount",
     "loanPurpose",
     "purposeDescription",
@@ -203,6 +298,26 @@ export const createLoanApplication = catchAsync(async (req, res, next) => {
   ];
 
   const payload = pick(req.body || {}, allowed);
+
+  const loanTypeRaw = String(payload.loanType || "").trim().toLowerCase();
+  if (!loanTypeRaw) {
+    return next(new AppError("loanType is required", 400));
+  }
+  if (!LoanFacilityTypes.includes(loanTypeRaw)) {
+    return next(new AppError("Invalid loanType", 400));
+  }
+  if (!isLoanFacilityAvailable(loanTypeRaw, new Date())) {
+    const facility = getLoanFacility(loanTypeRaw);
+    const label = facility?.label || "This loan type";
+    return next(new AppError(`${label} is not available at this time`, 400));
+  }
+  payload.loanType = loanTypeRaw;
+
+  if (req.user.role !== "admin" && !payload.groupId) {
+    return next(
+      new AppError("groupId is required for member loan applications", 400),
+    );
+  }
 
   if (!payload.loanAmount || Number(payload.loanAmount) <= 0) {
     return next(new AppError("loanAmount is required", 400));
@@ -232,6 +347,114 @@ export const createLoanApplication = catchAsync(async (req, res, next) => {
     }
 
     payload.groupName = payload.groupName || group.groupName;
+  }
+
+  const interestConfig = getLoanInterestConfig(payload.loanType);
+  if (
+    interestConfig.termMonths &&
+    Number(payload.repaymentPeriod) !== Number(interestConfig.termMonths)
+  ) {
+    return next(
+      new AppError(
+        `repaymentPeriod must be ${interestConfig.termMonths} months for this loan type`,
+        400,
+      ),
+    );
+  }
+
+  if (
+    typeof payload.interestRate !== "undefined" &&
+    payload.interestRate !== null &&
+    !isInterestRateAllowed(payload.loanType, payload.interestRate)
+  ) {
+    return next(new AppError("interestRate is not allowed for this loan type", 400));
+  }
+
+  const resolvedInterest = resolveInterestRate(
+    payload.loanType,
+    payload.interestRate,
+  );
+  payload.interestRate = resolvedInterest.rate;
+  payload.interestRateType = resolvedInterest.rateType;
+
+  const now = new Date();
+  const [contributionAgg, overdueContribs, defaultedLoans, activeLoans] =
+    await Promise.all([
+      ContributionModel.aggregate([
+        {
+          $match: {
+            userId: req.user.profileId,
+            status: { $in: ["completed", "verified"] },
+          },
+        },
+        { $group: { _id: null, sum: { $sum: "$amount" } } },
+      ]),
+      ContributionModel.countDocuments({
+        userId: req.user.profileId,
+        status: "overdue",
+      }),
+      LoanApplicationModel.countDocuments({
+        userId: req.user.profileId,
+        status: "defaulted",
+      }),
+      LoanApplicationModel.find(
+        {
+          userId: req.user.profileId,
+          status: { $in: ["disbursed", "defaulted"] },
+        },
+        { _id: 1 },
+      ).lean(),
+    ]);
+
+  const totalContributions = Number(contributionAgg?.[0]?.sum ?? 0);
+
+  if (
+    payload.loanType === "revolving" &&
+    Number(payload.loanAmount) > totalContributions
+  ) {
+    return next(
+      new AppError(
+        "Revolving loans cannot exceed your total contributions",
+        400,
+      ),
+    );
+  }
+
+  if (overdueContribs > 0) {
+    return next(
+      new AppError(
+        `Outstanding contributions detected. Contributions must be paid between ${ContributionWindow.startDay}th and ${ContributionWindow.endDay}th.`,
+        400,
+      ),
+    );
+  }
+
+  if (defaultedLoans > 0) {
+    return next(new AppError("Defaulted loans must be resolved first", 400));
+  }
+
+  const activeLoanIds = activeLoans.map((l) => l._id);
+  if (activeLoanIds.length > 0) {
+    const overdueScheduleCount =
+      await LoanRepaymentScheduleItemModel.countDocuments({
+        loanApplicationId: { $in: activeLoanIds },
+        $or: [
+          { status: "overdue" },
+          {
+            status: { $in: ["pending", "upcoming"] },
+            dueDate: { $lt: now },
+          },
+        ],
+      });
+
+    if (overdueScheduleCount > 0) {
+      return next(
+        new AppError(
+          "Loan repayments are overdue. Please clear overdue installments before applying.",
+          400,
+        ),
+      );
+    }
   }
 
   const guarantors = Array.isArray(payload.guarantors)
@@ -466,7 +689,26 @@ export const reviewLoanApplication = catchAsync(async (req, res, next) => {
       typeof approvedInterestRate !== "undefined" &&
       approvedInterestRate !== null
     ) {
+      if (
+        !isInterestRateAllowed(
+          req.loanApplication.loanType || "revolving",
+          approvedInterestRate,
+        )
+      ) {
+        return next(
+          new AppError(
+            "approvedInterestRate is not allowed for this loan type",
+            400,
+          ),
+        );
+      }
       req.loanApplication.approvedInterestRate = Number(approvedInterestRate);
+    }
+    if (!req.loanApplication.interestRateType) {
+      const cfg = getLoanInterestConfig(
+        req.loanApplication.loanType || "revolving",
+      );
+      req.loanApplication.interestRateType = cfg.rateType;
     }
     req.loanApplication.approvedAt = new Date();
   }
@@ -517,6 +759,13 @@ export const disburseLoan = catchAsync(async (req, res, next) => {
     );
   }
 
+  const loanType = req.loanApplication.loanType || "revolving";
+  if (!isLoanFacilityAvailable(loanType, new Date())) {
+    const facility = getLoanFacility(loanType);
+    const label = facility?.label || "This loan type";
+    return next(new AppError(`${label} is not available at this time`, 400));
+  }
+
   const principal = Number(
     req.loanApplication.approvedAmount ?? req.loanApplication.loanAmount,
   );
@@ -526,6 +775,25 @@ export const disburseLoan = catchAsync(async (req, res, next) => {
       0,
   );
   const termMonths = Number(req.loanApplication.repaymentPeriod);
+  const interestCfg = getLoanInterestConfig(loanType);
+
+  if (
+    interestCfg.termMonths &&
+    Number(termMonths) !== Number(interestCfg.termMonths)
+  ) {
+    return next(
+      new AppError(
+        `repaymentPeriod must be ${interestCfg.termMonths} months for this loan type`,
+        400,
+      ),
+    );
+  }
+
+  if (!isInterestRateAllowed(loanType, rate)) {
+    return next(
+      new AppError("interestRate is not allowed for this loan type", 400),
+    );
+  }
 
   const guarantors = await LoanGuarantorModel.find({
     loanApplicationId: req.loanApplication._id,
@@ -562,12 +830,29 @@ export const disburseLoan = catchAsync(async (req, res, next) => {
   const repaymentStartDate =
     parseDateOrNull(req.body?.repaymentStartDate) || addMonths(new Date(), 1);
 
-  const { items, totalRepayable, monthlyPayment } = buildAmortizedSchedule({
+  const rateType =
+    req.loanApplication.interestRateType || interestCfg.rateType || "annual";
+
+  const { items, totalRepayable, monthlyPayment } = buildRepaymentSchedule({
     principal,
-    annualRatePct: rate,
+    ratePct: rate,
+    rateType,
     months: termMonths,
     startDate: repaymentStartDate,
   });
+
+  const deadline = getLoanRepaymentDeadline(loanType, repaymentStartDate);
+  const lastDueDate = items.length ? items[items.length - 1].dueDate : null;
+  if (deadline && lastDueDate && new Date(lastDueDate).getTime() > deadline.getTime()) {
+    return next(
+      new AppError(
+        loanType === "bridging"
+          ? "Bridging loans must be fully repaid by January"
+          : "Loans must be fully repaid by October",
+        400,
+      ),
+    );
+  }
 
   await LoanRepaymentScheduleItemModel.deleteMany({
     loanApplicationId: req.loanApplication._id,
@@ -584,6 +869,7 @@ export const disburseLoan = catchAsync(async (req, res, next) => {
   req.loanApplication.disbursedAt = new Date();
   req.loanApplication.disbursedBy = req.user.profileId;
   req.loanApplication.repaymentStartDate = repaymentStartDate;
+  req.loanApplication.interestRateType = rateType;
   req.loanApplication.monthlyPayment = monthlyPayment;
   req.loanApplication.totalRepayable = totalRepayable;
   req.loanApplication.remainingBalance = totalRepayable;

@@ -1,0 +1,11 @@
+{
+  "inputPath": "C:\\Users\\user\\Downloads\\crc membership list (1).docx",
+  "groupsParsed": 28,
+  "groupsSeeded": 28,
+  "membersSeeded": 793,
+  "membershipsSeeded": 793,
+  "warnings": [
+    "Duplicate email detected: olayoyinoyeniyi@gmail.com. Generated placeholder.",
+    "Duplicate phone detected: 08060707575. Generated placeholder."
+  ]
+}
