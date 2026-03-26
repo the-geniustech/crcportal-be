@@ -95,7 +95,8 @@ async function updateRecurringPaymentStats({
 
   const paidAtDate = parseDate(paidAt, new Date());
   target.totalPaymentsMade = Number(target.totalPaymentsMade ?? 0) + count;
-  target.totalAmountPaid = Number(target.totalAmountPaid ?? 0) + Number(amount ?? 0);
+  target.totalAmountPaid =
+    Number(target.totalAmountPaid ?? 0) + Number(amount ?? 0);
   target.lastPaymentDate = paidAtDate;
   target.lastPaymentStatus = "success";
 
@@ -123,8 +124,8 @@ function normalizeBulkItems(rawItems) {
     const loanApplicationId = item?.loanApplicationId
       ? String(item.loanApplicationId)
       : item?.loanId
-      ? String(item.loanId)
-      : null;
+        ? String(item.loanId)
+        : null;
     const dueDate = item?.dueDate ? String(item.dueDate) : null;
     const description = item?.description ? String(item.description) : null;
     const contributionType = item?.contributionType
@@ -165,12 +166,15 @@ async function ensureGroupLeader(groupId) {
 async function finalizeGroupContribution({ transaction, paystackData }) {
   const bulkIds = transaction?.metadata?.bulkContributionIds;
   if (Array.isArray(bulkIds) && bulkIds.length > 0) {
-    const contributions = await ContributionModel.find({ _id: { $in: bulkIds } });
+    const contributions = await ContributionModel.find({
+      _id: { $in: bulkIds },
+    });
     if (contributions.length === 0) return;
 
     const contributionsToUpdate = contributions.filter(
       (contribution) =>
-        contribution.status !== "completed" && contribution.status !== "verified",
+        contribution.status !== "completed" &&
+        contribution.status !== "verified",
     );
 
     const updates = contributionsToUpdate
@@ -178,7 +182,8 @@ async function finalizeGroupContribution({ transaction, paystackData }) {
         contribution.status = "completed";
         contribution.paymentReference = transaction.reference;
         contribution.paymentMethod = "paystack";
-        contribution.notes = contribution.notes || transaction.description || null;
+        contribution.notes =
+          contribution.notes || transaction.description || null;
         return contribution.save({ validateBeforeSave: true });
       })
       .filter(Boolean);
@@ -190,13 +195,17 @@ async function finalizeGroupContribution({ transaction, paystackData }) {
       groupTotals.set(groupId, (groupTotals.get(groupId) || 0) + amount);
     });
 
-    const groupUpdates = Array.from(groupTotals.entries()).flatMap(([groupId, amount]) => [
-      GroupModel.findByIdAndUpdate(groupId, { $inc: { totalSavings: amount } }),
-      GroupMembershipModel.findOneAndUpdate(
-        { groupId, userId: transaction.userId },
-        { $inc: { totalContributed: amount } },
-      ),
-    ]);
+    const groupUpdates = Array.from(groupTotals.entries()).flatMap(
+      ([groupId, amount]) => [
+        GroupModel.findByIdAndUpdate(groupId, {
+          $inc: { totalSavings: amount },
+        }),
+        GroupMembershipModel.findOneAndUpdate(
+          { groupId, userId: transaction.userId },
+          { $inc: { totalContributed: amount } },
+        ),
+      ],
+    );
 
     const paidAt = paystackData?.paid_at || new Date();
     await Promise.all([
@@ -236,7 +245,10 @@ async function finalizeGroupContribution({ transaction, paystackData }) {
   const contribution = await ContributionModel.findById(contributionId);
   if (!contribution) return;
 
-  if (contribution.status === "completed" || contribution.status === "verified") {
+  if (
+    contribution.status === "completed" ||
+    contribution.status === "verified"
+  ) {
     return;
   }
 
@@ -256,7 +268,9 @@ async function finalizeGroupContribution({ transaction, paystackData }) {
     paidAt: paystackData?.paid_at || new Date(),
   });
   await Promise.all([
-    GroupModel.findByIdAndUpdate(contribution.groupId, { $inc: { totalSavings: amount } }),
+    GroupModel.findByIdAndUpdate(contribution.groupId, {
+      $inc: { totalSavings: amount },
+    }),
     GroupMembershipModel.findOneAndUpdate(
       { groupId: contribution.groupId, userId: contribution.userId },
       { $inc: { totalContributed: amount } },
@@ -298,7 +312,10 @@ async function finalizeLoanRepayment({ transaction, paystackData }) {
       throw new AppError("Loan is not active", 400);
     }
 
-    const total = scheduleItems.reduce((sum, item) => sum + Number(item.totalAmount ?? 0), 0);
+    const total = scheduleItems.reduce(
+      (sum, item) => sum + Number(item.totalAmount ?? 0),
+      0,
+    );
     const txAmount = Number(transaction.amount ?? 0);
     if (Math.round(total * 100) !== Math.round(txAmount * 100)) {
       throw new AppError("Bulk repayment amount mismatch", 400);
@@ -325,7 +342,10 @@ async function finalizeLoanRepayment({ transaction, paystackData }) {
       paidAt,
     });
 
-    const remaining = Math.max(0, Number(application.remainingBalance || 0) - total);
+    const remaining = Math.max(
+      0,
+      Number(application.remainingBalance || 0) - total,
+    );
     application.remainingBalance = remaining;
 
     const hasMore = await LoanRepaymentScheduleItemModel.exists({
@@ -369,7 +389,8 @@ async function finalizeLoanRepayment({ transaction, paystackData }) {
     return;
   }
 
-  const loanApplicationId = transaction?.loanId || transaction?.metadata?.loanApplicationId || null;
+  const loanApplicationId =
+    transaction?.loanId || transaction?.metadata?.loanApplicationId || null;
   if (!loanApplicationId) return;
 
   const application = await LoanApplicationModel.findById(loanApplicationId);
@@ -408,7 +429,10 @@ async function finalizeLoanRepayment({ transaction, paystackData }) {
     paidAt: nextItem.paidAt,
   });
 
-  const remaining = Math.max(0, Number(application.remainingBalance || 0) - Number(nextItem.totalAmount));
+  const remaining = Math.max(
+    0,
+    Number(application.remainingBalance || 0) - Number(nextItem.totalAmount),
+  );
   application.remainingBalance = remaining;
 
   const hasMore = await LoanRepaymentScheduleItemModel.exists({
@@ -524,7 +548,8 @@ async function finalizeTransactionByReference(reference, { userId } = {}) {
 
 export const initializePaystackPayment = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
-  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
 
   const {
     amount,
@@ -545,12 +570,16 @@ export const initializePaystackPayment = catchAsync(async (req, res, next) => {
   if (!paymentType) return next(new AppError("paymentType is required", 400));
 
   if (paymentType === "deposit") {
-    return next(new AppError("Savings deposits are temporarily suspended", 400));
+    return next(
+      new AppError("Savings deposits are temporarily suspended", 400),
+    );
   }
 
   const allowed = ["loan_repayment", "group_contribution"];
   if (!allowed.includes(paymentType)) {
-    return next(new AppError(`Invalid paymentType. Allowed: ${allowed.join(", ")}`, 400));
+    return next(
+      new AppError(`Invalid paymentType. Allowed: ${allowed.join(", ")}`, 400),
+    );
   }
 
   const reference = generateReference("CRC");
@@ -576,37 +605,46 @@ export const initializePaystackPayment = catchAsync(async (req, res, next) => {
       userId,
       status: "active",
     }).populate("groupId");
-    if (!membership) return next(new AppError("User is not an active group member", 400));
+    if (!membership)
+      return next(new AppError("User is not an active group member", 400));
     groupName = membership.groupId?.groupName || null;
 
     const leader = await ensureGroupLeader(groupId);
     if (!leader) {
-      return next(new AppError("This group does not have an assigned group leader", 400));
+      return next(
+        new AppError("This group does not have an assigned group leader", 400),
+      );
     }
 
     const now = new Date();
     const month = now.getMonth() + 1;
     const year = now.getFullYear();
-    const canonicalType = normalizeContributionType(contributionType) || "revolving";
+    const canonicalType =
+      normalizeContributionType(contributionType) || "revolving";
 
-    if (!isContributionWindowOpen(now)) {
-      return next(
-        new AppError(
-          `Contributions must be paid between the ${ContributionWindow.startDay}th and ${ContributionWindow.endDay}th`,
-          400,
-        ),
-      );
-    }
+    // if (!isContributionWindowOpen(now)) {
+    //   return next(
+    //     new AppError(
+    //       `Contributions must be paid between the ${ContributionWindow.startDay}th and ${ContributionWindow.endDay}th`,
+    //       400,
+    //     ),
+    //   );
+    // }
 
-    if (!isContributionMonthAllowed(canonicalType, month)) {
-      return next(
-        new AppError("This contribution type is only accepted between January and October", 400),
-      );
-    }
+    // if (!isContributionMonthAllowed(canonicalType, month)) {
+    //   return next(
+    //     new AppError(
+    //       "This contribution type is only accepted between January and October",
+    //       400,
+    //     ),
+    //   );
+    // }
 
     if (!isContributionAmountValid(canonicalType, parsedAmount)) {
       const cfg = getContributionTypeConfig(canonicalType);
-      const minLabel = cfg?.minAmount ? `NGN ${Number(cfg.minAmount).toLocaleString()}` : "the minimum amount";
+      const minLabel = cfg?.minAmount
+        ? `NGN ${Number(cfg.minAmount).toLocaleString()}`
+        : "the minimum amount";
       const unitLabel = cfg?.unitAmount
         ? ` in multiples of NGN ${Number(cfg.unitAmount).toLocaleString()}`
         : "";
@@ -623,9 +661,14 @@ export const initializePaystackPayment = catchAsync(async (req, res, next) => {
       userId,
       month,
       year,
-      contributionType: { $in: getContributionTypeMatch(canonicalType) || [canonicalType] },
+      contributionType: {
+        $in: getContributionTypeMatch(canonicalType) || [canonicalType],
+      },
     });
-    if (existing) return next(new AppError("Contribution already exists for this period/type", 409));
+    if (existing)
+      return next(
+        new AppError("Contribution already exists for this period/type", 409),
+      );
 
     const contribution = await ContributionModel.create({
       groupId,
@@ -649,7 +692,8 @@ export const initializePaystackPayment = catchAsync(async (req, res, next) => {
   }
 
   if (paymentType === "loan_repayment") {
-    if (!loanApplicationId) return next(new AppError("loanApplicationId is required", 400));
+    if (!loanApplicationId)
+      return next(new AppError("loanApplicationId is required", 400));
     const loan = await LoanApplicationModel.findById(loanApplicationId);
     if (!loan) return next(new AppError("Loan application not found", 404));
 
@@ -658,7 +702,8 @@ export const initializePaystackPayment = catchAsync(async (req, res, next) => {
       status: { $in: ["pending", "upcoming", "overdue"] },
     }).sort({ installmentNumber: 1 });
 
-    if (!nextItem) return next(new AppError("No pending repayments found", 400));
+    if (!nextItem)
+      return next(new AppError("No pending repayments found", 400));
 
     // For now, enforce exact installment amount to avoid reconciliation issues.
     if (Number(parsedAmount) !== Number(nextItem.totalAmount)) {
@@ -695,13 +740,16 @@ export const initializePaystackPayment = catchAsync(async (req, res, next) => {
       email,
       amount: Math.round(parsedAmount * 100),
       reference,
-      callback_url: callbackUrl || process.env.PAYSTACK_CALLBACK_URL || undefined,
+      callback_url:
+        callbackUrl || process.env.PAYSTACK_CALLBACK_URL || undefined,
       metadata,
     });
   } catch (err) {
     await Promise.all([
       TransactionModel.deleteOne({ reference, userId }),
-      contributionId ? ContributionModel.deleteOne({ _id: contributionId, userId }) : Promise.resolve(),
+      contributionId
+        ? ContributionModel.deleteOne({ _id: contributionId, userId })
+        : Promise.resolve(),
     ]);
     throw err;
   }
@@ -717,261 +765,342 @@ export const initializePaystackPayment = catchAsync(async (req, res, next) => {
   });
 });
 
-export const initializePaystackBulkPayment = catchAsync(async (req, res, next) => {
-  if (!req.user) return next(new AppError("Not authenticated", 401));
-  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+export const initializePaystackBulkPayment = catchAsync(
+  async (req, res, next) => {
+    if (!req.user) return next(new AppError("Not authenticated", 401));
+    if (!req.user.profileId)
+      return next(new AppError("User profile not found", 400));
 
-  const email = req.body?.email;
-  const callbackUrl = req.body?.callbackUrl;
-  const description = req.body?.description ? String(req.body.description) : null;
+    const email = req.body?.email;
+    const callbackUrl = req.body?.callbackUrl;
+    const description = req.body?.description
+      ? String(req.body.description)
+      : null;
 
-  const items = normalizeBulkItems(req.body?.items);
-  if (items.length === 0) {
-    return next(new AppError("Bulk items are required", 400));
-  }
-  if (items.length > 25) {
-    return next(new AppError("Too many bulk items. Maximum is 25.", 400));
-  }
+    const items = normalizeBulkItems(req.body?.items);
+    if (items.length === 0) {
+      return next(new AppError("Bulk items are required", 400));
+    }
+    if (items.length > 25) {
+      return next(new AppError("Too many bulk items. Maximum is 25.", 400));
+    }
 
-  const paymentType = ensureSameType(items);
-  if (!paymentType) {
-    return next(new AppError("Bulk items must share the same payment type", 400));
-  }
+    const paymentType = ensureSameType(items);
+    if (!paymentType) {
+      return next(
+        new AppError("Bulk items must share the same payment type", 400),
+      );
+    }
 
-  const allowed = ["loan_repayment", "group_contribution"];
-  if (!allowed.includes(paymentType)) {
-    return next(new AppError(`Invalid paymentType for bulk. Allowed: ${allowed.join(", ")}`, 400));
-  }
-
-  if (!email) return next(new AppError("email is required", 400));
-
-  const invalidItem = items.find((item) => !Number.isFinite(item.amount) || item.amount <= 0);
-  if (invalidItem) {
-    return next(new AppError("Each bulk item must include a valid amount", 400));
-  }
-
-  const userId = req.user.profileId;
-  const reference = generateReference("CRC-BULK");
-
-  let contributionIds = [];
-  let bulkLoanScheduleItemIds = [];
-  let groupName = null;
-  let groupId = null;
-  let loanName = null;
-  let loanId = null;
-  let totalAmount = 0;
-
-  if (paymentType === "group_contribution") {
-    const seenKeys = new Set();
-    const groupNames = new Map();
-    const typeSet = new Set();
-    const now = new Date();
-
-    if (!isContributionWindowOpen(now)) {
+    const allowed = ["loan_repayment", "group_contribution"];
+    if (!allowed.includes(paymentType)) {
       return next(
         new AppError(
-          `Contributions must be paid between the ${ContributionWindow.startDay}th and ${ContributionWindow.endDay}th`,
+          `Invalid paymentType for bulk. Allowed: ${allowed.join(", ")}`,
           400,
         ),
       );
     }
 
-    for (const item of items) {
-      if (!item.groupId) {
-        return next(new AppError("groupId is required for bulk group contributions", 400));
-      }
-      const dueDate = parseDate(item.dueDate, new Date());
-      if (!dueDate) return next(new AppError("Invalid dueDate for bulk item", 400));
+    if (!email) return next(new AppError("email is required", 400));
 
-      const month = dueDate.getMonth() + 1;
-      const year = dueDate.getFullYear();
-      const key = `${item.groupId}-${year}-${month}`;
-      if (seenKeys.has(key)) {
-        return next(new AppError("Duplicate contribution period in bulk items", 400));
-      }
-      seenKeys.add(key);
+    const invalidItem = items.find(
+      (item) => !Number.isFinite(item.amount) || item.amount <= 0,
+    );
+    if (invalidItem) {
+      return next(
+        new AppError("Each bulk item must include a valid amount", 400),
+      );
+    }
 
-      const membership = await GroupMembershipModel.findOne({
-        groupId: item.groupId,
-        userId,
-        status: "active",
-      }).populate("groupId");
-      if (!membership) {
-        return next(new AppError("User is not an active group member", 400));
-      }
+    const userId = req.user.profileId;
+    const reference = generateReference("CRC-BULK");
 
-      const leader = await ensureGroupLeader(item.groupId);
-      if (!leader) {
-        return next(new AppError("This group does not have an assigned group leader", 400));
-      }
+    let contributionIds = [];
+    let bulkLoanScheduleItemIds = [];
+    let groupName = null;
+    let groupId = null;
+    let loanName = null;
+    let loanId = null;
+    let totalAmount = 0;
 
-      const canonicalType = normalizeContributionType(item.contributionType) || "revolving";
-      typeSet.add(canonicalType);
-      if (typeSet.size > 1) {
-        return next(new AppError("Bulk contributions must use a single contribution type", 400));
-      }
+    if (paymentType === "group_contribution") {
+      const seenKeys = new Set();
+      const groupNames = new Map();
+      const typeSet = new Set();
+      const now = new Date();
 
-      if (!isContributionMonthAllowed(canonicalType, month)) {
-        return next(
-          new AppError("This contribution type is only accepted between January and October", 400),
-        );
-      }
-
-      if (!isContributionAmountValid(canonicalType, item.amount)) {
-        const cfg = getContributionTypeConfig(canonicalType);
-        const minLabel = cfg?.minAmount ? `NGN ${Number(cfg.minAmount).toLocaleString()}` : "the minimum amount";
-        const unitLabel = cfg?.unitAmount
-          ? ` in multiples of NGN ${Number(cfg.unitAmount).toLocaleString()}`
-          : "";
+      if (!isContributionWindowOpen(now)) {
         return next(
           new AppError(
-            `Amount must be at least ${minLabel}${unitLabel} for ${cfg?.label || "this contribution type"}`,
+            `Contributions must be paid between the ${ContributionWindow.startDay}th and ${ContributionWindow.endDay}th`,
             400,
           ),
         );
       }
 
-      const existing = await ContributionModel.findOne({
-        groupId: item.groupId,
-        userId,
-        month,
-        year,
-        contributionType: { $in: getContributionTypeMatch(canonicalType) || [canonicalType] },
-      });
-      if (existing) {
-        return next(new AppError("Contribution already exists for this period/type", 409));
+      for (const item of items) {
+        if (!item.groupId) {
+          return next(
+            new AppError(
+              "groupId is required for bulk group contributions",
+              400,
+            ),
+          );
+        }
+        const dueDate = parseDate(item.dueDate, new Date());
+        if (!dueDate)
+          return next(new AppError("Invalid dueDate for bulk item", 400));
+
+        const month = dueDate.getMonth() + 1;
+        const year = dueDate.getFullYear();
+        const key = `${item.groupId}-${year}-${month}`;
+        if (seenKeys.has(key)) {
+          return next(
+            new AppError("Duplicate contribution period in bulk items", 400),
+          );
+        }
+        seenKeys.add(key);
+
+        const membership = await GroupMembershipModel.findOne({
+          groupId: item.groupId,
+          userId,
+          status: "active",
+        }).populate("groupId");
+        if (!membership) {
+          return next(new AppError("User is not an active group member", 400));
+        }
+
+        const leader = await ensureGroupLeader(item.groupId);
+        if (!leader) {
+          return next(
+            new AppError(
+              "This group does not have an assigned group leader",
+              400,
+            ),
+          );
+        }
+
+        const canonicalType =
+          normalizeContributionType(item.contributionType) || "revolving";
+        typeSet.add(canonicalType);
+        if (typeSet.size > 1) {
+          return next(
+            new AppError(
+              "Bulk contributions must use a single contribution type",
+              400,
+            ),
+          );
+        }
+
+        if (!isContributionMonthAllowed(canonicalType, month)) {
+          return next(
+            new AppError(
+              "This contribution type is only accepted between January and October",
+              400,
+            ),
+          );
+        }
+
+        if (!isContributionAmountValid(canonicalType, item.amount)) {
+          const cfg = getContributionTypeConfig(canonicalType);
+          const minLabel = cfg?.minAmount
+            ? `NGN ${Number(cfg.minAmount).toLocaleString()}`
+            : "the minimum amount";
+          const unitLabel = cfg?.unitAmount
+            ? ` in multiples of NGN ${Number(cfg.unitAmount).toLocaleString()}`
+            : "";
+          return next(
+            new AppError(
+              `Amount must be at least ${minLabel}${unitLabel} for ${cfg?.label || "this contribution type"}`,
+              400,
+            ),
+          );
+        }
+
+        const existing = await ContributionModel.findOne({
+          groupId: item.groupId,
+          userId,
+          month,
+          year,
+          contributionType: {
+            $in: getContributionTypeMatch(canonicalType) || [canonicalType],
+          },
+        });
+        if (existing) {
+          return next(
+            new AppError(
+              "Contribution already exists for this period/type",
+              409,
+            ),
+          );
+        }
+
+        const contribution = await ContributionModel.create({
+          groupId: item.groupId,
+          userId,
+          month,
+          year,
+          amount: Number(item.amount || 0),
+          contributionType: canonicalType,
+          status: "pending",
+          paymentReference: reference,
+          paymentMethod: "paystack",
+          notes: description || item.description || null,
+        });
+        contributionIds.push(contribution._id);
+        groupNames.set(
+          String(item.groupId),
+          membership.groupId?.groupName || null,
+        );
+        totalAmount += Number(item.amount || 0);
       }
 
-      const contribution = await ContributionModel.create({
-        groupId: item.groupId,
-        userId,
-        month,
-        year,
-        amount: Number(item.amount || 0),
-        contributionType: canonicalType,
-        status: "pending",
-        paymentReference: reference,
-        paymentMethod: "paystack",
-        notes: description || item.description || null,
-      });
-      contributionIds.push(contribution._id);
-      groupNames.set(String(item.groupId), membership.groupId?.groupName || null);
-      totalAmount += Number(item.amount || 0);
+      const uniqueGroupIds = Array.from(groupNames.keys());
+      if (uniqueGroupIds.length === 1) {
+        groupId = uniqueGroupIds[0];
+        groupName = groupNames.get(uniqueGroupIds[0]) || null;
+      }
     }
 
-    const uniqueGroupIds = Array.from(groupNames.keys());
-    if (uniqueGroupIds.length === 1) {
-      groupId = uniqueGroupIds[0];
-      groupName = groupNames.get(uniqueGroupIds[0]) || null;
+    if (paymentType === "loan_repayment") {
+      loanId = items[0]?.loanApplicationId;
+      if (!loanId) {
+        return next(
+          new AppError(
+            "loanApplicationId is required for bulk loan repayment",
+            400,
+          ),
+        );
+      }
+      const mismatch = items.some((item) => item.loanApplicationId !== loanId);
+      if (mismatch) {
+        return next(
+          new AppError("Bulk loan repayments must target a single loan", 400),
+        );
+      }
+
+      const application = await LoanApplicationModel.findById(loanId);
+      if (!application)
+        return next(new AppError("Loan application not found", 404));
+      if (!["disbursed", "defaulted"].includes(application.status)) {
+        return next(new AppError("Loan is not active", 400));
+      }
+
+      const scheduleItems = await LoanRepaymentScheduleItemModel.find({
+        loanApplicationId: loanId,
+        status: { $in: ["pending", "upcoming", "overdue"] },
+      })
+        .sort({ installmentNumber: 1 })
+        .limit(items.length);
+
+      if (scheduleItems.length < items.length) {
+        return next(
+          new AppError(
+            "Not enough pending installments for bulk repayment",
+            400,
+          ),
+        );
+      }
+
+      const expectedTotal = scheduleItems.reduce(
+        (sum, item) => sum + Number(item.totalAmount || 0),
+        0,
+      );
+      const providedTotal = items.reduce(
+        (sum, item) => sum + Number(item.amount || 0),
+        0,
+      );
+
+      if (Math.round(expectedTotal * 100) !== Math.round(providedTotal * 100)) {
+        return next(
+          new AppError(
+            "Bulk repayment amount does not match scheduled installments",
+            400,
+          ),
+        );
+      }
+
+      bulkLoanScheduleItemIds = scheduleItems.map((item) => item._id);
+      totalAmount = expectedTotal;
+      loanName = application.loanCode || null;
     }
-  }
 
-  if (paymentType === "loan_repayment") {
-    loanId = items[0]?.loanApplicationId;
-    if (!loanId) {
-      return next(new AppError("loanApplicationId is required for bulk loan repayment", 400));
-    }
-    const mismatch = items.some((item) => item.loanApplicationId !== loanId);
-    if (mismatch) {
-      return next(new AppError("Bulk loan repayments must target a single loan", 400));
+    if (!totalAmount || totalAmount <= 0) {
+      return next(new AppError("Bulk amount must be greater than zero", 400));
     }
 
-    const application = await LoanApplicationModel.findById(loanId);
-    if (!application) return next(new AppError("Loan application not found", 404));
-    if (!["disbursed", "defaulted"].includes(application.status)) {
-      return next(new AppError("Loan is not active", 400));
-    }
+    const metadata = {
+      paymentType,
+      bulk: true,
+      bulkItems: items,
+      bulkContributionIds: contributionIds,
+      bulkLoanScheduleItemIds,
+    };
 
-    const scheduleItems = await LoanRepaymentScheduleItemModel.find({
-      loanApplicationId: loanId,
-      status: { $in: ["pending", "upcoming", "overdue"] },
-    })
-      .sort({ installmentNumber: 1 })
-      .limit(items.length);
-
-    if (scheduleItems.length < items.length) {
-      return next(new AppError("Not enough pending installments for bulk repayment", 400));
-    }
-
-    const expectedTotal = scheduleItems.reduce(
-      (sum, item) => sum + Number(item.totalAmount || 0),
-      0,
-    );
-    const providedTotal = items.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-
-    if (Math.round(expectedTotal * 100) !== Math.round(providedTotal * 100)) {
-      return next(new AppError("Bulk repayment amount does not match scheduled installments", 400));
-    }
-
-    bulkLoanScheduleItemIds = scheduleItems.map((item) => item._id);
-    totalAmount = expectedTotal;
-    loanName = application.loanCode || null;
-  }
-
-  if (!totalAmount || totalAmount <= 0) {
-    return next(new AppError("Bulk amount must be greater than zero", 400));
-  }
-
-  const metadata = {
-    paymentType,
-    bulk: true,
-    bulkItems: items,
-    bulkContributionIds: contributionIds,
-    bulkLoanScheduleItemIds,
-  };
-
-  await TransactionModel.create({
-    userId,
-    reference,
-    amount: totalAmount,
-    type: paymentType,
-    status: "pending",
-    description: description || `Bulk ${paymentType.replace("_", " ")} payment`,
-    channel: null,
-    groupId: groupId || null,
-    groupName,
-    loanId: loanId || null,
-    loanName,
-    metadata,
-    gateway: "paystack",
-  });
-
-  let initRes;
-  try {
-    initRes = await paystackInitializeTransaction({
-      email,
-      amount: Math.round(totalAmount * 100),
+    await TransactionModel.create({
+      userId,
       reference,
-      callback_url: callbackUrl || process.env.PAYSTACK_CALLBACK_URL || undefined,
+      amount: totalAmount,
+      type: paymentType,
+      status: "pending",
+      description:
+        description || `Bulk ${paymentType.replace("_", " ")} payment`,
+      channel: null,
+      groupId: groupId || null,
+      groupName,
+      loanId: loanId || null,
+      loanName,
       metadata,
+      gateway: "paystack",
     });
-  } catch (err) {
-    await Promise.all([
-      TransactionModel.deleteOne({ reference, userId }),
-      contributionIds.length > 0
-        ? ContributionModel.deleteMany({ _id: { $in: contributionIds }, userId })
-        : Promise.resolve(),
-    ]);
-    throw err;
-  }
 
-  return sendSuccess(res, {
-    statusCode: 200,
-    data: {
-      reference,
-      authorizationUrl: initRes?.data?.authorization_url,
-      accessCode: initRes?.data?.access_code,
-    },
-  });
-});
+    let initRes;
+    try {
+      initRes = await paystackInitializeTransaction({
+        email,
+        amount: Math.round(totalAmount * 100),
+        reference,
+        callback_url:
+          callbackUrl || process.env.PAYSTACK_CALLBACK_URL || undefined,
+        metadata,
+      });
+    } catch (err) {
+      await Promise.all([
+        TransactionModel.deleteOne({ reference, userId }),
+        contributionIds.length > 0
+          ? ContributionModel.deleteMany({
+              _id: { $in: contributionIds },
+              userId,
+            })
+          : Promise.resolve(),
+      ]);
+      throw err;
+    }
+
+    return sendSuccess(res, {
+      statusCode: 200,
+      data: {
+        reference,
+        authorizationUrl: initRes?.data?.authorization_url,
+        accessCode: initRes?.data?.access_code,
+      },
+    });
+  },
+);
 
 export const verifyPaystackPayment = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
-  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
-  const reference = String(req.body?.reference || req.query?.reference || "").trim();
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
+  const reference = String(
+    req.body?.reference || req.query?.reference || "",
+  ).trim();
   if (!reference) return next(new AppError("reference is required", 400));
 
-  const tx = await finalizeTransactionByReference(reference, { userId: req.user.profileId });
+  const tx = await finalizeTransactionByReference(reference, {
+    userId: req.user.profileId,
+  });
 
   return sendSuccess(res, { statusCode: 200, data: { transaction: tx } });
 });
