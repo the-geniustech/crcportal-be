@@ -76,6 +76,26 @@ function withRepaymentToDate(loan) {
   return { ...plain, repaymentToDate };
 }
 
+async function buildNextPaymentMap(apps) {
+  if (!Array.isArray(apps) || apps.length === 0) return new Map();
+  const ids = apps.map((app) => app._id);
+  const scheduleItems = await LoanRepaymentScheduleItemModel.find({
+    loanApplicationId: { $in: ids },
+    status: { $in: ["pending", "upcoming", "overdue"] },
+  })
+    .sort({ dueDate: 1 })
+    .lean();
+
+  const map = new Map();
+  for (const item of scheduleItems) {
+    const key = String(item.loanApplicationId);
+    if (!map.has(key)) {
+      map.set(key, item);
+    }
+  }
+  return map;
+}
+
 function buildRepaymentSchedule({
   principal,
   ratePct,
@@ -637,7 +657,17 @@ export const listMyLoanApplications = catchAsync(async (req, res, next) => {
   })
     .sort({ createdAt: -1 })
     .lean();
-  const enriched = apps.map((app) => withRepaymentToDate(app));
+  const nextPaymentMap = await buildNextPaymentMap(apps);
+  const enriched = apps.map((app) => {
+    const base = withRepaymentToDate(app);
+    const next = nextPaymentMap.get(String(app._id));
+    return {
+      ...base,
+      nextPaymentDueDate: next?.dueDate ?? null,
+      nextPaymentAmount: next?.totalAmount ?? null,
+      nextPaymentStatus: next?.status ?? null,
+    };
+  });
   return sendSuccess(res, {
     statusCode: 200,
     results: enriched.length,
@@ -678,7 +708,17 @@ export const listLoanApplications = catchAsync(async (req, res) => {
       .lean(),
     LoanApplicationModel.countDocuments(filter),
   ]);
-  const enriched = applications.map((app) => withRepaymentToDate(app));
+  const nextPaymentMap = await buildNextPaymentMap(applications);
+  const enriched = applications.map((app) => {
+    const base = withRepaymentToDate(app);
+    const next = nextPaymentMap.get(String(app._id));
+    return {
+      ...base,
+      nextPaymentDueDate: next?.dueDate ?? null,
+      nextPaymentAmount: next?.totalAmount ?? null,
+      nextPaymentStatus: next?.status ?? null,
+    };
+  });
 
   return sendSuccess(res, {
     statusCode: 200,
