@@ -15,6 +15,15 @@ import {
   verifyTransaction as paystackVerifyTransaction,
   isValidWebhookSignature,
 } from "../services/paystack.js";
+import {
+  ContributionWindow,
+  getContributionTypeConfig,
+  getContributionTypeMatch,
+  isContributionAmountValid,
+  isContributionMonthAllowed,
+  isContributionWindowOpen,
+  normalizeContributionType,
+} from "../utils/contributionPolicy.js";
 
 function generateReference(prefix = "CRC") {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 11).toUpperCase()}`;
@@ -118,6 +127,9 @@ function normalizeBulkItems(rawItems) {
       : null;
     const dueDate = item?.dueDate ? String(item.dueDate) : null;
     const description = item?.description ? String(item.description) : null;
+    const contributionType = item?.contributionType
+      ? String(item.contributionType)
+      : null;
     return {
       type,
       amount,
@@ -125,6 +137,7 @@ function normalizeBulkItems(rawItems) {
       loanApplicationId,
       dueDate,
       description,
+      contributionType,
     };
   });
 }
@@ -135,6 +148,18 @@ function ensureSameType(items) {
   const mismatch = items.some((item) => item.type !== type);
   if (mismatch) return null;
   return type;
+}
+
+async function ensureGroupLeader(groupId) {
+  if (!groupId) return null;
+  const group = await GroupModel.findById(groupId).lean();
+  if (!group) return null;
+  if (group.coordinatorId) return group.coordinatorId;
+  const leader = await GroupMembershipModel.findOne(
+    { groupId, role: "coordinator", status: "active" },
+    { _id: 1 },
+  ).lean();
+  return leader?._id || null;
 }
 
 async function finalizeGroupContribution({ transaction, paystackData }) {
@@ -507,6 +532,7 @@ export const initializePaystackPayment = catchAsync(async (req, res, next) => {
     paymentType,
     groupId,
     loanApplicationId,
+    contributionType,
     description,
     callbackUrl,
   } = req.body || {};
@@ -518,7 +544,11 @@ export const initializePaystackPayment = catchAsync(async (req, res, next) => {
   if (!email) return next(new AppError("email is required", 400));
   if (!paymentType) return next(new AppError("paymentType is required", 400));
 
-  const allowed = ["deposit", "loan_repayment", "group_contribution"];
+  if (paymentType === "deposit") {
+    return next(new AppError("Savings deposits are temporarily suspended", 400));
+  }
+
+  const allowed = ["loan_repayment", "group_contribution"];
   if (!allowed.includes(paymentType)) {
     return next(new AppError(`Invalid paymentType. Allowed: ${allowed.join(", ")}`, 400));
   }
@@ -549,17 +579,51 @@ export const initializePaystackPayment = catchAsync(async (req, res, next) => {
     if (!membership) return next(new AppError("User is not an active group member", 400));
     groupName = membership.groupId?.groupName || null;
 
+    const leader = await ensureGroupLeader(groupId);
+    if (!leader) {
+      return next(new AppError("This group does not have an assigned group leader", 400));
+    }
+
     const now = new Date();
     const month = now.getMonth() + 1;
     const year = now.getFullYear();
-    const contributionType = "regular";
+    const canonicalType = normalizeContributionType(contributionType) || "revolving";
+
+    if (!isContributionWindowOpen(now)) {
+      return next(
+        new AppError(
+          `Contributions must be paid between the ${ContributionWindow.startDay}th and ${ContributionWindow.endDay}th`,
+          400,
+        ),
+      );
+    }
+
+    if (!isContributionMonthAllowed(canonicalType, month)) {
+      return next(
+        new AppError("This contribution type is only accepted between January and October", 400),
+      );
+    }
+
+    if (!isContributionAmountValid(canonicalType, parsedAmount)) {
+      const cfg = getContributionTypeConfig(canonicalType);
+      const minLabel = cfg?.minAmount ? `NGN ${Number(cfg.minAmount).toLocaleString()}` : "the minimum amount";
+      const unitLabel = cfg?.unitAmount
+        ? ` in multiples of NGN ${Number(cfg.unitAmount).toLocaleString()}`
+        : "";
+      return next(
+        new AppError(
+          `Amount must be at least ${minLabel}${unitLabel} for ${cfg?.label || "this contribution type"}`,
+          400,
+        ),
+      );
+    }
 
     const existing = await ContributionModel.findOne({
       groupId,
       userId,
       month,
       year,
-      contributionType,
+      contributionType: { $in: getContributionTypeMatch(canonicalType) || [canonicalType] },
     });
     if (existing) return next(new AppError("Contribution already exists for this period/type", 409));
 
@@ -569,7 +633,7 @@ export const initializePaystackPayment = catchAsync(async (req, res, next) => {
       month,
       year,
       amount: parsedAmount,
-      contributionType,
+      contributionType: canonicalType,
       status: "pending",
       paymentReference: reference,
       paymentMethod: "paystack",
@@ -580,7 +644,7 @@ export const initializePaystackPayment = catchAsync(async (req, res, next) => {
     metadata.contributionId = contribution._id;
     metadata.month = month;
     metadata.year = year;
-    metadata.contributionType = contributionType;
+    metadata.contributionType = canonicalType;
     metadata.groupName = groupName;
   }
 
@@ -700,6 +764,17 @@ export const initializePaystackBulkPayment = catchAsync(async (req, res, next) =
   if (paymentType === "group_contribution") {
     const seenKeys = new Set();
     const groupNames = new Map();
+    const typeSet = new Set();
+    const now = new Date();
+
+    if (!isContributionWindowOpen(now)) {
+      return next(
+        new AppError(
+          `Contributions must be paid between the ${ContributionWindow.startDay}th and ${ContributionWindow.endDay}th`,
+          400,
+        ),
+      );
+    }
 
     for (const item of items) {
       if (!item.groupId) {
@@ -725,12 +800,43 @@ export const initializePaystackBulkPayment = catchAsync(async (req, res, next) =
         return next(new AppError("User is not an active group member", 400));
       }
 
+      const leader = await ensureGroupLeader(item.groupId);
+      if (!leader) {
+        return next(new AppError("This group does not have an assigned group leader", 400));
+      }
+
+      const canonicalType = normalizeContributionType(item.contributionType) || "revolving";
+      typeSet.add(canonicalType);
+      if (typeSet.size > 1) {
+        return next(new AppError("Bulk contributions must use a single contribution type", 400));
+      }
+
+      if (!isContributionMonthAllowed(canonicalType, month)) {
+        return next(
+          new AppError("This contribution type is only accepted between January and October", 400),
+        );
+      }
+
+      if (!isContributionAmountValid(canonicalType, item.amount)) {
+        const cfg = getContributionTypeConfig(canonicalType);
+        const minLabel = cfg?.minAmount ? `NGN ${Number(cfg.minAmount).toLocaleString()}` : "the minimum amount";
+        const unitLabel = cfg?.unitAmount
+          ? ` in multiples of NGN ${Number(cfg.unitAmount).toLocaleString()}`
+          : "";
+        return next(
+          new AppError(
+            `Amount must be at least ${minLabel}${unitLabel} for ${cfg?.label || "this contribution type"}`,
+            400,
+          ),
+        );
+      }
+
       const existing = await ContributionModel.findOne({
         groupId: item.groupId,
         userId,
         month,
         year,
-        contributionType: "regular",
+        contributionType: { $in: getContributionTypeMatch(canonicalType) || [canonicalType] },
       });
       if (existing) {
         return next(new AppError("Contribution already exists for this period/type", 409));
@@ -742,7 +848,7 @@ export const initializePaystackBulkPayment = catchAsync(async (req, res, next) =
         month,
         year,
         amount: Number(item.amount || 0),
-        contributionType: "regular",
+        contributionType: canonicalType,
         status: "pending",
         paymentReference: reference,
         paymentMethod: "paystack",

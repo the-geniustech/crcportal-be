@@ -6,6 +6,7 @@ import { GroupReminderSettingsModel } from "../models/GroupReminderSettings.js";
 import { GroupMembershipModel } from "../models/GroupMembership.js";
 import { ContributionModel } from "../models/Contribution.js";
 import { NotificationModel } from "../models/Notification.js";
+import { getContributionTypeMatch } from "../utils/contributionPolicy.js";
 
 const DEFAULT_SETTINGS = {
   autoReminders: true,
@@ -118,7 +119,7 @@ export const sendGroupContributionReminders = catchAsync(async (req, res, next) 
       userId: { $in: memberIds },
       year,
       month,
-      contributionType: "regular",
+      contributionType: { $in: getContributionTypeMatch("revolving") || ["revolving"] },
     },
     { userId: 1, status: 1, amount: 1 },
   ).lean();

@@ -12,6 +12,7 @@ import { GroupModel } from "../models/Group.js";
 import { GroupMembershipModel } from "../models/GroupMembership.js";
 import { ProfileModel } from "../models/Profile.js";
 import { ContributionModel } from "../models/Contribution.js";
+import { getContributionTypeMatch } from "../utils/contributionPolicy.js";
 
 function clamp(n, min, max) {
   return Math.min(max, Math.max(min, n));
@@ -167,7 +168,13 @@ async function getRecipientPhonesForTarget(req, { target, groupNumbers, month, y
       GroupModel.find({ _id: { $in: groupObjectIds } }, { monthlyContribution: 1 }).lean(),
       ProfileModel.find({ _id: { $in: userIds }, phone: { $ne: null } }, { phone: 1 }).lean(),
       ContributionModel.find(
-        { groupId: { $in: groupObjectIds }, userId: { $in: userIds }, year: y, month: m, contributionType: "regular" },
+        {
+          groupId: { $in: groupObjectIds },
+          userId: { $in: userIds },
+          year: y,
+          month: m,
+          contributionType: { $in: getContributionTypeMatch("revolving") || ["revolving"] },
+        },
         { userId: 1, groupId: 1, status: 1, amount: 1, year: 1, month: 1 },
       ).lean(),
     ]);
@@ -268,4 +275,3 @@ export const sendAdminBulkSms = catchAsync(async (req, res, next) => {
 
   return sendSuccess(res, { statusCode: 201, message: "SMS dispatched", data: { dispatch: result } });
 });
-

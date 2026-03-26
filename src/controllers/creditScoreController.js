@@ -10,6 +10,7 @@ import { LoanGuarantorModel } from "../models/LoanGuarantor.js";
 import { MeetingModel } from "../models/Meeting.js";
 import { MeetingAttendanceModel } from "../models/MeetingAttendance.js";
 import { MeetingRsvpModel } from "../models/MeetingRsvp.js";
+import { normalizeContributionType } from "../utils/contributionPolicy.js";
 
 function clamp(n, min, max) {
   return Math.min(max, Math.max(min, n));
@@ -68,6 +69,14 @@ function impactFromValue(val, goodThreshold, fairThreshold) {
   if (val >= goodThreshold) return "positive";
   if (val >= fairThreshold) return "neutral";
   return "negative";
+}
+
+function isRevolvingContribution(contribution) {
+  if (!contribution) return false;
+  const raw = contribution.contributionType;
+  if (raw === undefined || raw === null || raw === "") return true;
+  const canonical = normalizeContributionType(raw);
+  return canonical === "revolving";
 }
 
 function loanImpactFromScore(score) {
@@ -200,7 +209,7 @@ function computeContributionFactor({ asOf, earliestMembership, contributions }) 
     if (!createdAt || createdAt.getTime() > monthEnd.getTime()) continue;
     const key = monthKeyUTC(createdAt);
     if (!byMonth.has(key)) continue;
-    if (c.contributionType && String(c.contributionType) !== "regular") continue;
+    if (!isRevolvingContribution(c)) continue;
     byMonth.get(key).push(c);
   }
 
@@ -215,7 +224,7 @@ function computeContributionFactor({ asOf, earliestMembership, contributions }) 
 
   const recent6Start = addMonthsUTC(startOfMonthUTC(asOf), -5);
   const recentContribs = contributions.filter((c) => {
-    if (c.contributionType && String(c.contributionType) !== "regular") return false;
+    if (!isRevolvingContribution(c)) return false;
     const dt = c.createdAt ? new Date(c.createdAt) : null;
     if (!dt) return false;
     if (dt.getTime() < recent6Start.getTime() || dt.getTime() > monthEnd.getTime()) return false;
@@ -442,7 +451,7 @@ function computeParticipationFactor({ asOf, contributions, guarantorRequests, gr
     const dt = c.createdAt ? new Date(c.createdAt) : null;
     if (!dt) return false;
     if (dt.getTime() < sixMonthsStart.getTime() || dt.getTime() > asOfTime) return false;
-    if (c.contributionType && String(c.contributionType) !== "regular") return false;
+    if (!isRevolvingContribution(c)) return false;
     return ["verified", "completed"].includes(String(c.status));
   });
 

@@ -1,11 +1,5 @@
-﻿import { Schema, ObjectId, model } from "./_shared.js";
-
-export const ContributionTypes = [
-  "regular",
-  "festival",
-  "end_well",
-  "special_savings",
-];
+import { Schema, ObjectId, model } from "./_shared.js";
+import { ContributionTypes } from "../utils/contributionPolicy.js";
 
 export const ContributionStatuses = [
   "pending",

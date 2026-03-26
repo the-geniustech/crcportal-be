@@ -1,4 +1,5 @@
-﻿import { Schema, ObjectId, model } from "./_shared.js";
+import { Schema, ObjectId, model } from "./_shared.js";
+import { ContributionTypes } from "../utils/contributionPolicy.js";
 
 export const RecurringPaymentTypes = [
   "deposit",
@@ -40,6 +41,13 @@ export const RecurringPaymentSchema = new Schema(
       index: true,
     },
     loanName: { type: String, default: null, trim: true },
+
+    contributionType: {
+      type: String,
+      enum: ContributionTypes,
+      default: null,
+      trim: true,
+    },
 
     description: { type: String, default: null, trim: true },
 

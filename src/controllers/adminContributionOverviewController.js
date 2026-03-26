@@ -4,9 +4,14 @@ import AppError from "../utils/AppError.js";
 import catchAsync from "../utils/catchAsync.js";
 import sendSuccess from "../utils/sendSuccess.js";
 
-import { ContributionModel, ContributionTypes } from "../models/Contribution.js";
+import { ContributionModel } from "../models/Contribution.js";
 import { GroupModel } from "../models/Group.js";
 import { GroupMembershipModel } from "../models/GroupMembership.js";
+import {
+  ContributionTypeCanonical,
+  getContributionTypeMatch,
+  normalizeContributionType,
+} from "../utils/contributionPolicy.js";
 
 function clamp(n, min, max) {
   return Math.min(max, Math.max(min, n));
@@ -22,11 +27,12 @@ function parseYear(req) {
 }
 
 function parseContributionType(req) {
-  const type = String(req.query?.contributionType ?? "regular").trim();
-  if (!ContributionTypes.includes(type)) {
-    return { error: `Invalid contributionType. Allowed: ${ContributionTypes.join(", ")}` };
+  const raw = String(req.query?.contributionType ?? "revolving").trim();
+  const canonical = normalizeContributionType(raw);
+  if (!canonical) {
+    return { error: "Invalid contributionType" };
   }
-  return { type };
+  return { type: canonical };
 }
 
 async function getManageableGroupIds(req) {
@@ -57,6 +63,7 @@ export const getAdminContributionTracking = catchAsync(async (req, res, next) =>
 
   const { year } = yearParsed;
   const { type: contributionType } = typeParsed;
+  const typeMatch = getContributionTypeMatch(contributionType) || [contributionType];
 
   const manageableGroupIds = await getManageableGroupIds(req);
   const filter = {};
@@ -86,7 +93,7 @@ export const getAdminContributionTracking = catchAsync(async (req, res, next) =>
         $match: {
           groupId: { $in: groupObjectIds },
           year,
-          contributionType,
+          contributionType: { $in: typeMatch },
         },
       },
       {
@@ -180,9 +187,14 @@ export const getAdminSpecialContributionSummary = catchAsync(async (req, res, ne
     (await GroupModel.findOne({ ...groupScopeFilter, groupNumber: 0 }).lean()) ||
     (await GroupModel.findOne({ ...groupScopeFilter, isSpecial: true }).lean());
 
+  const specialTypes = ["special", "endwell", "festive"];
+  const specialTypeMatches = specialTypes.flatMap(
+    (t) => getContributionTypeMatch(t) || [t],
+  );
+
   const match = {
     year,
-    contributionType: { $in: ["festival", "end_well", "special_savings"] },
+    contributionType: { $in: specialTypeMatches },
   };
 
   if (specialGroup) {
@@ -209,20 +221,25 @@ export const getAdminSpecialContributionSummary = catchAsync(async (req, res, ne
     },
   ]);
 
-  const byType = new Map(
-    rows.map((r) => [
-      String(r._id),
-      {
-        totalCollected: Number(r.paidAmount || 0),
-        contributors: Array.isArray(r.contributors) ? r.contributors.length : 0,
-      },
-    ]),
-  );
+  const totalsByType = new Map();
+  const contributorsByType = new Map();
 
-  const summary = ["festival", "end_well", "special_savings"].map((type) => ({
+  for (const row of rows) {
+    const canonical = normalizeContributionType(row._id);
+    if (!canonical) continue;
+    const total = Number(row.paidAmount || 0);
+    totalsByType.set(canonical, (totalsByType.get(canonical) || 0) + total);
+    const set = contributorsByType.get(canonical) || new Set();
+    if (Array.isArray(row.contributors)) {
+      row.contributors.forEach((id) => set.add(String(id)));
+    }
+    contributorsByType.set(canonical, set);
+  }
+
+  const summary = specialTypes.map((type) => ({
     type,
-    totalCollected: byType.get(type)?.totalCollected ?? 0,
-    contributors: byType.get(type)?.contributors ?? 0,
+    totalCollected: totalsByType.get(type) ?? 0,
+    contributors: contributorsByType.get(type)?.size ?? 0,
   }));
 
   return sendSuccess(res, {
@@ -236,4 +253,3 @@ export const getAdminSpecialContributionSummary = catchAsync(async (req, res, ne
     },
   });
 });
-

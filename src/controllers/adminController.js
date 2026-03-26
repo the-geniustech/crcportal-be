@@ -7,6 +7,11 @@ import { GroupMembershipModel } from "../models/GroupMembership.js";
 import { ContributionModel } from "../models/Contribution.js";
 import { ProfileModel } from "../models/Profile.js";
 import mongoose from "mongoose";
+import {
+  ContributionTypeCanonical,
+  getContributionTypeMatch,
+  normalizeContributionType,
+} from "../utils/contributionPolicy.js";
 
 function clamp(n, min, max) {
   return Math.min(max, Math.max(min, n));
@@ -133,7 +138,7 @@ export const listAdminGroups = catchAsync(async (req, res, next) => {
           groupId: { $in: groupObjectIds },
           year,
           month,
-          contributionType: "regular",
+          contributionType: { $in: getContributionTypeMatch("revolving") || ["revolving"] },
         },
       },
       {
@@ -188,7 +193,7 @@ export const listAdminGroups = catchAsync(async (req, res, next) => {
           groupId: { $in: allGroupObjectIds },
           year,
           month,
-          contributionType: "regular",
+          contributionType: { $in: getContributionTypeMatch("revolving") || ["revolving"] },
           status: { $in: ["verified", "completed"] },
         },
       },
@@ -220,17 +225,20 @@ export const listAdminGroups = catchAsync(async (req, res, next) => {
     },
   ]);
 
-  const contributionTypeTotalsYtd = {
-    regular: 0,
-    festival: 0,
-    end_well: 0,
-    special_savings: 0,
-  };
+  const contributionTypeTotalsYtd = ContributionTypeCanonical.reduce(
+    (acc, key) => {
+      acc[key] = 0;
+      return acc;
+    },
+    {},
+  );
 
   for (const row of ytdSums) {
-    const key = String(row._id || "");
-    if (!Object.prototype.hasOwnProperty.call(contributionTypeTotalsYtd, key)) continue;
-    contributionTypeTotalsYtd[key] = Number(row.paidAmount || 0);
+    const canonical = normalizeContributionType(row._id);
+    if (!canonical || !Object.prototype.hasOwnProperty.call(contributionTypeTotalsYtd, canonical)) {
+      continue;
+    }
+    contributionTypeTotalsYtd[canonical] += Number(row.paidAmount || 0);
   }
 
   return sendSuccess(res, {
@@ -471,7 +479,7 @@ export const listContributionTracker = catchAsync(async (req, res, next) => {
   const contribDocs = await ContributionModel.find(
     {
       groupId: { $in: scopeGroupIds },
-      contributionType: "regular",
+      contributionType: { $in: getContributionTypeMatch("revolving") || ["revolving"] },
       createdAt: { $gte: historyStart, $lte: historyEnd },
       year: { $in: [...new Set(historyMonths.map((m) => m.year))] },
     },
@@ -545,11 +553,18 @@ export const markContributionPaid = catchAsync(async (req, res, next) => {
   const month = Number(req.body?.month);
   const year = Number(req.body?.year);
   const amount = Number(req.body?.amount);
+  const contributionTypeRaw = req.body?.contributionType;
 
   if (!userId || !groupId) return next(new AppError("userId and groupId are required", 400));
   if (!Number.isFinite(month) || month < 1 || month > 12) return next(new AppError("Invalid month", 400));
   if (!Number.isFinite(year) || year < 2000 || year > 2100) return next(new AppError("Invalid year", 400));
   if (!Number.isFinite(amount) || amount <= 0) return next(new AppError("amount must be > 0", 400));
+
+  const normalizedTypeRaw = normalizeContributionType(contributionTypeRaw);
+  if (contributionTypeRaw !== undefined && !normalizedTypeRaw) {
+    return next(new AppError("Invalid contributionType", 400));
+  }
+  const normalizedType = normalizedTypeRaw || "revolving";
 
   const manageableGroupIds = await getManageableGroupIds(req);
   if (manageableGroupIds && !manageableGroupIds.includes(groupId)) {
@@ -559,14 +574,15 @@ export const markContributionPaid = catchAsync(async (req, res, next) => {
   const membership = await GroupMembershipModel.findOne({ groupId, userId, status: "active" });
   if (!membership) return next(new AppError("Member is not active in this group", 400));
 
+  const typeMatch = getContributionTypeMatch(normalizedType) || [normalizedType];
   const contribution = await ContributionModel.findOneAndUpdate(
-    { userId, groupId, month, year, contributionType: "regular" },
+    { userId, groupId, month, year, contributionType: { $in: typeMatch } },
     {
       userId,
       groupId,
       month,
       year,
-      contributionType: "regular",
+      contributionType: normalizedType,
       amount,
       status: "verified",
       paymentMethod: "manual",

@@ -18,7 +18,9 @@ import {
 import { listGroupLoans } from "../controllers/groupLoanController.js";
 import {
   createGroupContribution,
+  downloadGroupContributionLedgerPdf,
   downloadGroupContributionReportPdf,
+  getGroupContributionTargets,
   listGroupContributions,
   updateContribution,
   verifyContribution,
@@ -120,11 +122,25 @@ router.get(
   listGroupContributions,
 );
 router.get(
+  "/:groupId/contributions/targets",
+  loadGroup,
+  loadMyGroupMembership,
+  requireGroupReadAccess(),
+  getGroupContributionTargets,
+);
+router.get(
   "/:groupId/contributions/report",
   loadGroup,
   loadMyGroupMembership,
   requireGroupReadAccess(),
   downloadGroupContributionReportPdf,
+);
+router.get(
+  "/:groupId/contributions/ledger",
+  loadGroup,
+  loadMyGroupMembership,
+  requireGroupReadAccess(),
+  downloadGroupContributionLedgerPdf,
 );
 router.post(
   "/:groupId/contributions",

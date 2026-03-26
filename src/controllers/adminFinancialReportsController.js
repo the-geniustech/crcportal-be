@@ -8,6 +8,7 @@ import { GroupModel } from "../models/Group.js";
 import { GroupMembershipModel } from "../models/GroupMembership.js";
 import { TransactionModel } from "../models/Transaction.js";
 import { LoanApplicationModel } from "../models/LoanApplication.js";
+import { getContributionTypeMatch } from "../utils/contributionPolicy.js";
 
 function clamp(n, min, max) {
   return Math.min(max, Math.max(min, n));
@@ -260,7 +261,7 @@ export const getAdminFinancialReports = catchAsync(async (req, res, next) => {
           type: "group_contribution",
           groupId: { $in: groupIdsObj },
           date: { $gte: endMonthStart, $lte: endMonthEnd },
-          "metadata.contributionType": "regular",
+          "metadata.contributionType": { $in: getContributionTypeMatch("revolving") || ["revolving"] },
         },
       },
       { $group: { _id: "$groupId", total: { $sum: "$amount" } } },
@@ -354,4 +355,3 @@ export const getAdminFinancialReports = catchAsync(async (req, res, next) => {
     },
   });
 });
-

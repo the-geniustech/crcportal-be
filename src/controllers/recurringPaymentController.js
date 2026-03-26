@@ -7,7 +7,14 @@ import {
   RecurringFrequencies,
 } from "../models/RecurringPayment.js";
 import { GroupModel } from "../models/Group.js";
+import { GroupMembershipModel } from "../models/GroupMembership.js";
 import { LoanApplicationModel } from "../models/LoanApplication.js";
+import {
+  getContributionTypeConfig,
+  isContributionAmountValid,
+  isContributionMonthAllowed,
+  normalizeContributionType,
+} from "../utils/contributionPolicy.js";
 
 function pick(obj, allowedKeys) {
   const out = {};
@@ -36,6 +43,19 @@ function computeNextPaymentDate(startDate, frequency) {
   return nextDate;
 }
 
+async function ensureGroupLeader(groupId) {
+  if (!groupId) return null;
+  const group = await GroupModel.findById(groupId).lean();
+  if (!group) return null;
+  if (group.coordinatorId) return group.coordinatorId;
+  const coordinator = await GroupMembershipModel.findOne(
+    { groupId, role: "coordinator", status: "active" },
+    { userId: 1 },
+  ).lean();
+  if (coordinator?.userId) return coordinator.userId;
+  return null;
+}
+
 export const listMyRecurringPayments = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
   if (!req.user.profileId) return next(new AppError("User profile not found", 400));
@@ -56,6 +76,7 @@ export const createRecurringPayment = catchAsync(async (req, res, next) => {
     "endDate",
     "groupId",
     "loanId",
+    "contributionType",
     "description",
     "isActive",
   ]);
@@ -63,6 +84,10 @@ export const createRecurringPayment = catchAsync(async (req, res, next) => {
   const paymentType = String(payload.paymentType || "").trim();
   if (!RecurringPaymentTypes.includes(paymentType)) {
     return next(new AppError(`Invalid paymentType`, 400));
+  }
+
+  if (paymentType === "deposit") {
+    return next(new AppError("Savings deposits are temporarily suspended", 400));
   }
 
   const frequency = String(payload.frequency || "").trim();
@@ -83,13 +108,40 @@ export const createRecurringPayment = catchAsync(async (req, res, next) => {
   let loanId = payload.loanId || null;
   let groupName = null;
   let loanName = null;
+  let contributionType = payload.contributionType || null;
 
   if (paymentType === "group_contribution") {
     if (!groupId) return next(new AppError("groupId is required", 400));
     const group = await GroupModel.findById(groupId);
     if (!group) return next(new AppError("Group not found", 404));
+    const leader = await ensureGroupLeader(groupId);
+    if (!leader) {
+      return next(new AppError("This group does not have an assigned group leader", 400));
+    }
+
+    const canonicalType = normalizeContributionType(contributionType) || "revolving";
+    if (!isContributionMonthAllowed(canonicalType, startDate.getMonth() + 1)) {
+      return next(
+        new AppError("This contribution type is only accepted between January and October", 400),
+      );
+    }
+    if (!isContributionAmountValid(canonicalType, amount)) {
+      const cfg = getContributionTypeConfig(canonicalType);
+      const minLabel = cfg?.minAmount ? `NGN ${Number(cfg.minAmount).toLocaleString()}` : "the minimum amount";
+      const unitLabel = cfg?.unitAmount
+        ? ` in multiples of NGN ${Number(cfg.unitAmount).toLocaleString()}`
+        : "";
+      return next(
+        new AppError(
+          `Amount must be at least ${minLabel}${unitLabel} for ${cfg?.label || "this contribution type"}`,
+          400,
+        ),
+      );
+    }
+
     groupName = group.groupName;
     loanId = null;
+    contributionType = canonicalType;
   }
 
   if (paymentType === "loan_repayment") {
@@ -98,6 +150,7 @@ export const createRecurringPayment = catchAsync(async (req, res, next) => {
     if (!loan) return next(new AppError("Loan not found", 404));
     loanName = loan.loanCode || loan.loanPurpose;
     groupId = null;
+    contributionType = null;
   }
 
   if (paymentType === "deposit") {
@@ -117,6 +170,7 @@ export const createRecurringPayment = catchAsync(async (req, res, next) => {
     groupName,
     loanId,
     loanName,
+    contributionType,
     description: payload.description ? String(payload.description).trim() : null,
     isActive: typeof payload.isActive === "boolean" ? payload.isActive : true,
   });
@@ -138,6 +192,7 @@ export const updateRecurringPayment = catchAsync(async (req, res, next) => {
     "endDate",
     "groupId",
     "loanId",
+    "contributionType",
     "description",
     "isActive",
   ];
@@ -148,6 +203,9 @@ export const updateRecurringPayment = catchAsync(async (req, res, next) => {
 
   if (typeof updates.paymentType !== "undefined") {
     const paymentType = String(updates.paymentType || "").trim();
+    if (paymentType === "deposit") {
+      return next(new AppError("Savings deposits are temporarily suspended", 400));
+    }
     if (!RecurringPaymentTypes.includes(paymentType)) {
       return next(new AppError("Invalid paymentType", 400));
     }
@@ -214,15 +272,33 @@ export const updateRecurringPayment = catchAsync(async (req, res, next) => {
   const nextLoanId = Object.prototype.hasOwnProperty.call(updates, "loanId")
     ? updates.loanId
     : payment.loanId;
+  const nextContributionTypeRaw = Object.prototype.hasOwnProperty.call(updates, "contributionType")
+    ? updates.contributionType
+    : payment.contributionType;
 
   if (nextPaymentType === "group_contribution") {
     if (!nextGroupId) return next(new AppError("groupId is required", 400));
     const group = await GroupModel.findById(nextGroupId);
     if (!group) return next(new AppError("Group not found", 404));
+    const leader = await ensureGroupLeader(nextGroupId);
+    if (!leader) {
+      return next(new AppError("This group does not have an assigned group leader", 400));
+    }
     payment.groupId = nextGroupId;
     payment.groupName = group.groupName;
     payment.loanId = null;
     payment.loanName = null;
+
+    const canonicalType = normalizeContributionType(nextContributionTypeRaw) || "revolving";
+    if (!isContributionMonthAllowed(canonicalType, payment.startDate.getMonth() + 1)) {
+      return next(
+        new AppError("This contribution type is only accepted between January and October", 400),
+      );
+    }
+    if (!isContributionAmountValid(canonicalType, payment.amount)) {
+      return next(new AppError("Updated amount does not meet contribution requirements", 400));
+    }
+    payment.contributionType = canonicalType;
   }
 
   if (nextPaymentType === "loan_repayment") {
@@ -233,6 +309,7 @@ export const updateRecurringPayment = catchAsync(async (req, res, next) => {
     payment.loanName = loan.loanCode || loan.loanPurpose;
     payment.groupId = null;
     payment.groupName = null;
+    payment.contributionType = null;
   }
 
   if (nextPaymentType === "deposit") {
