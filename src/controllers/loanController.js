@@ -62,6 +62,20 @@ function addMonths(date, months) {
   return d;
 }
 
+function withRepaymentToDate(loan) {
+  const plain = loan && typeof loan.toObject === "function" ? loan.toObject() : loan;
+  if (!plain) return plain;
+  const totalRepayable = Number(plain.totalRepayable ?? 0);
+  const remainingBalance = Number(plain.remainingBalance ?? 0);
+  const repaymentToDate =
+    Number.isFinite(totalRepayable) &&
+    totalRepayable > 0 &&
+    Number.isFinite(remainingBalance)
+      ? Math.max(0, totalRepayable - remainingBalance)
+      : null;
+  return { ...plain, repaymentToDate };
+}
+
 function buildRepaymentSchedule({
   principal,
   ratePct,
@@ -620,11 +634,14 @@ export const listMyLoanApplications = catchAsync(async (req, res, next) => {
 
   const apps = await LoanApplicationModel.find({
     userId: req.user.profileId,
-  }).sort({ createdAt: -1 });
+  })
+    .sort({ createdAt: -1 })
+    .lean();
+  const enriched = apps.map((app) => withRepaymentToDate(app));
   return sendSuccess(res, {
     statusCode: 200,
-    results: apps.length,
-    data: { applications: apps },
+    results: enriched.length,
+    data: { applications: enriched },
   });
 });
 
@@ -657,17 +674,19 @@ export const listLoanApplications = catchAsync(async (req, res) => {
     LoanApplicationModel.find(filter)
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit),
+      .limit(limit)
+      .lean(),
     LoanApplicationModel.countDocuments(filter),
   ]);
+  const enriched = applications.map((app) => withRepaymentToDate(app));
 
   return sendSuccess(res, {
     statusCode: 200,
-    results: applications.length,
+    results: enriched.length,
     total,
     page,
     limit,
-    data: { applications },
+    data: { applications: enriched },
   });
 });
 
@@ -689,7 +708,7 @@ export const getLoanApplication = catchAsync(async (req, res, next) => {
   return sendSuccess(res, {
     statusCode: 200,
     data: {
-      application: req.loanApplication,
+      application: withRepaymentToDate(req.loanApplication),
       guarantors,
       schedule,
     },

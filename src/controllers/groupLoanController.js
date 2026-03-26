@@ -17,6 +17,7 @@ export const listGroupLoans = catchAsync(async (req, res) => {
   }
 
   const loans = await LoanApplicationModel.find(filter)
+    .populate("userId", "fullName email phone")
     .sort({ createdAt: -1 })
     .lean();
 
@@ -29,7 +30,21 @@ export const listGroupLoans = catchAsync(async (req, res) => {
       Number.isFinite(remainingBalance)
         ? Math.max(0, totalRepayable - remainingBalance)
         : null;
-    return { ...loan, repaymentToDate };
+    const borrower =
+      loan.userId && typeof loan.userId === "object" ? loan.userId : null;
+    const borrowerName =
+      borrower && typeof borrower.fullName === "string" ? borrower.fullName : null;
+    const borrowerEmail =
+      borrower && typeof borrower.email === "string" ? borrower.email : null;
+    const borrowerPhone =
+      borrower && typeof borrower.phone === "string" ? borrower.phone : null;
+    return {
+      ...loan,
+      repaymentToDate,
+      borrowerName,
+      borrowerEmail,
+      borrowerPhone,
+    };
   });
 
   return sendSuccess(res, {

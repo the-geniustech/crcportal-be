@@ -1,6 +1,10 @@
 import AppError from "../utils/AppError.js";
 import catchAsync from "../utils/catchAsync.js";
 import sendSuccess from "../utils/sendSuccess.js";
+import {
+  hasNonZeroGroupMembership,
+  isGeneralGroup,
+} from "../utils/groupMembershipPolicy.js";
 
 import { GroupModel } from "../models/Group.js";
 import { GroupMembershipModel } from "../models/GroupMembership.js";
@@ -368,6 +372,21 @@ export const approveMemberApplication = catchAsync(async (req, res, next) => {
 
   if (membership.status === "active") {
     return sendSuccess(res, { statusCode: 200, data: { membership } });
+  }
+
+  if (!isGeneralGroup(group)) {
+    const conflict = await hasNonZeroGroupMembership(
+      membership.userId,
+      membership.groupId,
+    );
+    if (conflict) {
+      return next(
+        new AppError(
+          "Member already belongs to another group. Group 0 is the only additional group allowed.",
+          400,
+        ),
+      );
+    }
   }
 
   if (group.memberCount >= group.maxMembers) {

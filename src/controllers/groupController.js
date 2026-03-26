@@ -4,6 +4,11 @@ import sendSuccess from "../utils/sendSuccess.js";
 import { GroupModel } from "../models/Group.js";
 import { GroupMembershipModel, GroupRoles } from "../models/GroupMembership.js";
 import { ProfileModel } from "../models/Profile.js";
+import {
+  findUsersWithNonZeroGroupMembership,
+  hasNonZeroGroupMembership,
+  isGeneralGroup,
+} from "../utils/groupMembershipPolicy.js";
 
 function pick(obj, allowedKeys) {
   const out = {};
@@ -316,6 +321,18 @@ export const joinGroup = catchAsync(async (req, res, next) => {
     });
   }
 
+  if (!isGeneralGroup(group)) {
+    const conflict = await hasNonZeroGroupMembership(userProfileId, group._id);
+    if (conflict) {
+      return next(
+        new AppError(
+          "You can only join one group. Group 0 is the only additional group allowed.",
+          400,
+        ),
+      );
+    }
+  }
+
   const membership = await GroupMembershipModel.findOneAndUpdate(
     { groupId: group._id, userId: userProfileId },
     {
@@ -429,11 +446,24 @@ export const listGroupMemberCandidates = catchAsync(async (req, res) => {
     .limit(50)
     .lean();
 
+  let filteredCandidates = candidates;
+  if (!isGeneralGroup(group) && candidates.length > 0) {
+    const blockedIds = await findUsersWithNonZeroGroupMembership(
+      candidates.map((profile) => profile._id),
+      group._id,
+    );
+    if (blockedIds.size > 0) {
+      filteredCandidates = candidates.filter(
+        (profile) => !blockedIds.has(String(profile._id)),
+      );
+    }
+  }
+
   return sendSuccess(res, {
     statusCode: 200,
-    results: candidates.length,
+    results: filteredCandidates.length,
     data: {
-      candidates: candidates.map((profile) => ({
+      candidates: filteredCandidates.map((profile) => ({
         id: profile._id,
         fullName: profile.fullName,
         email: profile.email,
@@ -497,16 +527,40 @@ export const addGroupMembers = catchAsync(async (req, res, next) => {
     });
   }
 
+  let conflictIds = new Set();
+  let eligibleIds = validIds;
+  if (!isGeneralGroup(group)) {
+    conflictIds = await findUsersWithNonZeroGroupMembership(
+      validIds,
+      group._id,
+    );
+    if (conflictIds.size > 0) {
+      eligibleIds = validIds.filter((id) => !conflictIds.has(String(id)));
+    }
+  }
+
+  if (eligibleIds.length === 0) {
+    return sendSuccess(res, {
+      statusCode: 200,
+      data: {
+        added: 0,
+        skipped: activeIds.size + conflictIds.size,
+        missing: missing.length,
+        conflicts: conflictIds.size,
+      },
+    });
+  }
+
   const maxMembers = Number(group.maxMembers ?? 0);
   if (maxMembers > 0) {
     const available = Math.max(0, maxMembers - Number(group.memberCount ?? 0));
-    if (validIds.length > available) {
+    if (eligibleIds.length > available) {
       return next(new AppError("Group is full", 400));
     }
   }
 
   const now = new Date();
-  const ops = validIds.map((userId) => ({
+  const ops = eligibleIds.map((userId) => ({
     updateOne: {
       filter: { groupId: group._id, userId },
       update: {
@@ -529,18 +583,19 @@ export const addGroupMembers = catchAsync(async (req, res, next) => {
 
   await GroupMembershipModel.bulkWrite(ops, { ordered: false });
 
-  if (validIds.length > 0) {
+  if (eligibleIds.length > 0) {
     await GroupModel.findByIdAndUpdate(group._id, {
-      $inc: { memberCount: validIds.length },
+      $inc: { memberCount: eligibleIds.length },
     });
   }
 
   return sendSuccess(res, {
     statusCode: 200,
     data: {
-      added: validIds.length,
-      skipped: activeIds.size,
+      added: eligibleIds.length,
+      skipped: activeIds.size + conflictIds.size,
       missing: missing.length,
+      conflicts: conflictIds.size,
     },
   });
 });
@@ -563,6 +618,30 @@ export const updateGroupMember = catchAsync(async (req, res, next) => {
 
   if (Object.keys(updates).length === 0) {
     return next(new AppError("No updatable fields provided", 400));
+  }
+
+  if (updates.status === "active" && !isGeneralGroup(group)) {
+    const existingMembership = await GroupMembershipModel.findOne({
+      _id: memberId,
+      groupId: group._id,
+    });
+
+    if (!existingMembership) {
+      return next(new AppError("Group member not found", 404));
+    }
+
+    const conflict = await hasNonZeroGroupMembership(
+      existingMembership.userId,
+      group._id,
+    );
+    if (conflict) {
+      return next(
+        new AppError(
+          "Member already belongs to another group. Group 0 is the only additional group allowed.",
+          400,
+        ),
+      );
+    }
   }
 
   const membership = await GroupMembershipModel.findOneAndUpdate(

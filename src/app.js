@@ -22,6 +22,7 @@ import meetingRoutes from "./routes/meetingRoutes.js";
 import creditScoreRoutes from "./routes/creditScoreRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
+import dashboardRoutes from "./routes/dashboardRoutes.js";
 
 const app = express();
 
@@ -66,6 +67,7 @@ app.use("/api/v1/meetings", meetingRoutes);
 app.use("/api/v1/credit-scores", creditScoreRoutes);
 app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/notifications", notificationRoutes);
+app.use("/api/v1/dashboard", dashboardRoutes);
 
 app.all("*", (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server`, 404));
