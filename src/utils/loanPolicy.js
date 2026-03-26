@@ -15,14 +15,14 @@ export const LoanFacilities = {
   revolving: {
     key: "revolving",
     label: "Revolving Loan",
-    interestRate: 3,
+    interestRate: 3.5,
     interestRateType: "monthly",
     maxAmountRule: "contributions",
   },
   special: {
     key: "special",
     label: "Special Loan",
-    interestRate: 3,
+    interestRate: 3.5,
     interestRateType: "monthly",
     qualificationRequired: true,
   },

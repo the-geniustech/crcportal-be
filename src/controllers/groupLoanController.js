@@ -16,11 +16,25 @@ export const listGroupLoans = catchAsync(async (req, res) => {
     }
   }
 
-  const loans = await LoanApplicationModel.find(filter).sort({ createdAt: -1 });
+  const loans = await LoanApplicationModel.find(filter)
+    .sort({ createdAt: -1 })
+    .lean();
+
+  const enrichedLoans = loans.map((loan) => {
+    const totalRepayable = Number(loan.totalRepayable ?? 0);
+    const remainingBalance = Number(loan.remainingBalance ?? 0);
+    const repaymentToDate =
+      Number.isFinite(totalRepayable) &&
+      totalRepayable > 0 &&
+      Number.isFinite(remainingBalance)
+        ? Math.max(0, totalRepayable - remainingBalance)
+        : null;
+    return { ...loan, repaymentToDate };
+  });
 
   return sendSuccess(res, {
     statusCode: 200,
-    results: loans.length,
-    data: { loans },
+    results: enrichedLoans.length,
+    data: { loans: enrichedLoans },
   });
 });

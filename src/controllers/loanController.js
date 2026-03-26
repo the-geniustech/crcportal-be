@@ -156,7 +156,7 @@ function buildRepaymentSchedule({
 
 async function ensureActiveMember(profileId) {
   const profile =
-    await ProfileModel.findById(profileId).select("membershipStatus");
+    await ProfileModel.findById(profileId).select("membershipStatus email phone");
   if (!profile) throw new AppError("User profile not found", 400);
   if (profile.membershipStatus !== "active") {
     throw new AppError("Membership is not active", 403);
@@ -279,8 +279,13 @@ export const createLoanApplication = catchAsync(async (req, res, next) => {
   if (!req.user.profileId)
     return next(new AppError("User profile not found", 400));
 
+  let borrowerProfile = null;
   if (req.user.role !== "admin") {
-    await ensureActiveMember(req.user.profileId);
+    borrowerProfile = await ensureActiveMember(req.user.profileId);
+  } else if (req.user.profileId) {
+    borrowerProfile = await ProfileModel.findById(req.user.profileId).select(
+      "email phone",
+    );
   }
 
   const allowed = [
@@ -461,9 +466,20 @@ export const createLoanApplication = catchAsync(async (req, res, next) => {
     ? payload.guarantors
     : [];
   const memberGuarantors = guarantors.filter((g) => g && g.type === "member");
+  const externalGuarantors = guarantors.filter((g) => g && g.type === "external");
+  const borrowerProfileId = String(req.user.profileId);
+
+  const normalizeEmail = (value) => String(value || "").trim().toLowerCase();
+  const normalizePhone = (value) =>
+    String(value || "")
+      .replace(/\s+/g, "")
+      .replace(/[^0-9+]/g, "");
+  const borrowerEmail = normalizeEmail(borrowerProfile?.email);
+  const borrowerPhone = normalizePhone(borrowerProfile?.phone);
 
   let liabilitySum = 0;
   const seenProfiles = new Set();
+  const seenExternal = new Set();
 
   for (const g of memberGuarantors) {
     if (!g.profileId) {
@@ -472,6 +488,9 @@ export const createLoanApplication = catchAsync(async (req, res, next) => {
       );
     }
     const profileId = String(g.profileId);
+    if (profileId === borrowerProfileId) {
+      return next(new AppError("Borrower cannot be a guarantor", 400));
+    }
     if (seenProfiles.has(profileId)) {
       return next(new AppError("Duplicate guarantor profileId", 400));
     }
@@ -482,6 +501,23 @@ export const createLoanApplication = catchAsync(async (req, res, next) => {
       return next(new AppError("Invalid guarantor liabilityPercentage", 400));
     }
     liabilitySum += pct;
+  }
+
+  for (const g of externalGuarantors) {
+    const emailKey = normalizeEmail(g.email);
+    const phoneKey = normalizePhone(g.phone);
+    if (borrowerEmail && emailKey && emailKey === borrowerEmail) {
+      return next(new AppError("Borrower cannot be a guarantor", 400));
+    }
+    if (borrowerPhone && phoneKey && phoneKey === borrowerPhone) {
+      return next(new AppError("Borrower cannot be a guarantor", 400));
+    }
+    const key =
+      emailKey || phoneKey ? `${emailKey}::${phoneKey}` : null;
+    if (key && seenExternal.has(key)) {
+      return next(new AppError("Duplicate external guarantor", 400));
+    }
+    if (key) seenExternal.add(key);
   }
 
   if (liabilitySum > 100) {
