@@ -15,7 +15,6 @@ import { GroupMembershipModel } from "../models/GroupMembership.js";
 import { ContributionModel } from "../models/Contribution.js";
 import { createNotification } from "../services/notificationService.js";
 import {
-  ContributionWindow,
   LoanFacilityTypes,
   getLoanFacility,
   getLoanInterestConfig,
@@ -299,9 +298,9 @@ export const getLoanEligibility = catchAsync(async (req, res, next) => {
     overdueRepayments,
     creditScore: 850,
     contributionWindow: {
-      startDay: ContributionWindow.startDay,
-      endDay: ContributionWindow.endDay,
-      isOpen: now.getDate() >= ContributionWindow.startDay || now.getDate() <= ContributionWindow.endDay,
+      startDay: 1,
+      endDay: 31,
+      isOpen: true,
     },
   };
 
@@ -462,7 +461,7 @@ export const createLoanApplication = catchAsync(async (req, res, next) => {
   if (overdueContribs > 0) {
     return next(
       new AppError(
-        `Outstanding contributions detected. Contributions must be paid between ${ContributionWindow.startDay}th and ${ContributionWindow.endDay}th.`,
+        "Outstanding contributions detected. Please settle them before applying.",
         400,
       ),
     );

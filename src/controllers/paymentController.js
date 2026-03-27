@@ -16,12 +16,10 @@ import {
   isValidWebhookSignature,
 } from "../services/paystack.js";
 import {
-  ContributionWindow,
+  calculateContributionInterestForType,
+  calculateContributionUnits,
   getContributionTypeConfig,
-  getContributionTypeMatch,
   isContributionAmountValid,
-  isContributionMonthAllowed,
-  isContributionWindowOpen,
   normalizeContributionType,
 } from "../utils/contributionPolicy.js";
 
@@ -54,6 +52,16 @@ function parseDate(value, fallback = null) {
   // eslint-disable-next-line no-restricted-globals
   if (isNaN(date.getTime())) return fallback;
   return date;
+}
+
+function applyContributionMetrics(contribution, amount) {
+  if (!contribution) return;
+  const safeAmount = Number(amount ?? contribution.amount ?? 0);
+  contribution.units = calculateContributionUnits(safeAmount);
+  contribution.interestAmount = calculateContributionInterestForType(
+    contribution.contributionType,
+    safeAmount,
+  );
 }
 
 async function updateRecurringPaymentStats({
@@ -127,6 +135,16 @@ function normalizeBulkItems(rawItems) {
         ? String(item.loanId)
         : null;
     const dueDate = item?.dueDate ? String(item.dueDate) : null;
+    const rawMonth = item?.month;
+    const rawYear = item?.year;
+    const month =
+      rawMonth === null || typeof rawMonth === "undefined" || rawMonth === ""
+        ? NaN
+        : Number(rawMonth);
+    const year =
+      rawYear === null || typeof rawYear === "undefined" || rawYear === ""
+        ? NaN
+        : Number(rawYear);
     const description = item?.description ? String(item.description) : null;
     const contributionType = item?.contributionType
       ? String(item.contributionType)
@@ -137,6 +155,8 @@ function normalizeBulkItems(rawItems) {
       groupId,
       loanApplicationId,
       dueDate,
+      month: Number.isFinite(month) ? month : null,
+      year: Number.isFinite(year) ? year : null,
       description,
       contributionType,
     };
@@ -171,6 +191,7 @@ async function finalizeGroupContribution({ transaction, paystackData }) {
     });
     if (contributions.length === 0) return;
 
+    const paidAt = parseDate(paystackData?.paid_at, new Date());
     const contributionsToUpdate = contributions.filter(
       (contribution) =>
         contribution.status !== "completed" &&
@@ -179,11 +200,13 @@ async function finalizeGroupContribution({ transaction, paystackData }) {
 
     const updates = contributionsToUpdate
       .map((contribution) => {
-        contribution.status = "completed";
+        contribution.status = "verified";
+        contribution.verifiedAt = paidAt;
         contribution.paymentReference = transaction.reference;
         contribution.paymentMethod = "paystack";
         contribution.notes =
           contribution.notes || transaction.description || null;
+        applyContributionMetrics(contribution, contribution.amount);
         return contribution.save({ validateBeforeSave: true });
       })
       .filter(Boolean);
@@ -207,7 +230,6 @@ async function finalizeGroupContribution({ transaction, paystackData }) {
       ],
     );
 
-    const paidAt = paystackData?.paid_at || new Date();
     await Promise.all([
       ...updates,
       ...groupUpdates,
@@ -252,10 +274,13 @@ async function finalizeGroupContribution({ transaction, paystackData }) {
     return;
   }
 
-  contribution.status = "completed";
+  const paidAt = parseDate(paystackData?.paid_at, new Date());
+  contribution.status = "verified";
+  contribution.verifiedAt = paidAt;
   contribution.paymentReference = transaction.reference;
   contribution.paymentMethod = "paystack";
   contribution.notes = contribution.notes || transaction.description || null;
+  applyContributionMetrics(contribution, contribution.amount);
   await contribution.save({ validateBeforeSave: true });
 
   const amount = Number(transaction.amount ?? 0);
@@ -265,7 +290,7 @@ async function finalizeGroupContribution({ transaction, paystackData }) {
     groupId: contribution.groupId,
     amount,
     count: 1,
-    paidAt: paystackData?.paid_at || new Date(),
+    paidAt,
   });
   await Promise.all([
     GroupModel.findByIdAndUpdate(contribution.groupId, {
@@ -558,6 +583,8 @@ export const initializePaystackPayment = catchAsync(async (req, res, next) => {
     groupId,
     loanApplicationId,
     contributionType,
+    month,
+    year,
     description,
     callbackUrl,
   } = req.body || {};
@@ -617,36 +644,39 @@ export const initializePaystackPayment = catchAsync(async (req, res, next) => {
     }
 
     const now = new Date();
-    const month = now.getMonth() + 1;
-    const year = now.getFullYear();
+    const parsedMonth =
+      month === null || typeof month === "undefined" || month === ""
+        ? NaN
+        : Number(month);
+    const parsedYear =
+      year === null || typeof year === "undefined" || year === ""
+        ? NaN
+        : Number(year);
+    const contributionMonth = Number.isFinite(parsedMonth)
+      ? parsedMonth
+      : now.getMonth() + 1;
+    const contributionYear = Number.isFinite(parsedYear)
+      ? parsedYear
+      : now.getFullYear();
+
+    if (contributionMonth < 1 || contributionMonth > 12) {
+      return next(new AppError("Invalid contribution month", 400));
+    }
+    if (contributionYear < 2000 || contributionYear > 2100) {
+      return next(new AppError("Invalid contribution year", 400));
+    }
+
     const canonicalType =
       normalizeContributionType(contributionType) || "revolving";
-
-    // if (!isContributionWindowOpen(now)) {
-    //   return next(
-    //     new AppError(
-    //       `Contributions must be paid between the ${ContributionWindow.startDay}th and ${ContributionWindow.endDay}th`,
-    //       400,
-    //     ),
-    //   );
-    // }
-
-    // if (!isContributionMonthAllowed(canonicalType, month)) {
-    //   return next(
-    //     new AppError(
-    //       "This contribution type is only accepted between January and October",
-    //       400,
-    //     ),
-    //   );
-    // }
 
     if (!isContributionAmountValid(canonicalType, parsedAmount)) {
       const cfg = getContributionTypeConfig(canonicalType);
       const minLabel = cfg?.minAmount
         ? `NGN ${Number(cfg.minAmount).toLocaleString()}`
         : "the minimum amount";
-      const unitLabel = cfg?.unitAmount
-        ? ` in multiples of NGN ${Number(cfg.unitAmount).toLocaleString()}`
+      const unitStep = cfg?.stepAmount || cfg?.unitAmount;
+      const unitLabel = unitStep
+        ? ` in multiples of NGN ${Number(unitStep).toLocaleString()}`
         : "";
       return next(
         new AppError(
@@ -656,25 +686,11 @@ export const initializePaystackPayment = catchAsync(async (req, res, next) => {
       );
     }
 
-    const existing = await ContributionModel.findOne({
-      groupId,
-      userId,
-      month,
-      year,
-      contributionType: {
-        $in: getContributionTypeMatch(canonicalType) || [canonicalType],
-      },
-    });
-    if (existing)
-      return next(
-        new AppError("Contribution already exists for this period/type", 409),
-      );
-
     const contribution = await ContributionModel.create({
       groupId,
       userId,
-      month,
-      year,
+      month: contributionMonth,
+      year: contributionYear,
       amount: parsedAmount,
       contributionType: canonicalType,
       status: "pending",
@@ -685,8 +701,8 @@ export const initializePaystackPayment = catchAsync(async (req, res, next) => {
     contributionId = contribution._id;
 
     metadata.contributionId = contribution._id;
-    metadata.month = month;
-    metadata.year = year;
+    metadata.month = contributionMonth;
+    metadata.year = contributionYear;
     metadata.contributionType = canonicalType;
     metadata.groupName = groupName;
   }
@@ -825,19 +841,8 @@ export const initializePaystackBulkPayment = catchAsync(
     let totalAmount = 0;
 
     if (paymentType === "group_contribution") {
-      const seenKeys = new Set();
       const groupNames = new Map();
       const typeSet = new Set();
-      const now = new Date();
-
-      if (!isContributionWindowOpen(now)) {
-        return next(
-          new AppError(
-            `Contributions must be paid between the ${ContributionWindow.startDay}th and ${ContributionWindow.endDay}th`,
-            400,
-          ),
-        );
-      }
 
       for (const item of items) {
         if (!item.groupId) {
@@ -848,19 +853,33 @@ export const initializePaystackBulkPayment = catchAsync(
             ),
           );
         }
-        const dueDate = parseDate(item.dueDate, new Date());
-        if (!dueDate)
-          return next(new AppError("Invalid dueDate for bulk item", 400));
+        const dueDate = parseDate(item.dueDate, null);
+        const parsedItemMonth =
+          item.month === null || typeof item.month === "undefined" || item.month === ""
+            ? NaN
+            : Number(item.month);
+        const parsedItemYear =
+          item.year === null || typeof item.year === "undefined" || item.year === ""
+            ? NaN
+            : Number(item.year);
 
-        const month = dueDate.getMonth() + 1;
-        const year = dueDate.getFullYear();
-        const key = `${item.groupId}-${year}-${month}`;
-        if (seenKeys.has(key)) {
-          return next(
-            new AppError("Duplicate contribution period in bulk items", 400),
-          );
+        const month = Number.isFinite(parsedItemMonth)
+          ? parsedItemMonth
+          : dueDate
+            ? dueDate.getMonth() + 1
+            : null;
+        const year = Number.isFinite(parsedItemYear)
+          ? parsedItemYear
+          : dueDate
+            ? dueDate.getFullYear()
+            : null;
+
+        if (!month || month < 1 || month > 12) {
+          return next(new AppError("Invalid month for bulk item", 400));
         }
-        seenKeys.add(key);
+        if (!year || year < 2000 || year > 2100) {
+          return next(new AppError("Invalid year for bulk item", 400));
+        }
 
         const membership = await GroupMembershipModel.findOne({
           groupId: item.groupId,
@@ -893,45 +912,19 @@ export const initializePaystackBulkPayment = catchAsync(
           );
         }
 
-        if (!isContributionMonthAllowed(canonicalType, month)) {
-          return next(
-            new AppError(
-              "This contribution type is only accepted between January and October",
-              400,
-            ),
-          );
-        }
-
         if (!isContributionAmountValid(canonicalType, item.amount)) {
           const cfg = getContributionTypeConfig(canonicalType);
           const minLabel = cfg?.minAmount
             ? `NGN ${Number(cfg.minAmount).toLocaleString()}`
             : "the minimum amount";
-          const unitLabel = cfg?.unitAmount
-            ? ` in multiples of NGN ${Number(cfg.unitAmount).toLocaleString()}`
+          const unitStep = cfg?.stepAmount || cfg?.unitAmount;
+          const unitLabel = unitStep
+            ? ` in multiples of NGN ${Number(unitStep).toLocaleString()}`
             : "";
           return next(
             new AppError(
               `Amount must be at least ${minLabel}${unitLabel} for ${cfg?.label || "this contribution type"}`,
               400,
-            ),
-          );
-        }
-
-        const existing = await ContributionModel.findOne({
-          groupId: item.groupId,
-          userId,
-          month,
-          year,
-          contributionType: {
-            $in: getContributionTypeMatch(canonicalType) || [canonicalType],
-          },
-        });
-        if (existing) {
-          return next(
-            new AppError(
-              "Contribution already exists for this period/type",
-              409,
             ),
           );
         }

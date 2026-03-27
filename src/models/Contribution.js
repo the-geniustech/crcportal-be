@@ -23,6 +23,8 @@ export const ContributionSchema = new Schema(
       required: true,
       index: true,
     },
+    units: { type: Number, default: 0 },
+    interestAmount: { type: Number, default: 0 },
     status: {
       type: String,
       enum: ContributionStatuses,
@@ -49,7 +51,7 @@ ContributionSchema.index(
     year: 1,
     contributionType: 1,
   },
-  { unique: true },
+  { unique: false },
 );
 ContributionSchema.index({ groupId: 1, year: 1, month: 1 });
 

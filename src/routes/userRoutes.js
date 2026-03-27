@@ -3,9 +3,11 @@
 import { protect, restrictTo } from "../controllers/authController.js";
 import {
   getMe,
+  getMyContributionSettings,
   listMyGroups,
   listUsers,
   updateMe,
+  updateMyContributionSettings,
   updateUserRole,
 } from "../controllers/userController.js";
 import {
@@ -24,6 +26,8 @@ router.get("/me", getMe);
 router.get("/me/groups", listMyGroups);
 router.get("/me/notification-preferences", getMyNotificationPreferences);
 router.put("/me/notification-preferences", updateMyNotificationPreferences);
+router.get("/me/contribution-settings", getMyContributionSettings);
+router.put("/me/contribution-settings", updateMyContributionSettings);
 router.post("/me/reports", generateMyFinancialReport);
 router.patch(
   "/me",

@@ -12,7 +12,6 @@ import { LoanApplicationModel } from "../models/LoanApplication.js";
 import {
   getContributionTypeConfig,
   isContributionAmountValid,
-  isContributionMonthAllowed,
   normalizeContributionType,
 } from "../utils/contributionPolicy.js";
 
@@ -120,16 +119,12 @@ export const createRecurringPayment = catchAsync(async (req, res, next) => {
     }
 
     const canonicalType = normalizeContributionType(contributionType) || "revolving";
-    if (!isContributionMonthAllowed(canonicalType, startDate.getMonth() + 1)) {
-      return next(
-        new AppError("This contribution type is only accepted between January and October", 400),
-      );
-    }
     if (!isContributionAmountValid(canonicalType, amount)) {
       const cfg = getContributionTypeConfig(canonicalType);
       const minLabel = cfg?.minAmount ? `NGN ${Number(cfg.minAmount).toLocaleString()}` : "the minimum amount";
-      const unitLabel = cfg?.unitAmount
-        ? ` in multiples of NGN ${Number(cfg.unitAmount).toLocaleString()}`
+      const unitStep = cfg?.stepAmount || cfg?.unitAmount;
+      const unitLabel = unitStep
+        ? ` in multiples of NGN ${Number(unitStep).toLocaleString()}`
         : "";
       return next(
         new AppError(
@@ -290,11 +285,6 @@ export const updateRecurringPayment = catchAsync(async (req, res, next) => {
     payment.loanName = null;
 
     const canonicalType = normalizeContributionType(nextContributionTypeRaw) || "revolving";
-    if (!isContributionMonthAllowed(canonicalType, payment.startDate.getMonth() + 1)) {
-      return next(
-        new AppError("This contribution type is only accepted between January and October", 400),
-      );
-    }
     if (!isContributionAmountValid(canonicalType, payment.amount)) {
       return next(new AppError("Updated amount does not meet contribution requirements", 400));
     }

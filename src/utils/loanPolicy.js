@@ -2,8 +2,8 @@ export const LoanFacilityTypes = ["revolving", "special", "bridging", "soft"];
 export const LoanInterestRateTypes = ["annual", "monthly", "total"];
 
 export const ContributionWindow = {
-  startDay: 27,
-  endDay: 4,
+  startDay: 1,
+  endDay: 31,
 };
 
 export const LoanRepaymentDeadlines = {

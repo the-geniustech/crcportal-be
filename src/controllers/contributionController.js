@@ -7,13 +7,14 @@ import { GroupMembershipModel } from "../models/GroupMembership.js";
 import { TransactionModel } from "../models/Transaction.js";
 import { generateGroupContributionReportPdfBuffer } from "../services/pdf/groupContributionReportPdf.js";
 import {
-  ContributionWindow,
   ContributionTypeCanonical,
+  calculateContributionInterest,
+  calculateContributionInterestForType,
+  calculateContributionUnits,
+  ContributionInterestPerUnit,
   getContributionTypeConfig,
   getContributionTypeMatch,
   isContributionAmountValid,
-  isContributionMonthAllowed,
-  isContributionWindowOpen,
   normalizeContributionType,
 } from "../utils/contributionPolicy.js";
 import { generateGroupContributionLedgerPdfBuffer } from "../services/pdf/groupContributionLedgerPdf.js";
@@ -31,7 +32,9 @@ function resolveGroupContributionTargets(group) {
     const minAmount = Number(config?.minAmount ?? 0);
     const unitAmount = config?.unitAmount ?? null;
     const monthlyTarget =
-      type === "revolving" ? Number(baseMonthly || minAmount) : minAmount;
+      type === "revolving"
+        ? Math.max(Number(baseMonthly || 0), minAmount)
+        : minAmount;
 
     monthlyTargets[type] = Number.isFinite(monthlyTarget) ? monthlyTarget : 0;
     minAmounts[type] = Number.isFinite(minAmount) ? minAmount : 0;
@@ -72,6 +75,22 @@ function mapContributionStatusToTxStatus(status) {
   if (status === "pending") return "pending";
   if (status === "overdue") return "failed";
   return "pending";
+}
+
+function applyContributionMetrics(contribution, amount, status) {
+  if (!contribution) return;
+  const shouldCompute = status === "completed" || status === "verified";
+  if (!shouldCompute) {
+    contribution.units = 0;
+    contribution.interestAmount = 0;
+    return;
+  }
+  const safeAmount = Number(amount ?? contribution.amount ?? 0);
+  contribution.units = calculateContributionUnits(safeAmount);
+  contribution.interestAmount = calculateContributionInterestForType(
+    contribution.contributionType,
+    safeAmount,
+  );
 }
 
 async function ensureGroupLeader(group) {
@@ -124,7 +143,7 @@ export const createGroupContribution = catchAsync(async (req, res, next) => {
     year,
     amount,
     contributionType,
-    status = "completed",
+    status = "verified",
     paymentReference = null,
     paymentMethod = null,
     notes = null,
@@ -147,26 +166,12 @@ export const createGroupContribution = catchAsync(async (req, res, next) => {
     return next(new AppError("Invalid contributionType", 400));
   }
 
-  if (!isContributionMonthAllowed(normalizedType, month)) {
-    return next(
-      new AppError("This contribution type is only accepted between January and October", 400),
-    );
-  }
-
-  if (!isContributionWindowOpen(new Date())) {
-    return next(
-      new AppError(
-        `Contributions must be paid between the ${ContributionWindow.startDay}th and ${ContributionWindow.endDay}th`,
-        400,
-      ),
-    );
-  }
-
   if (!isContributionAmountValid(normalizedType, amount)) {
     const cfg = getContributionTypeConfig(normalizedType);
     const minLabel = cfg?.minAmount ? `NGN ${Number(cfg.minAmount).toLocaleString()}` : "the minimum amount";
-    const unitLabel = cfg?.unitAmount
-      ? ` in multiples of NGN ${Number(cfg.unitAmount).toLocaleString()}`
+    const unitStep = cfg?.stepAmount || cfg?.unitAmount;
+    const unitLabel = unitStep
+      ? ` in multiples of NGN ${Number(unitStep).toLocaleString()}`
       : "";
     return next(
       new AppError(
@@ -188,17 +193,7 @@ export const createGroupContribution = catchAsync(async (req, res, next) => {
   });
   if (!membership) return next(new AppError("User is not an active group member", 400));
 
-  const typeMatch = getContributionTypeMatch(normalizedType) || [normalizedType];
-  const existing = await ContributionModel.findOne({
-    groupId: group._id,
-    userId: targetUserId,
-    month,
-    year,
-    contributionType: { $in: typeMatch },
-  });
-  if (existing) return next(new AppError("Contribution already exists for this period/type", 409));
-
-  const contribution = await ContributionModel.create({
+  const contribution = new ContributionModel({
     groupId: group._id,
     userId: targetUserId,
     month,
@@ -210,6 +205,8 @@ export const createGroupContribution = catchAsync(async (req, res, next) => {
     paymentMethod,
     notes,
   });
+  applyContributionMetrics(contribution, amount, status);
+  await contribution.save({ validateBeforeSave: true });
 
   const contributionRef = String(paymentReference || `GC-${contribution._id}`);
   await TransactionModel.create({
@@ -226,7 +223,7 @@ export const createGroupContribution = catchAsync(async (req, res, next) => {
       contributionId: contribution._id,
       month,
       year,
-        contributionType: normalizedType,
+      contributionType: normalizedType,
     },
     gateway: "internal",
   });
@@ -270,6 +267,15 @@ export const updateContribution = catchAsync(async (req, res, next) => {
       return next(new AppError("Updated amount does not meet contribution requirements", 400));
     }
   }
+
+  const nextAmount = Object.prototype.hasOwnProperty.call(updates, "amount")
+    ? updates.amount
+    : existing.amount;
+  const nextStatus = Object.prototype.hasOwnProperty.call(updates, "status")
+    ? updates.status
+    : existing.status;
+
+  applyContributionMetrics(updates, nextAmount, nextStatus);
 
   const wasCounted = shouldCountTowardSavings(existing.status);
 
@@ -332,6 +338,7 @@ export const verifyContribution = catchAsync(async (req, res, next) => {
   existing.status = "verified";
   existing.verifiedBy = req.user.profileId;
   existing.verifiedAt = new Date();
+  applyContributionMetrics(existing, existing.amount, "verified");
   await existing.save({ validateBeforeSave: true });
 
   if (!wasCounted) {
@@ -392,7 +399,24 @@ export const downloadGroupContributionReportPdf = catchAsync(async (req, res, ne
     const userId = userObj?._id || c.userId;
     if (!userId) return;
     const key = String(userId);
-    if (!contributionByUserId.has(key)) contributionByUserId.set(key, c);
+    const entry =
+      contributionByUserId.get(key) || {
+        totalPaid: 0,
+        hasPaid: false,
+        hasOverdue: false,
+        lastPaidAt: null,
+      };
+    if (PaidContributionStatuses.has(c.status)) {
+      entry.hasPaid = true;
+      entry.totalPaid += Number(c.amount ?? 0);
+      const paidAt = c.updatedAt || c.createdAt;
+      if (!entry.lastPaidAt || (paidAt && paidAt > entry.lastPaidAt)) {
+        entry.lastPaidAt = paidAt;
+      }
+    } else if (String(c.status) === "overdue") {
+      entry.hasOverdue = true;
+    }
+    contributionByUserId.set(key, entry);
   });
 
   let paidCount = 0;
@@ -411,16 +435,13 @@ export const downloadGroupContributionReportPdf = catchAsync(async (req, res, ne
       "Member";
 
     const contribution = contributionByUserId.get(String(userId));
-    const statusRaw = contribution?.status || "pending";
-    const status =
-      statusRaw === "overdue"
+    const status = contribution?.hasPaid
+      ? "Paid"
+      : contribution?.hasOverdue
         ? "Overdue"
-        : statusRaw === "pending"
-          ? "Pending"
-          : "Paid";
-    const amount = Number(contribution?.amount ?? 0);
-    const paidDate =
-      status === "Paid" ? contribution?.updatedAt || contribution?.createdAt : null;
+        : "Pending";
+    const amount = Number(contribution?.totalPaid ?? 0);
+    const paidDate = status === "Paid" ? contribution?.lastPaidAt : null;
 
     if (status === "Paid") {
       paidCount += 1;
@@ -501,7 +522,10 @@ export const downloadGroupContributionLedgerPdf = catchAsync(
     const rawType = req.query?.contributionType
       ? String(req.query.contributionType)
       : "revolving";
-    const normalizedType = normalizeContributionType(rawType) || "revolving";
+    const isInterestView = String(rawType).trim().toLowerCase() === "interest";
+    const normalizedType = isInterestView
+      ? "revolving"
+      : normalizeContributionType(rawType) || "revolving";
 
     if (!Number.isFinite(year)) {
       return next(new AppError("Invalid year provided", 400));
@@ -537,8 +561,15 @@ export const downloadGroupContributionLedgerPdf = catchAsync(
 
     const { monthlyTargets, unitAmounts } =
       resolveGroupContributionTargets(group);
-    const expectedMonthly = Number(monthlyTargets[normalizedType] ?? 0);
-    const expectedUnitAmount = unitAmounts[normalizedType];
+    const expectedMonthlyBase = isInterestView
+      ? Number(monthlyTargets.revolving ?? 0)
+      : Number(monthlyTargets[normalizedType] ?? 0);
+    const expectedMonthly = isInterestView
+      ? calculateContributionInterest(expectedMonthlyBase)
+      : expectedMonthlyBase;
+    const expectedUnitAmount = isInterestView
+      ? ContributionInterestPerUnit
+      : unitAmounts[normalizedType];
 
     const currentMonth = now.getMonth() + 1;
     const monthsToDate = year === now.getFullYear() ? currentMonth : 12;
@@ -573,7 +604,16 @@ export const downloadGroupContributionLedgerPdf = catchAsync(
 
       const key = `${memberId}-${month}`;
       const current = contributionMap.get(key) ?? 0;
-      contributionMap.set(key, current + Number(contribution.amount ?? 0));
+      const value = isInterestView
+        ? Number(
+            contribution.interestAmount ??
+              calculateContributionInterestForType(
+                contribution.contributionType,
+                contribution.amount,
+              ),
+          )
+        : Number(contribution.amount ?? 0);
+      contributionMap.set(key, current + value);
     });
 
     const rows = memberRows.map((member) => {
@@ -620,8 +660,10 @@ export const downloadGroupContributionLedgerPdf = catchAsync(
     const pdfBuffer = await generateGroupContributionLedgerPdfBuffer({
       groupName: group.groupName || "Group",
       contributionTypeLabel:
-        contributionTypeConfig?.label || "Contribution",
-      contributionType: normalizedType,
+        isInterestView
+          ? "Interest Earned"
+          : contributionTypeConfig?.label || "Contribution",
+      contributionType: isInterestView ? "interest" : normalizedType,
       year,
       generatedAt: now,
       expectedMonthly,
@@ -646,7 +688,7 @@ export const downloadGroupContributionLedgerPdf = catchAsync(
 
     const filename = `contribution-ledger-${String(group.groupName || "group")
       .toLowerCase()
-      .replace(/\s+/g, "-")}-${normalizedType}-${year}.pdf`;
+      .replace(/\s+/g, "-")}-${isInterestView ? "interest" : normalizedType}-${year}.pdf`;
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);

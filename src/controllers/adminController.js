@@ -13,7 +13,10 @@ import { ProfileModel } from "../models/Profile.js";
 import mongoose from "mongoose";
 import {
   ContributionTypeCanonical,
+  calculateContributionInterestForType,
+  calculateContributionUnits,
   getContributionTypeMatch,
+  isContributionAmountValid,
   normalizeContributionType,
 } from "../utils/contributionPolicy.js";
 
@@ -593,23 +596,32 @@ export const markContributionPaid = catchAsync(async (req, res, next) => {
   const membership = await GroupMembershipModel.findOne({ groupId, userId, status: "active" });
   if (!membership) return next(new AppError("Member is not active in this group", 400));
 
-  const typeMatch = getContributionTypeMatch(normalizedType) || [normalizedType];
-  const contribution = await ContributionModel.findOneAndUpdate(
-    { userId, groupId, month, year, contributionType: { $in: typeMatch } },
-    {
-      userId,
-      groupId,
-      month,
-      year,
-      contributionType: normalizedType,
-      amount,
-      status: "verified",
-      paymentMethod: "manual",
-      verifiedBy: req.user.profileId,
-      verifiedAt: new Date(),
-    },
-    { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true },
-  );
+  if (!isContributionAmountValid(normalizedType, amount)) {
+    return next(new AppError("Amount does not meet contribution requirements", 400));
+  }
+
+  const contribution = await ContributionModel.create({
+    userId,
+    groupId,
+    month,
+    year,
+    contributionType: normalizedType,
+    amount,
+    status: "verified",
+    paymentMethod: "manual",
+    verifiedBy: req.user.profileId,
+    verifiedAt: new Date(),
+    units: calculateContributionUnits(amount),
+    interestAmount: calculateContributionInterestForType(normalizedType, amount),
+  });
+
+  await Promise.all([
+    GroupModel.findByIdAndUpdate(groupId, { $inc: { totalSavings: amount } }),
+    GroupMembershipModel.findOneAndUpdate(
+      { groupId, userId },
+      { $inc: { totalContributed: amount } },
+    ),
+  ]);
 
   return sendSuccess(res, { statusCode: 200, message: "Contribution marked as paid", data: { contribution } });
 });

@@ -21,6 +21,15 @@ const AvatarSchema = new Schema(
   { _id: false },
 );
 
+const ContributionSettingsSchema = new Schema(
+  {
+    year: { type: Number, default: null },
+    units: { type: Number, default: null },
+    updatedAt: { type: Date, default: null },
+  },
+  { _id: false },
+);
+
 export const ProfileSchema = new Schema(
   {
     email: { type: String, trim: true, lowercase: true },
@@ -41,6 +50,7 @@ export const ProfileSchema = new Schema(
       default: "pending",
     },
     avatar: { type: AvatarSchema, default: null },
+    contributionSettings: { type: ContributionSettingsSchema, default: null },
   },
   { timestamps: true },
 );
