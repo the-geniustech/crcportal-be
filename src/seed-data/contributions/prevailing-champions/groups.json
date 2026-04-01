@@ -1,0 +1,19 @@
+[
+  {
+    "seedKey": "group-21",
+    "_id": "77ca5ab5eadbd846565ccfe8",
+    "groupNumber": 21,
+    "groupName": "Prevailing Champions",
+    "description": "Contribution group for Prevailing Champions.",
+    "monthlyContribution": 42500,
+    "maxMembers": 48,
+    "memberCount": 48,
+    "totalSavings": 0,
+    "status": "active",
+    "isOpen": true,
+    "type": "revolving",
+    "cycleDuration": 12,
+    "createdAt": "2026-03-30T16:44:06.618Z",
+    "updatedAt": "2026-03-30T16:44:06.618Z"
+  }
+]

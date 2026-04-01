@@ -32,6 +32,8 @@ export const GroupMembershipSchema = new Schema(
 
     joinedAt: { type: Date, default: () => new Date(), index: true },
     totalContributed: { type: Number, default: 0, min: 0 },
+    memberNumber: { type: Number, default: null, min: 1 },
+    memberSerial: { type: String, default: null, trim: true },
 
     requestedAt: { type: Date, default: null, index: true },
     reviewedBy: { type: ObjectId, ref: "Profile", default: null },
@@ -43,6 +45,20 @@ export const GroupMembershipSchema = new Schema(
 
 GroupMembershipSchema.index({ userId: 1, groupId: 1 }, { unique: true });
 GroupMembershipSchema.index({ groupId: 1, role: 1 });
+GroupMembershipSchema.index(
+  { groupId: 1, memberNumber: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { memberNumber: { $type: "number" } },
+  },
+);
+GroupMembershipSchema.index(
+  { memberSerial: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { memberSerial: { $type: "string" } },
+  },
+);
 
 export const GroupMembershipModel = model(
   "GroupMembership",

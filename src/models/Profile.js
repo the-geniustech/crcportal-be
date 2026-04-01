@@ -24,7 +24,7 @@ const AvatarSchema = new Schema(
 const ContributionSettingsSchema = new Schema(
   {
     year: { type: Number, default: null },
-    units: { type: Number, default: null },
+    units: { type: Schema.Types.Mixed, default: null },
     updatedAt: { type: Date, default: null },
   },
   { _id: false },

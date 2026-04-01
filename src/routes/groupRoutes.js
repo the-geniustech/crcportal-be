@@ -43,6 +43,10 @@ import {
 import {
   createGroupVote,
   listGroupVotes,
+  respondToGroupVote,
+  deleteGroupVote,
+  listGroupVoteParticipants,
+  notifyGroupVoteMembers,
 } from "../controllers/groupVoteController.js";
 import {
   getGroupReminderSettings,
@@ -185,6 +189,34 @@ router.post(
   loadMyGroupMembership,
   requireGroupRole("coordinator", "admin"),
   createGroupVote,
+);
+router.post(
+  "/:groupId/votes/:voteId/respond",
+  loadGroup,
+  loadMyGroupMembership,
+  requireActiveMembership(),
+  respondToGroupVote,
+);
+router.get(
+  "/:groupId/votes/:voteId/participants",
+  loadGroup,
+  loadMyGroupMembership,
+  requireGroupRole("coordinator", "admin"),
+  listGroupVoteParticipants,
+);
+router.post(
+  "/:groupId/votes/:voteId/notify",
+  loadGroup,
+  loadMyGroupMembership,
+  requireGroupRole("coordinator", "admin"),
+  notifyGroupVoteMembers,
+);
+router.delete(
+  "/:groupId/votes/:voteId",
+  loadGroup,
+  loadMyGroupMembership,
+  requireGroupRole("coordinator", "admin"),
+  deleteGroupVote,
 );
 
 router.get(

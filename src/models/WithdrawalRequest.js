@@ -1,4 +1,5 @@
 ﻿import { Schema, ObjectId, model } from "./_shared.js";
+import { ContributionTypeCanonical } from "../utils/contributionPolicy.js";
 
 export const WithdrawalStatuses = [
   "pending",
@@ -15,6 +16,16 @@ export const WithdrawalRequestSchema = new Schema(
     bankAccountId: {
       type: ObjectId,
       ref: "BankAccount",
+      default: null,
+      index: true,
+    },
+
+    groupId: { type: ObjectId, ref: "Group", default: null, index: true },
+    groupName: { type: String, default: null, trim: true },
+
+    contributionType: {
+      type: String,
+      enum: ContributionTypeCanonical,
       default: null,
       index: true,
     },
@@ -40,6 +51,9 @@ export const WithdrawalRequestSchema = new Schema(
 
     approvedAt: { type: Date, default: null, index: true },
     completedAt: { type: Date, default: null, index: true },
+
+    payoutReference: { type: String, default: null, trim: true },
+    payoutGateway: { type: String, default: null, trim: true },
   },
   { timestamps: true },
 );

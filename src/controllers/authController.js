@@ -330,7 +330,12 @@ export const signup = catchAsync(async (req, res, next) => {
         reviewedBy: null,
         reviewNotes: null,
       },
-      { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true },
+      {
+        upsert: true,
+        new: true,
+        runValidators: true,
+        setDefaultsOnInsert: true,
+      },
     );
   }
 
@@ -657,7 +662,12 @@ export const verifyPhoneOtpLogin = catchAsync(async (req, res, next) => {
           reviewedBy: null,
           reviewNotes: null,
         },
-        { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true },
+        {
+          upsert: true,
+          new: true,
+          runValidators: true,
+          setDefaultsOnInsert: true,
+        },
       );
     }
   }
@@ -718,7 +728,9 @@ export const login = catchAsync(async (req, res, next) => {
   }
 
   const ok = await user.correctPassword(String(password));
-  if (!ok) return next(new AppError("Invalid login credentials", 401));
+  if (!ok) {
+    return next(new AppError("Invalid login credentials", 401));
+  }
 
   if (id.kind === "email" && !user.emailVerifiedAt) {
     await sendEmailVerificationIfNeeded(user, req);
@@ -1102,7 +1114,9 @@ export const resetPassword = catchAsync(async (req, res, next) => {
 export const getTwoFactorStatus = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
 
-  const user = await UserModel.findById(req.user._id).select("+twoFactorSecret");
+  const user = await UserModel.findById(req.user._id).select(
+    "+twoFactorSecret",
+  );
   if (!user) return next(new AppError("User not found", 404));
 
   return sendSuccess(res, {
@@ -1118,7 +1132,9 @@ export const getTwoFactorStatus = catchAsync(async (req, res, next) => {
 export const setupTwoFactor = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
 
-  const user = await UserModel.findById(req.user._id).select("+twoFactorSecret");
+  const user = await UserModel.findById(req.user._id).select(
+    "+twoFactorSecret",
+  );
   if (!user) return next(new AppError("User not found", 404));
 
   if (user.twoFactorEnabled) {
@@ -1157,7 +1173,9 @@ export const enableTwoFactor = catchAsync(async (req, res, next) => {
   const { code } = req.body || {};
   if (!code) return next(new AppError("Two-factor code is required", 400));
 
-  const user = await UserModel.findById(req.user._id).select("+twoFactorSecret");
+  const user = await UserModel.findById(req.user._id).select(
+    "+twoFactorSecret",
+  );
   if (!user) return next(new AppError("User not found", 404));
 
   if (!user.twoFactorSecret) {
@@ -1287,7 +1305,7 @@ export const getAccountDeletionStatus = catchAsync(async (req, res, next) => {
       cancelledAt: user.deletionCancelledAt,
       isPending: Boolean(
         user.deletionScheduledFor &&
-          new Date(user.deletionScheduledFor).getTime() > Date.now(),
+        new Date(user.deletionScheduledFor).getTime() > Date.now(),
       ),
     },
   });

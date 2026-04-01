@@ -11,6 +11,7 @@
     "csv-parse": "^6.2.1",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "exceljs": "^4.4.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.18.0",
     "morgan": "^1.10.0",
@@ -30,9 +31,13 @@
     "dev": "node --watch src/server.js",
     "seed": "node src/scripts/generateMemberSeeds.js",
     "seed:members": "node src/scripts/seedMembersFromFiles.js",
+    "backfill:contribution-settings": "node src/scripts/backfillContributionSettings.js",
+    "backfill:member-serials": "node src/scripts/backfillGroupMemberSerials.js",
     "seed:convert": "powershell -ExecutionPolicy Bypass -File C:\\\\Users\\\\user\\\\Desktop\\\\xlsx-to-csv.ps1 -InFile \"C:\\\\Users\\\\user\\\\Desktop\\\\crs\\\\backend\\\\src\\\\scripts\\\\Champions Revolving Contributions New Membership Registration Form  (Responses) (9).xlsx\" -OutFile \"C:\\\\Users\\\\user\\\\Desktop\\\\crs\\\\backend\\\\src\\\\scripts\\\\Champions Revolving Contributions New Membership Registration Form  (Responses) (9).csv\"",
     "seed:group-votes": "node src/scripts/seedGroupVotesAndReminders.js",
     "seed:membership-doc:generate": "node src/scripts/parseMembershipDoc.js",
-    "seed:membership-doc": "node src/scripts/seedMembershipDocData.js"
+    "seed:membership-doc": "node src/scripts/seedMembershipDocData.js",
+    "seed:contributions:parse": "node src/scripts/contribution-ingestion/parseContributionXlsx.js",
+    "seed:contributions": "node src/scripts/contribution-ingestion/seedContributionData.js"
   }
 }

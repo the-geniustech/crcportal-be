@@ -33,7 +33,10 @@ import { uploadMultiple } from "../middlewares/upload.js";
 const router = express.Router();
 
 const loanDocumentFileFilter = (req, file, cb) => {
-  if (file.mimetype?.startsWith("image/") || file.mimetype === "application/pdf") {
+  if (
+    file.mimetype?.startsWith("image/") ||
+    file.mimetype === "application/pdf"
+  ) {
     return cb(null, true);
   }
   return cb(new AppError("Only image or PDF uploads are allowed", 400));
@@ -77,7 +80,9 @@ const normalizeLoanDocuments = (req, res, next) => {
   req.body.documents = parseJsonField(req.body.documents);
   req.body.guarantors = parseJsonField(req.body.guarantors);
 
-  const existingDocs = Array.isArray(req.body?.documents) ? req.body.documents : [];
+  const existingDocs = Array.isArray(req.body?.documents)
+    ? req.body.documents
+    : [];
   const uploads = Array.isArray(req.body?.documentUploads)
     ? req.body.documentUploads
     : req.body?.documentUploads
@@ -122,7 +127,9 @@ router.post(
   loanDocumentsCloudinary,
   normalizeLoanDocuments,
   (req, res) => {
-    const documents = Array.isArray(req.body?.documents) ? req.body.documents : [];
+    const documents = Array.isArray(req.body?.documents)
+      ? req.body.documents
+      : [];
     return sendSuccess(res, {
       statusCode: 201,
       results: documents.length,
@@ -140,9 +147,24 @@ router.post(
   normalizeLoanDocuments,
   createLoanApplication,
 );
-router.get("/applications/:applicationId", loadLoanApplication, requireLoanOwnerOrAdmin(), getLoanApplication);
-router.get("/:applicationId/schedule", loadLoanApplication, requireLoanOwnerOrAdmin(), listLoanSchedule);
-router.post("/:applicationId/repayments", loadLoanApplication, requireLoanOwnerOrAdmin(), recordLoanRepayment);
+router.get(
+  "/applications/:applicationId",
+  loadLoanApplication,
+  requireLoanOwnerOrAdmin(),
+  getLoanApplication,
+);
+router.get(
+  "/:applicationId/schedule",
+  loadLoanApplication,
+  requireLoanOwnerOrAdmin(),
+  listLoanSchedule,
+);
+router.post(
+  "/:applicationId/repayments",
+  loadLoanApplication,
+  requireLoanOwnerOrAdmin(),
+  recordLoanRepayment,
+);
 
 // Admin flows
 router.get("/applications", restrictTo("admin"), listLoanApplications);

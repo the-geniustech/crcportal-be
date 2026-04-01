@@ -29,6 +29,7 @@ export const GroupSchema = new Schema(
     monthlyContribution: { type: Number, required: true, min: 0 },
     totalSavings: { type: Number, default: 0, min: 0 },
     memberCount: { type: Number, default: 0, min: 0 },
+    memberSequence: { type: Number, default: 0, min: 0 },
     maxMembers: { type: Number, required: true, min: 1 },
 
     isSpecial: { type: Boolean, default: false, index: true },

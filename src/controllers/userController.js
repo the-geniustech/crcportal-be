@@ -16,14 +16,44 @@ function pick(obj, allowedKeys) {
   return out;
 }
 
+const PlannedContributionUnitTypes = ["revolving", "endwell", "festive"];
+
+function normalizeContributionUnits(rawUnits, storedYear, currentYear) {
+  const base = {
+    revolving: null,
+    endwell: null,
+    festive: null,
+  };
+  if (storedYear !== currentYear) return base;
+  if (typeof rawUnits === "number" || typeof rawUnits === "string") {
+    const num = Number(rawUnits);
+    if (Number.isFinite(num)) base.revolving = num;
+    return base;
+  }
+  if (!rawUnits || typeof rawUnits !== "object") return base;
+  PlannedContributionUnitTypes.forEach((key) => {
+    const value = rawUnits[key];
+    if (value === null) {
+      base[key] = null;
+      return;
+    }
+    const num = Number(value);
+    if (Number.isFinite(num)) {
+      base[key] = num;
+    }
+  });
+  return base;
+}
+
 function resolveContributionSettings(profile, now = new Date()) {
   const currentYear = now.getFullYear();
   const stored = profile?.contributionSettings || {};
   const storedYear = Number(stored.year);
-  const units =
-    storedYear === currentYear && Number.isFinite(Number(stored.units))
-      ? Number(stored.units)
-      : null;
+  const units = normalizeContributionUnits(
+    stored?.units,
+    storedYear,
+    currentYear,
+  );
   const windowStatus = getContributionSettingsWindowStatus(now);
   return {
     year: currentYear,
@@ -120,19 +150,62 @@ export const updateMyContributionSettings = catchAsync(
     if (!req.user.profileId)
       return next(new AppError("User profile not found", 400));
 
-    const units = Number(req.body?.units);
+    const rawUnits = req.body?.units;
     const now = new Date();
     const currentYear = now.getFullYear();
     const year = Number(req.body?.year ?? currentYear);
     const windowStatus = getContributionSettingsWindowStatus(now);
 
-    if (!Number.isFinite(units)) {
-      return next(new AppError("units must be a valid number", 400));
+    const parsedUnits = {};
+    if (rawUnits === null || typeof rawUnits === "undefined") {
+      return next(new AppError("units must be provided", 400));
     }
-    if (units < 5 || units % 5 !== 0) {
-      return next(
-        new AppError("units must be at least 5 and in multiples of 5", 400),
-      );
+
+    if (typeof rawUnits === "number" || typeof rawUnits === "string") {
+      const num = Number(rawUnits);
+      if (!Number.isFinite(num)) {
+        return next(new AppError("units must be a valid number", 400));
+      }
+      if (num < 5 || num % 5 !== 0) {
+        return next(
+          new AppError("units must be at least 5 and in multiples of 5", 400),
+        );
+      }
+      parsedUnits.revolving = num;
+    } else if (rawUnits && typeof rawUnits === "object") {
+      let hasAny = false;
+      for (const key of PlannedContributionUnitTypes) {
+        if (!Object.prototype.hasOwnProperty.call(rawUnits, key)) continue;
+        hasAny = true;
+        const value = rawUnits[key];
+        if (value === null) {
+          parsedUnits[key] = null;
+          continue;
+        }
+        const num = Number(value);
+        if (!Number.isFinite(num)) {
+          return next(new AppError(`${key} units must be a valid number`, 400));
+        }
+        if (num < 5 || num % 5 !== 0) {
+          return next(
+            new AppError(
+              `${key} units must be at least 5 and in multiples of 5`,
+              400,
+            ),
+          );
+        }
+        parsedUnits[key] = num;
+      }
+      if (!hasAny) {
+        return next(
+          new AppError(
+            "At least one contribution unit value must be provided",
+            400,
+          ),
+        );
+      }
+    } else {
+      return next(new AppError("units must be a valid object", 400));
     }
     if (!Number.isFinite(year) || year !== currentYear) {
       return next(
@@ -142,21 +215,33 @@ export const updateMyContributionSettings = catchAsync(
         ),
       );
     }
-    // if (!windowStatus.isOpen) {
-    //   return next(
-    //     new AppError(
-    //       "Contribution settings can only be updated between January and February",
-    //       400,
-    //     ),
-    //   );
-    // }
+    if (!windowStatus.isOpen) {
+      return next(
+        new AppError(
+          "Contribution settings can only be updated between January and February",
+          400,
+        ),
+      );
+    }
 
     const profile = await ProfileModel.findById(req.user.profileId);
     if (!profile) return next(new AppError("Profile not found", 404));
 
+    const existing = profile?.contributionSettings || {};
+    const storedYear = Number(existing.year);
+    const currentUnits = normalizeContributionUnits(
+      existing?.units,
+      storedYear,
+      currentYear,
+    );
+    const nextUnits = {
+      ...currentUnits,
+      ...parsedUnits,
+    };
+
     profile.contributionSettings = {
       year: currentYear,
-      units,
+      units: nextUnits,
       updatedAt: now,
     };
     await profile.save({ validateBeforeSave: true });

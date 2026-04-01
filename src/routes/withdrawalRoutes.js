@@ -18,11 +18,10 @@ router.use(protect);
 router.get("/me", listMyWithdrawals);
 router.post("/me", createWithdrawalRequest);
 
-router.get("/", restrictTo("admin"), listWithdrawals);
-router.patch("/:id/approve", restrictTo("admin"), approveWithdrawal);
-router.patch("/:id/reject", restrictTo("admin"), rejectWithdrawal);
-router.patch("/:id/processing", restrictTo("admin"), markWithdrawalProcessing);
-router.patch("/:id/complete", restrictTo("admin"), completeWithdrawal);
+router.get("/", restrictTo("groupCoordinator"), listWithdrawals);
+router.patch("/:id/approve", restrictTo("groupCoordinator"), approveWithdrawal);
+router.patch("/:id/reject", restrictTo("groupCoordinator"), rejectWithdrawal);
+router.patch("/:id/processing", restrictTo("groupCoordinator"), markWithdrawalProcessing);
+router.patch("/:id/complete", restrictTo("groupCoordinator"), completeWithdrawal);
 
 export default router;
-

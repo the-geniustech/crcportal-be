@@ -12,6 +12,7 @@ import {
   calculateContributionInterestForType,
   calculateContributionUnits,
   ContributionInterestPerUnit,
+  ContributionUnitBase,
   getContributionTypeConfig,
   getContributionTypeMatch,
   isContributionAmountValid,
@@ -433,6 +434,8 @@ export const downloadGroupContributionReportPdf = catchAsync(async (req, res, ne
       member.fullName ||
       member.name ||
       "Member";
+    const memberSerial =
+      typeof member.memberSerial === "string" ? member.memberSerial : null;
 
     const contribution = contributionByUserId.get(String(userId));
     const status = contribution?.hasPaid
@@ -452,6 +455,7 @@ export const downloadGroupContributionReportPdf = catchAsync(async (req, res, ne
 
     return {
       member: name,
+      memberSerial,
       status,
       amount: formatCurrency(amount),
       paidDate: paidDate ? formatDate(paidDate) : "-",
@@ -523,8 +527,17 @@ export const downloadGroupContributionLedgerPdf = catchAsync(
       ? String(req.query.contributionType)
       : "revolving";
     const isInterestView = String(rawType).trim().toLowerCase() === "interest";
+    const rawInterestType = req.query?.interestType
+      ? String(req.query.interestType)
+      : null;
+    const normalizedInterestType = rawInterestType
+      ? normalizeContributionType(rawInterestType)
+      : null;
+    if (rawInterestType && !normalizedInterestType) {
+      return next(new AppError("Invalid interestType provided", 400));
+    }
     const normalizedType = isInterestView
-      ? "revolving"
+      ? normalizedInterestType || "revolving"
       : normalizeContributionType(rawType) || "revolving";
 
     if (!Number.isFinite(year)) {
@@ -561,18 +574,37 @@ export const downloadGroupContributionLedgerPdf = catchAsync(
 
     const { monthlyTargets, unitAmounts } =
       resolveGroupContributionTargets(group);
-    const expectedMonthlyBase = isInterestView
-      ? Number(monthlyTargets.revolving ?? 0)
-      : Number(monthlyTargets[normalizedType] ?? 0);
+    const expectedMonthlyBase = Number(monthlyTargets[normalizedType] ?? 0);
     const expectedMonthly = isInterestView
       ? calculateContributionInterest(expectedMonthlyBase)
       : expectedMonthlyBase;
     const expectedUnitAmount = isInterestView
       ? ContributionInterestPerUnit
-      : unitAmounts[normalizedType];
+      : unitAmounts[normalizedType] ?? ContributionUnitBase;
 
     const currentMonth = now.getMonth() + 1;
     const monthsToDate = year === now.getFullYear() ? currentMonth : 12;
+    const shouldUsePlannedUnits = year === now.getFullYear();
+    const plannedUnitTypes = new Set(["revolving", "endwell", "festive"]);
+
+    const resolveMemberUnits = (profile) => {
+      if (!shouldUsePlannedUnits) return null;
+      if (!plannedUnitTypes.has(normalizedType)) return null;
+      const settings = profile?.contributionSettings || {};
+      const settingsYear = Number(settings?.year);
+      if (settingsYear !== year) return null;
+      const rawUnits = settings?.units;
+      if (typeof rawUnits === "number" || typeof rawUnits === "string") {
+        if (normalizedType !== "revolving") return null;
+        const num = Number(rawUnits);
+        return Number.isFinite(num) ? num : null;
+      }
+      if (!rawUnits || typeof rawUnits !== "object") return null;
+      const value = rawUnits[normalizedType];
+      if (value === null || typeof value === "undefined") return null;
+      const num = Number(value);
+      return Number.isFinite(num) ? num : null;
+    };
 
     const memberRows = memberships.map((membership) => {
       const profile =
@@ -586,7 +618,11 @@ export const downloadGroupContributionLedgerPdf = catchAsync(
         membership.fullName ||
         membership.name ||
         "Member";
-      return { id: String(memberId), name };
+      const memberSerial =
+        typeof membership.memberSerial === "string"
+          ? membership.memberSerial
+          : null;
+      return { id: String(memberId), name, profile, memberSerial };
     });
 
     const contributionMap = new Map();
@@ -604,15 +640,16 @@ export const downloadGroupContributionLedgerPdf = catchAsync(
 
       const key = `${memberId}-${month}`;
       const current = contributionMap.get(key) ?? 0;
-      const value = isInterestView
-        ? Number(
-            contribution.interestAmount ??
-              calculateContributionInterestForType(
-                contribution.contributionType,
-                contribution.amount,
-              ),
-          )
-        : Number(contribution.amount ?? 0);
+      let value = Number(contribution.amount ?? 0);
+      if (isInterestView) {
+        const recorded = Number(contribution.interestAmount ?? NaN);
+        const computed = calculateContributionInterestForType(
+          contribution.contributionType,
+          contribution.amount,
+        );
+        value =
+          Number.isFinite(recorded) && recorded > 0 ? recorded : computed;
+      }
       contributionMap.set(key, current + value);
     });
 
@@ -623,18 +660,22 @@ export const downloadGroupContributionLedgerPdf = catchAsync(
         return Number(contributionMap.get(key) ?? 0);
       });
 
+      const units = resolveMemberUnits(member.profile);
+      const expectedMonthlyForMember =
+        units && expectedUnitAmount
+          ? Number(units) * Number(expectedUnitAmount)
+          : expectedMonthly;
+
       const ytdTotal = months
         .slice(0, monthsToDate)
         .reduce((sum, value) => sum + value, 0);
-      const expectedYtd = expectedMonthly * monthsToDate;
+      const expectedYtd = expectedMonthlyForMember * monthsToDate;
       const arrears = Math.max(expectedYtd - ytdTotal, 0);
 
       return {
         memberName: member.name,
-        units:
-          expectedUnitAmount && expectedUnitAmount > 0 && expectedMonthly > 0
-            ? Math.max(1, Math.round(expectedMonthly / expectedUnitAmount))
-            : null,
+        memberSerial: member.memberSerial,
+        units,
         months,
         ytdTotal,
         expectedYtd,
@@ -649,29 +690,41 @@ export const downloadGroupContributionLedgerPdf = catchAsync(
     const ytdTotal = monthTotals
       .slice(0, monthsToDate)
       .reduce((sum, value) => sum + value, 0);
-    const expectedYtd =
-      expectedMonthly * monthsToDate * (memberRows.length || 0);
+    const expectedYtd = rows.reduce(
+      (sum, row) => sum + Number(row.expectedYtd ?? 0),
+      0,
+    );
     const arrears = Math.max(expectedYtd - ytdTotal, 0);
     const collectionRate =
       expectedYtd > 0 ? Math.round((ytdTotal / expectedYtd) * 100) : 0;
+    const unitsTotal = rows.reduce(
+      (sum, row) => sum + (Number(row.units ?? 0) || 0),
+      0,
+    );
+    const averageExpectedMonthly =
+      memberRows.length && monthsToDate
+        ? expectedYtd / (memberRows.length * monthsToDate)
+        : expectedMonthly;
 
     const contributionTypeConfig = getContributionTypeConfig(normalizedType);
+    const interestLabel = contributionTypeConfig?.label || "Contribution";
 
     const pdfBuffer = await generateGroupContributionLedgerPdfBuffer({
       groupName: group.groupName || "Group",
       contributionTypeLabel:
         isInterestView
-          ? "Interest Earned"
+          ? `Interest Earned (${interestLabel})`
           : contributionTypeConfig?.label || "Contribution",
       contributionType: isInterestView ? "interest" : normalizedType,
       year,
       generatedAt: now,
-      expectedMonthly,
+      expectedMonthly: averageExpectedMonthly,
       expectedUnitAmount,
       monthsToDate,
       rows,
       totals: {
         monthTotals,
+        unitsTotal,
         ytdTotal,
         expectedYtd,
         arrears,
@@ -688,7 +741,7 @@ export const downloadGroupContributionLedgerPdf = catchAsync(
 
     const filename = `contribution-ledger-${String(group.groupName || "group")
       .toLowerCase()
-      .replace(/\s+/g, "-")}-${isInterestView ? "interest" : normalizedType}-${year}.pdf`;
+      .replace(/\s+/g, "-")}-${isInterestView ? `interest-${normalizedType}` : normalizedType}-${year}.pdf`;
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);

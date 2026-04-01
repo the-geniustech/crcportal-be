@@ -11,12 +11,12 @@ dotenv.config();
 async function run() {
   await mongoose.connect(process.env.MONGO_URI);
 
-  const result = await ContributionModel.updateMany(
+  const result = await GroupModel.updateMany(
     {},
     {
       $set: {
         imageUrl:
-          "https://res.cloudinary.com/ddfpckzbw/image/upload/v1774539938/CRCLogo_001_ag2vq3.jpg",
+          "https://res.cloudinary.com/ddfpckzbw/image/upload/v1774645938/CRCLogo_Updated_nflkgl.jpg",
       },
     },
   );

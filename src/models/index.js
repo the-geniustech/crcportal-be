@@ -5,12 +5,20 @@ export {
   GroupMembershipSchema,
 } from "./GroupMembership.js";
 export { ContributionModel, ContributionSchema } from "./Contribution.js";
+export {
+  ContributionSettingModel,
+  ContributionSettingSchema,
+} from "./ContributionSetting.js";
 export { BankAccountModel, BankAccountSchema } from "./BankAccount.js";
 export {
   WithdrawalRequestModel,
   WithdrawalRequestSchema,
 } from "./WithdrawalRequest.js";
 export { MeetingModel, MeetingSchema } from "./Meeting.js";
+export {
+  GroupVoteResponseModel,
+  GroupVoteResponseSchema,
+} from "./GroupVoteResponse.js";
 export {
   MeetingAgendaItemModel,
   MeetingAgendaItemSchema,

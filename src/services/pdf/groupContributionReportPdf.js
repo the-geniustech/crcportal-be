@@ -102,46 +102,64 @@ function drawTableHeader(doc, columns) {
   const { left, right } = doc.page.margins;
   const width = doc.page.width - left - right;
   const headerHeight = 24;
+  const startY = doc.y;
 
   doc.save();
-  doc.rect(left, doc.y, width, headerHeight).fill("#F3F4F6");
+  doc.rect(left, startY, width, headerHeight).fill("#F3F4F6");
 
   let x = left;
   columns.forEach((col) => {
+    const prevX = doc.x;
+    const prevY = doc.y;
     doc
       .font("Helvetica-Bold")
       .fontSize(9)
       .fillColor("#374151")
-      .text(col.label, x + 8, doc.y + 7, { width: col.width - 12 });
+      .text(col.label, x + 8, startY + 7, {
+        width: col.width - 12,
+        lineBreak: false,
+        ellipsis: true,
+        height: headerHeight - 10,
+      });
+    doc.x = prevX;
+    doc.y = prevY;
     x += col.width;
   });
   doc.restore();
-  doc.y += headerHeight;
+  doc.y = startY + headerHeight;
 }
 
 function drawTableRow(doc, columns, row) {
   const rowHeight = 24;
   let x = doc.page.margins.left;
+  const startY = doc.y;
 
   columns.forEach((col) => {
+    const prevX = doc.x;
+    const prevY = doc.y;
     doc
       .font("Helvetica")
       .fontSize(9)
       .fillColor("#111827")
-      .text(String(row[col.key] ?? "-"), x + 8, doc.y + 7, {
+      .text(String(row[col.key] ?? "-"), x + 8, startY + 7, {
         width: col.width - 12,
+        lineBreak: false,
+        ellipsis: true,
+        height: rowHeight - 10,
       });
+    doc.x = prevX;
+    doc.y = prevY;
     x += col.width;
   });
 
   doc
     .strokeColor("#E5E7EB")
     .lineWidth(0.5)
-    .moveTo(doc.page.margins.left, doc.y + rowHeight)
-    .lineTo(doc.page.width - doc.page.margins.right, doc.y + rowHeight)
+    .moveTo(doc.page.margins.left, startY + rowHeight)
+    .lineTo(doc.page.width - doc.page.margins.right, startY + rowHeight)
     .stroke();
 
-  doc.y += rowHeight;
+  doc.y = startY + rowHeight;
 }
 
 export async function generateGroupContributionReportPdfBuffer({
@@ -173,10 +191,11 @@ export async function generateGroupContributionReportPdfBuffer({
     const { left, right } = doc.page.margins;
     const width = doc.page.width - left - right;
     const columns = [
-      { key: "member", label: "Member", width: width * 0.4 },
-      { key: "status", label: "Status", width: width * 0.2 },
-      { key: "amount", label: "Amount", width: width * 0.2 },
-      { key: "paidDate", label: "Paid Date", width: width * 0.2 },
+      { key: "memberSerial", label: "Serial", width: width * 0.18 },
+      { key: "member", label: "Member", width: width * 0.32 },
+      { key: "status", label: "Status", width: width * 0.16 },
+      { key: "amount", label: "Amount", width: width * 0.17 },
+      { key: "paidDate", label: "Paid Date", width: width * 0.17 },
     ];
 
     drawTableHeader(doc, columns);

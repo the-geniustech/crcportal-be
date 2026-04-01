@@ -12,7 +12,6 @@ export const TransactionStatuses = ["success", "pending", "failed"];
 
 export const TransactionSchema = new Schema(
   {
-    // Inferred from `src/components/payments/*` transaction shape.
     userId: { type: ObjectId, ref: "Profile", required: true, index: true },
 
     reference: { type: String, required: true, trim: true },

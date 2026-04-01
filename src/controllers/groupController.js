@@ -5,10 +5,16 @@ import { GroupModel } from "../models/Group.js";
 import { GroupMembershipModel, GroupRoles } from "../models/GroupMembership.js";
 import { ProfileModel } from "../models/Profile.js";
 import {
+  assignGroupMemberSerial,
+  formatGroupMemberSerial,
+  reserveGroupMemberNumbers,
+} from "../utils/groupMemberSerial.js";
+import {
   findUsersWithNonZeroGroupMembership,
   hasNonZeroGroupMembership,
   isGeneralGroup,
 } from "../utils/groupMembershipPolicy.js";
+import { UserModel } from "../models/User.js";
 
 function pick(obj, allowedKeys) {
   const out = {};
@@ -19,7 +25,9 @@ function pick(obj, allowedKeys) {
 }
 
 async function getNextGroupNumber() {
-  const last = await GroupModel.findOne().sort({ groupNumber: -1 }).select("groupNumber");
+  const last = await GroupModel.findOne()
+    .sort({ groupNumber: -1 })
+    .select("groupNumber");
   const next = (last?.groupNumber ?? 0) + 1;
   return next;
 }
@@ -49,7 +57,8 @@ export const listGroups = catchAsync(async (req, res) => {
     filter.location = req.query.location.trim();
   }
 
-  const search = typeof req.query?.search === "string" ? req.query.search.trim() : "";
+  const search =
+    typeof req.query?.search === "string" ? req.query.search.trim() : "";
   if (search) {
     filter.groupName = { $regex: search, $options: "i" };
   }
@@ -62,7 +71,8 @@ export const listGroups = catchAsync(async (req, res) => {
   const skip = (page - 1) * limit;
 
   const sortKey = String(req.query?.sort ?? "groupNumber");
-  const sortDir = String(req.query?.order ?? "asc").toLowerCase() === "desc" ? -1 : 1;
+  const sortDir =
+    String(req.query?.order ?? "asc").toLowerCase() === "desc" ? -1 : 1;
   const sort = (() => {
     switch (sortKey) {
       case "createdAt":
@@ -102,7 +112,8 @@ export const getGroup = catchAsync(async (req, res) => {
 
 export const createGroup = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
-  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
 
   const allowed = [
     "groupNumber",
@@ -144,21 +155,33 @@ export const createGroup = catchAsync(async (req, res, next) => {
   // Default coordinator to current user if not explicitly set
   const coordinatorProfileId = input.coordinatorId || req.user.profileId;
   const coordinatorProfile = await ProfileModel.findById(coordinatorProfileId);
-  if (!coordinatorProfile) return next(new AppError("Coordinator profile not found", 400));
+  if (!coordinatorProfile)
+    return next(new AppError("Coordinator profile not found", 400));
 
   input.coordinatorId = coordinatorProfile._id;
-  input.coordinatorName = coordinatorProfile.fullName ?? input.coordinatorName ?? null;
-  input.coordinatorPhone = coordinatorProfile.phone ?? input.coordinatorPhone ?? null;
-  input.coordinatorEmail = coordinatorProfile.email ?? input.coordinatorEmail ?? null;
+  input.coordinatorName =
+    coordinatorProfile.fullName ?? input.coordinatorName ?? null;
+  input.coordinatorPhone =
+    coordinatorProfile.phone ?? input.coordinatorPhone ?? null;
+  input.coordinatorEmail =
+    coordinatorProfile.email ?? input.coordinatorEmail ?? null;
 
   const group = await GroupModel.create(input);
 
   // Ensure coordinator is also a member (best-effort)
-  await GroupMembershipModel.findOneAndUpdate(
+  const coordinatorMembership = await GroupMembershipModel.findOneAndUpdate(
     { groupId: group._id, userId: coordinatorProfile._id },
-    { groupId: group._id, userId: coordinatorProfile._id, role: "coordinator", status: "active" },
+    {
+      groupId: group._id,
+      userId: coordinatorProfile._id,
+      role: "coordinator",
+      status: "active",
+    },
     { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true },
   );
+  if (coordinatorMembership) {
+    await assignGroupMemberSerial({ membership: coordinatorMembership, group });
+  }
 
   // Update counters (best-effort)
   await GroupModel.findByIdAndUpdate(group._id, { $set: { memberCount: 1 } });
@@ -262,10 +285,15 @@ export const setCoordinator = catchAsync(async (req, res, next) => {
     status: "active",
   }).lean();
   if (!membership) {
-    return next(new AppError("Coordinator must be an active group member", 400));
+    return next(
+      new AppError("Coordinator must be an active group member", 400),
+    );
   }
 
-  if (group.coordinatorId && String(group.coordinatorId) !== String(coordinatorProfile._id)) {
+  if (
+    group.coordinatorId &&
+    String(group.coordinatorId) !== String(coordinatorProfile._id)
+  ) {
     await GroupMembershipModel.updateOne(
       { groupId: group._id, userId: group.coordinatorId },
       { $set: { role: "member" } },
@@ -289,15 +317,27 @@ export const setCoordinator = catchAsync(async (req, res, next) => {
     { $set: { role: "coordinator", status: "active" } },
   );
 
+  const user = await UserModel.findOne({ profileId: coordinatorProfile._id })
+    .select("role")
+    .lean();
+  if (!user.role.includes("admin")) {
+    await UserModel.updateOne(
+      { profileId: coordinatorProfile._id },
+      { $addToSet: { role: "groupCoordinator" } },
+    );
+  }
+
   return sendSuccess(res, { statusCode: 200, data: { group: updated } });
 });
 
 export const joinGroup = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
-  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
 
   const group = req.group;
-  if (!group.isOpen) return next(new AppError("Group is not open to new members", 400));
+  if (!group.isOpen)
+    return next(new AppError("Group is not open to new members", 400));
   if (group.memberCount >= group.maxMembers) {
     return next(new AppError("Group is full", 400));
   }
@@ -356,7 +396,8 @@ export const joinGroup = catchAsync(async (req, res, next) => {
 
 export const leaveGroup = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
-  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
 
   const group = req.group;
   const userProfileId = req.user.profileId;
@@ -371,13 +412,19 @@ export const leaveGroup = catchAsync(async (req, res, next) => {
   }
 
   if (membership.role === "coordinator") {
-    return next(new AppError("Coordinator cannot leave without reassignment", 400));
+    return next(
+      new AppError("Coordinator cannot leave without reassignment", 400),
+    );
   }
 
   membership.status = "inactive";
   await membership.save({ validateBeforeSave: true });
 
-  await GroupModel.findByIdAndUpdate(group._id, { $inc: { memberCount: -1 } }, { new: true });
+  await GroupModel.findByIdAndUpdate(
+    group._id,
+    { $inc: { memberCount: -1 } },
+    { new: true },
+  );
 
   return sendSuccess(res, {
     statusCode: 200,
@@ -387,7 +434,8 @@ export const leaveGroup = catchAsync(async (req, res, next) => {
 
 export const listGroupMembers = catchAsync(async (req, res) => {
   const group = req.group;
-  const search = typeof req.query?.search === "string" ? req.query.search.trim() : "";
+  const search =
+    typeof req.query?.search === "string" ? req.query.search.trim() : "";
   const status =
     typeof req.query?.status === "string" && req.query.status.trim()
       ? String(req.query.status).trim()
@@ -403,8 +451,11 @@ export const listGroupMembers = catchAsync(async (req, res) => {
   const normalizedSearch = search.toLowerCase();
   const filtered = search
     ? memberships.filter((m) => {
-        const profile = m.userId && typeof m.userId === "object" ? m.userId : null;
-        const name = profile?.fullName ? String(profile.fullName).toLowerCase() : "";
+        const profile =
+          m.userId && typeof m.userId === "object" ? m.userId : null;
+        const name = profile?.fullName
+          ? String(profile.fullName).toLowerCase()
+          : "";
         const email = profile?.email ? String(profile.email).toLowerCase() : "";
         const phone = profile?.phone ? String(profile.phone).toLowerCase() : "";
         return (
@@ -424,7 +475,8 @@ export const listGroupMembers = catchAsync(async (req, res) => {
 
 export const listGroupMemberCandidates = catchAsync(async (req, res) => {
   const group = req.group;
-  const search = typeof req.query?.search === "string" ? req.query.search.trim() : "";
+  const search =
+    typeof req.query?.search === "string" ? req.query.search.trim() : "";
 
   const activeMemberships = await GroupMembershipModel.find(
     { groupId: group._id, status: "active" },
@@ -476,7 +528,8 @@ export const listGroupMemberCandidates = catchAsync(async (req, res) => {
 
 export const addGroupMembers = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
-  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
 
   const group = req.group;
   const inputIds = Array.isArray(req.body?.userIds)
@@ -484,7 +537,9 @@ export const addGroupMembers = catchAsync(async (req, res, next) => {
     : req.body?.userId
       ? [req.body.userId]
       : [];
-  const uniqueIds = [...new Set(inputIds.map((id) => String(id)).filter(Boolean))];
+  const uniqueIds = [
+    ...new Set(inputIds.map((id) => String(id)).filter(Boolean)),
+  ];
 
   if (uniqueIds.length === 0) {
     return next(new AppError("userIds is required", 400));
@@ -492,13 +547,17 @@ export const addGroupMembers = catchAsync(async (req, res, next) => {
 
   const role = req.body?.role || "member";
   if (!GroupRoles.includes(role)) {
-    return next(new AppError(`Invalid role. Allowed: ${GroupRoles.join(", ")}`, 400));
+    return next(
+      new AppError(`Invalid role. Allowed: ${GroupRoles.join(", ")}`, 400),
+    );
   }
 
   const existingMemberships = await GroupMembershipModel.find({
     groupId: group._id,
     userId: { $in: uniqueIds },
-  }).lean();
+  })
+    .select("userId status memberNumber memberSerial joinedAt")
+    .lean();
 
   const activeIds = new Set(
     existingMemberships
@@ -559,27 +618,72 @@ export const addGroupMembers = catchAsync(async (req, res, next) => {
     }
   }
 
+  const existingByUserId = new Map(
+    existingMemberships.map((membership) => [
+      String(membership.userId),
+      membership,
+    ]),
+  );
+
+  const normalizeMemberNumber = (value) => {
+    const num = Number(value);
+    return Number.isFinite(num) && num > 0 ? num : null;
+  };
+
+  const needsNumberIds = eligibleIds.filter((userId) => {
+    const existing = existingByUserId.get(String(userId));
+    return !normalizeMemberNumber(existing?.memberNumber);
+  });
+
+  const reservedRange =
+    needsNumberIds.length > 0
+      ? await reserveGroupMemberNumbers(group._id, needsNumberIds.length)
+      : null;
+  let nextMemberNumber = reservedRange?.start ?? null;
+
   const now = new Date();
-  const ops = eligibleIds.map((userId) => ({
-    updateOne: {
-      filter: { groupId: group._id, userId },
-      update: {
-        $set: {
-          groupId: group._id,
-          userId,
-          role,
-          status: "active",
-          joinedAt: now,
-          requestedAt: now,
-          reviewedBy: req.user.profileId,
-          reviewedAt: now,
-          reviewNotes: "Added by admin/coordinator",
+  const ops = eligibleIds.map((userId) => {
+    const existing = existingByUserId.get(String(userId));
+    const existingNumber = normalizeMemberNumber(existing?.memberNumber);
+    const memberNumber =
+      existingNumber ?? (nextMemberNumber ? nextMemberNumber++ : null);
+    const joinedAt =
+      existing?.joinedAt && !Number.isNaN(new Date(existing.joinedAt).getTime())
+        ? new Date(existing.joinedAt)
+        : now;
+    const memberSerial =
+      existing?.memberSerial ||
+      (memberNumber
+        ? formatGroupMemberSerial({
+            joinedAt,
+            groupNumber: group.groupNumber,
+            memberNumber,
+          })
+        : null);
+
+    return {
+      updateOne: {
+        filter: { groupId: group._id, userId },
+        update: {
+          $set: {
+            groupId: group._id,
+            userId,
+            role,
+            status: "active",
+            joinedAt,
+            requestedAt: now,
+            reviewedBy: req.user.profileId,
+            reviewedAt: now,
+            reviewNotes: "Added by admin/coordinator",
+            memberNumber,
+            memberSerial,
+          },
+          $setOnInsert: { totalContributed: 0 },
         },
-        $setOnInsert: { totalContributed: 0 },
+        upsert: true,
       },
-      upsert: true,
-    },
-  }));
+    };
+  });
 
   await GroupMembershipModel.bulkWrite(ops, { ordered: false });
 
@@ -608,7 +712,9 @@ export const updateGroupMember = catchAsync(async (req, res, next) => {
   const updates = {};
   if (typeof role !== "undefined") {
     if (!GroupRoles.includes(role)) {
-      return next(new AppError(`Invalid role. Allowed: ${GroupRoles.join(", ")}`, 400));
+      return next(
+        new AppError(`Invalid role. Allowed: ${GroupRoles.join(", ")}`, 400),
+      );
     }
     updates.role = role;
   }
@@ -651,6 +757,10 @@ export const updateGroupMember = catchAsync(async (req, res, next) => {
   );
 
   if (!membership) return next(new AppError("Group member not found", 404));
+
+  if (membership.status === "active") {
+    await assignGroupMemberSerial({ membership, group });
+  }
 
   return sendSuccess(res, { statusCode: 200, data: { member: membership } });
 });

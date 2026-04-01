@@ -8,6 +8,7 @@ import {
   listMemberApprovals,
   markContributionPaid,
   rejectMemberApplication,
+  sendContributionReminders,
 } from "../controllers/adminController.js";
 import { getAdminFinancialReports } from "../controllers/adminFinancialReportsController.js";
 import {
@@ -29,18 +30,47 @@ const router = express.Router();
 router.use(protect);
 router.use(restrictTo("admin", "groupCoordinator"));
 
-router.get("/member-approvals", listMemberApprovals);
-router.patch("/member-approvals/:membershipId/approve", approveMemberApplication);
-router.patch("/member-approvals/:membershipId/reject", rejectMemberApplication);
+router.get("/member-approvals", restrictTo("groupCoordinator"), listMemberApprovals);
+router.patch(
+  "/member-approvals/:membershipId/approve",
+  restrictTo("groupCoordinator"),
+  approveMemberApplication,
+);
+router.patch(
+  "/member-approvals/:membershipId/reject",
+  restrictTo("groupCoordinator"),
+  rejectMemberApplication,
+);
 
 router.get("/groups", listAdminGroups);
 
 router.use("/loans", adminLoanRoutes);
 
-router.get("/contributions/tracker", listContributionTracker);
-router.post("/contributions/mark-paid", markContributionPaid);
-router.get("/contributions/tracking", getAdminContributionTracking);
-router.get("/contributions/special-summary", getAdminSpecialContributionSummary);
+router.get(
+  "/contributions/tracker",
+  restrictTo("groupCoordinator"),
+  listContributionTracker,
+);
+router.post(
+  "/contributions/remind",
+  restrictTo("groupCoordinator"),
+  sendContributionReminders,
+);
+router.post(
+  "/contributions/mark-paid",
+  restrictTo("groupCoordinator"),
+  markContributionPaid,
+);
+router.get(
+  "/contributions/tracking",
+  restrictTo("groupCoordinator"),
+  getAdminContributionTracking,
+);
+router.get(
+  "/contributions/special-summary",
+  restrictTo("groupCoordinator"),
+  getAdminSpecialContributionSummary,
+);
 
 router.get("/financial-reports", getAdminFinancialReports);
 

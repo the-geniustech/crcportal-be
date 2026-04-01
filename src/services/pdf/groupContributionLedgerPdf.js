@@ -1,5 +1,18 @@
 import PDFDocument from "pdfkit";
 
+const LAYOUT = {
+  headerBarHeight: 38,
+  headerGap: 1.0,
+  headerMetaGap: 0.2,
+  summaryCardHeight: 30,
+  summaryCardGap: 6,
+  summaryBottomGap: 6,
+  tableHeaderHeight: 12,
+  tableRowHeight: 11,
+  tableRowPadding: 2.5,
+  footerGap: 8,
+};
+
 function formatCurrency(amount) {
   const value = Number(amount || 0);
   if (!Number.isFinite(value)) return "NGN 0";
@@ -7,6 +20,15 @@ function formatCurrency(amount) {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   })}`;
+}
+
+function formatTableCurrency(amount) {
+  const value = Number(amount || 0);
+  if (!Number.isFinite(value) || value <= 0) return "-";
+  return value.toLocaleString("en-NG", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  });
 }
 
 function formatDate(value) {
@@ -23,7 +45,7 @@ function formatDate(value) {
 function drawHeader(doc, { groupName, contributionTypeLabel, year, generatedAt }) {
   const { left, right, top } = doc.page.margins;
   const width = doc.page.width - left - right;
-  const barHeight = 46;
+  const barHeight = LAYOUT.headerBarHeight;
 
   doc.save();
   doc.rect(left, top, width, barHeight).fill("#0F766E");
@@ -38,31 +60,31 @@ function drawHeader(doc, { groupName, contributionTypeLabel, year, generatedAt }
     .text(groupName, left, top + 16, { width: width - 16, align: "right" });
   doc.restore();
 
-  doc.moveDown(2.2);
+  doc.moveDown(LAYOUT.headerGap);
   doc
     .font("Helvetica-Bold")
-    .fontSize(12)
+    .fontSize(10.5)
     .fillColor("#111827")
     .text(groupName);
   doc
     .font("Helvetica")
-    .fontSize(9)
+    .fontSize(7.5)
     .fillColor("#6B7280")
     .text(`${contributionTypeLabel} | ${year}`);
   doc
     .font("Helvetica")
-    .fontSize(9)
+    .fontSize(7.5)
     .fillColor("#9CA3AF")
     .text(`Generated: ${formatDate(generatedAt)}`);
-  doc.moveDown(0.8);
+  doc.moveDown(LAYOUT.headerMetaGap);
 }
 
 function drawSummary(doc, summary) {
   const { left, right } = doc.page.margins;
   const width = doc.page.width - left - right;
-  const cardGap = 10;
+  const cardGap = LAYOUT.summaryCardGap;
   const cardWidth = (width - cardGap * 3) / 4;
-  const cardHeight = 40;
+  const cardHeight = LAYOUT.summaryCardHeight;
   const startY = doc.y;
 
   const cards = [
@@ -80,42 +102,51 @@ function drawSummary(doc, summary) {
     doc.roundedRect(x, y, cardWidth, cardHeight, 8).fill("#F8FAFC");
     doc
       .font("Helvetica")
-      .fontSize(7)
+      .fontSize(6.2)
       .fillColor("#6B7280")
-      .text(card.label, x + 10, y + 8, { width: cardWidth - 20 });
+      .text(card.label, x + 10, y + 5, { width: cardWidth - 20 });
     doc
       .font("Helvetica-Bold")
-      .fontSize(10)
+      .fontSize(8.6)
       .fillColor("#111827")
-      .text(String(card.value), x + 10, y + 22, { width: cardWidth - 20 });
+      .text(String(card.value), x + 10, y + 16, { width: cardWidth - 20 });
     doc.restore();
   });
 
-  doc.y = startY + cardHeight + 12;
+  doc.y = startY + cardHeight + LAYOUT.summaryBottomGap;
 }
 
 function drawTableHeader(doc, columns) {
   const { left, right } = doc.page.margins;
   const width = doc.page.width - left - right;
-  const headerHeight = 18;
+  const headerHeight = LAYOUT.tableHeaderHeight;
+  const startY = doc.y;
 
   doc.save();
-  doc.rect(left, doc.y, width, headerHeight).fill("#F1F5F9");
+  doc.rect(left, startY, width, headerHeight).fill("#F1F5F9");
 
   let x = left;
   columns.forEach((col) => {
+    const cellY = startY + 2.5;
+    const prevX = doc.x;
+    const prevY = doc.y;
     doc
       .font("Helvetica-Bold")
-      .fontSize(7)
+      .fontSize(6.2)
       .fillColor("#475569")
-      .text(col.label, x + 4, doc.y + 5, {
+      .text(col.label, x + 4, cellY, {
         width: col.width - 8,
         align: col.align || "left",
+        lineBreak: false,
+        ellipsis: true,
+        height: headerHeight - 4,
       });
+    doc.x = prevX;
+    doc.y = prevY;
     x += col.width;
   });
   doc.restore();
-  doc.y += headerHeight;
+  doc.y = startY + headerHeight;
 }
 
 function drawTableRow(
@@ -124,17 +155,18 @@ function drawTableRow(
   row,
   { isTotal = false, rowIndex = 0 } = {},
 ) {
-  const rowHeight = 16;
+  const rowHeight = LAYOUT.tableRowHeight;
   const left = doc.page.margins.left;
   const right = doc.page.width - doc.page.margins.right;
+  const startY = doc.y;
 
   if (isTotal) {
     doc.save();
-    doc.rect(left, doc.y, right - left, rowHeight).fill("#E2E8F0");
+    doc.rect(left, startY, right - left, rowHeight).fill("#E2E8F0");
     doc.restore();
   } else if (rowIndex % 2 === 1) {
     doc.save();
-    doc.rect(left, doc.y, right - left, rowHeight).fill("#F8FAFC");
+    doc.rect(left, startY, right - left, rowHeight).fill("#F8FAFC");
     doc.restore();
   }
 
@@ -142,27 +174,32 @@ function drawTableRow(
 
   columns.forEach((col) => {
     const value = row[col.key] ?? "-";
+    const prevX = doc.x;
+    const prevY = doc.y;
     doc
       .font(isTotal ? "Helvetica-Bold" : "Helvetica")
-      .fontSize(isTotal ? 7.5 : 7)
+      .fontSize(isTotal ? 7 : 6.5)
       .fillColor(isTotal ? "#111827" : "#1F2937")
-      .text(String(value), x + 4, doc.y + 4, {
+      .text(String(value), x + 4, startY + LAYOUT.tableRowPadding, {
         width: col.width - 8,
         align: col.align || "left",
         lineBreak: false,
         ellipsis: true,
+        height: rowHeight - LAYOUT.tableRowPadding,
       });
+    doc.x = prevX;
+    doc.y = prevY;
     x += col.width;
   });
 
   doc
     .strokeColor("#E2E8F0")
-    .lineWidth(0.4)
-    .moveTo(left, doc.y + rowHeight)
-    .lineTo(right, doc.y + rowHeight)
+    .lineWidth(0.35)
+    .moveTo(left, startY + rowHeight)
+    .lineTo(right, startY + rowHeight)
     .stroke();
 
-  doc.y += rowHeight;
+  doc.y = startY + rowHeight;
 }
 
 export async function generateGroupContributionLedgerPdfBuffer({
@@ -180,9 +217,10 @@ export async function generateGroupContributionLedgerPdfBuffer({
   const doc = new PDFDocument({
     size: "A3",
     layout: "landscape",
-    margin: 36,
+    margin: 24,
     info: { Title: "Contribution Ledger" },
   });
+  doc.lineGap(0);
   const chunks = [];
 
   const months = [
@@ -210,22 +248,22 @@ export async function generateGroupContributionLedgerPdfBuffer({
 
     doc
       .font("Helvetica")
-      .fontSize(7.5)
+      .fontSize(6.6)
       .fillColor("#6B7280")
       .text(
-        `Expected Monthly: ${formatCurrency(expectedMonthly)}${
+        `Avg Expected Monthly: ${formatCurrency(expectedMonthly)}${
           expectedUnitAmount
             ? ` | Unit: ${formatCurrency(expectedUnitAmount)}`
             : ""
-        } | YTD (${monthsToDate} months)`,
+        } | YTD: ${monthsToDate} months`,
       );
-    doc.moveDown(0.6);
+    doc.moveDown(0.2);
 
     const { left, right } = doc.page.margins;
     const width = doc.page.width - left - right;
-    const snWidth = 28;
-    const unitsWidth = 40;
-    const expectedWidth = 80;
+    const snWidth = 26;
+    const serialWidth = 80;
+    const unitsWidth = 38;
     const trailingColumns = [
       { key: "ytdTotal", label: "YTD Total", width: 80, align: "right" },
       { key: "expectedYtd", label: "Expected YTD", width: 90, align: "right" },
@@ -237,25 +275,26 @@ export async function generateGroupContributionLedgerPdfBuffer({
       0,
     );
 
-    const fixedWidth = snWidth + unitsWidth + expectedWidth + trailingWidth;
+    const fixedWidth = snWidth + serialWidth + unitsWidth + trailingWidth;
     let monthWidth = 32;
     let memberWidth = width - (fixedWidth + monthWidth * months.length);
-    if (memberWidth < 150) {
-      const availableForMonths = width - (fixedWidth + 150);
+    if (memberWidth < 160) {
+      const availableForMonths = width - (fixedWidth + 160);
       monthWidth = Math.max(24, Math.floor(availableForMonths / months.length));
       memberWidth = width - (fixedWidth + monthWidth * months.length);
+    } else if (memberWidth > 230) {
+      const extra = memberWidth - 230;
+      memberWidth = 230;
+      monthWidth = Math.floor(
+        (monthWidth * months.length + extra) / months.length,
+      );
     }
 
     const baseColumns = [
       { key: "sn", label: "S/N", width: snWidth, align: "right" },
+      { key: "serial", label: "Serial", width: serialWidth },
       { key: "member", label: "Member Name", width: memberWidth },
       { key: "units", label: "Units", width: unitsWidth, align: "right" },
-      {
-        key: "expectedMonthly",
-        label: "Expected Monthly",
-        width: expectedWidth,
-        align: "right",
-      },
     ];
     const monthColumns = months.map((month) => ({
       key: month.key,
@@ -272,22 +311,21 @@ export async function generateGroupContributionLedgerPdfBuffer({
 
     drawTableHeader(doc, columns);
 
-    const bottomY = doc.page.height - doc.page.margins.bottom - 16;
+    const bottomY = doc.page.height - doc.page.margins.bottom - LAYOUT.footerGap;
 
     rows.forEach((row, index) => {
-      if (doc.y + 18 > bottomY) {
+      if (doc.y + LAYOUT.tableRowHeight > bottomY) {
         doc.addPage();
         drawTableHeader(doc, columns);
       }
 
       const rowData = {
         sn: index + 1,
+        serial: row.memberSerial ?? "-",
         member: row.memberName,
         units: row.units ?? "-",
-        expectedMonthly: formatCurrency(expectedMonthly),
         ...months.reduce((acc, month, idx) => {
-          acc[month.key] =
-            row.months[idx] > 0 ? formatCurrency(row.months[idx]) : "-";
+          acc[month.key] = formatTableCurrency(row.months[idx]);
           return acc;
         }, {}),
         ytdTotal: formatCurrency(row.ytdTotal),
@@ -299,24 +337,18 @@ export async function generateGroupContributionLedgerPdfBuffer({
       drawTableRow(doc, columns, rowData, { rowIndex: index });
     });
 
-    if (doc.y + 18 > bottomY) {
+    if (doc.y + LAYOUT.tableRowHeight > bottomY) {
       doc.addPage();
       drawTableHeader(doc, columns);
     }
 
     const totalsRow = {
       sn: "Totals",
+      serial: "-",
       member: `${summary.members} members`,
-      units:
-        expectedUnitAmount && expectedMonthly > 0
-          ? Math.max(1, Math.round(expectedMonthly / expectedUnitAmount))
-          : "-",
-      expectedMonthly: formatCurrency(expectedMonthly * summary.members),
+      units: totals.unitsTotal > 0 ? totals.unitsTotal : "-",
       ...months.reduce((acc, month, idx) => {
-        acc[month.key] =
-          totals.monthTotals[idx] > 0
-            ? formatCurrency(totals.monthTotals[idx])
-            : "-";
+        acc[month.key] = formatTableCurrency(totals.monthTotals[idx]);
         return acc;
       }, {}),
       ytdTotal: formatCurrency(totals.ytdTotal),
@@ -328,9 +360,9 @@ export async function generateGroupContributionLedgerPdfBuffer({
     drawTableRow(doc, columns, totalsRow, { isTotal: true });
 
     doc
-      .moveDown(1)
+      .moveDown(0.6)
       .font("Helvetica")
-      .fontSize(8)
+      .fontSize(7)
       .fillColor("#94A3B8")
       .text("CRC Cooperative Resource Center - Contribution Ledger", {
         align: "center",

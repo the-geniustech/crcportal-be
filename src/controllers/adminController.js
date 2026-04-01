@@ -10,18 +10,37 @@ import { GroupModel } from "../models/Group.js";
 import { GroupMembershipModel } from "../models/GroupMembership.js";
 import { ContributionModel } from "../models/Contribution.js";
 import { ProfileModel } from "../models/Profile.js";
+import { NotificationModel } from "../models/Notification.js";
 import mongoose from "mongoose";
+import { assignGroupMemberSerial } from "../utils/groupMemberSerial.js";
 import {
   ContributionTypeCanonical,
+  ContributionTypeConfig,
+  ContributionUnitBase,
   calculateContributionInterestForType,
   calculateContributionUnits,
   getContributionTypeMatch,
   isContributionAmountValid,
   normalizeContributionType,
 } from "../utils/contributionPolicy.js";
+import { sendEmail } from "../services/mail/resendClient.js";
+import { sendSms } from "../services/sms/termiiClient.js";
+import { emitToUser } from "../socket.js";
 
 function clamp(n, min, max) {
   return Math.min(max, Math.max(min, n));
+}
+
+function splitCsv(value) {
+  if (!value) return [];
+  return String(value)
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function uniqueStrings(values) {
+  return [...new Set(values.map((v) => String(v).trim()).filter(Boolean))];
 }
 
 function pick(obj, allowedKeys) {
@@ -47,12 +66,44 @@ function parseMonthYear(req) {
   return { year, month };
 }
 
-function dueDateUtc(year, month1to12, day = 25) {
-  return new Date(Date.UTC(year, month1to12 - 1, day, 23, 59, 59, 999));
+function parseMonthYearPayload(req) {
+  const now = new Date();
+  const year = Number(req.body?.year ?? now.getUTCFullYear());
+  const month = Number(req.body?.month ?? now.getUTCMonth() + 1);
+
+  if (!Number.isFinite(year) || year < 2000 || year > 2100) {
+    return { error: "Invalid year" };
+  }
+  if (!Number.isFinite(month) || month < 1 || month > 12) {
+    return { error: "Invalid month" };
+  }
+
+  return { year, month };
+}
+
+function dueDateUtc(year, month1to12, day = 4) {
+  const nextMonthIndex = month1to12;
+  return new Date(Date.UTC(year, nextMonthIndex, day, 23, 59, 59, 999));
 }
 
 function endOfMonthUtc(year, month1to12) {
   return new Date(Date.UTC(year, month1to12, 0, 23, 59, 59, 999));
+}
+
+function formatMonthLabel(year, month) {
+  return new Date(Date.UTC(year, month - 1, 1)).toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function buildContributionReminderMessage({ groupName, label, amount }) {
+  const safeGroup = groupName || "your group";
+  const safeLabel = label || "this month";
+  const amountText = Number(amount || 0)
+    ? ` Amount: NGN${Number(amount || 0).toLocaleString()}.`
+    : "";
+  return `Your contribution for ${safeGroup} (${safeLabel}) is due.${amountText} Payment window: 27th–4th.`;
 }
 
 export const listAdminGroups = catchAsync(async (req, res, next) => {
@@ -406,6 +457,8 @@ export const approveMemberApplication = catchAsync(async (req, res, next) => {
 
   await GroupModel.findByIdAndUpdate(group._id, { $inc: { memberCount: 1 } });
 
+  await assignGroupMemberSerial({ membership, group });
+
   return sendSuccess(res, {
     statusCode: 200,
     message: "Member approved",
@@ -446,6 +499,10 @@ export const listContributionTracker = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
   if (!req.user.profileId) return next(new AppError("User profile not found", 400));
 
+  if (!["groupCoordinator", "group_coordinator"].includes(String(req.user.role || ""))) {
+    return next(new AppError("Only group coordinators can access contribution tracking", 403));
+  }
+
   const { year, month, error } = parseMonthYear(req);
   if (error) return next(new AppError(error, 400));
 
@@ -469,11 +526,13 @@ export const listContributionTracker = catchAsync(async (req, res, next) => {
     userId: 1,
     groupId: 1,
     joinedAt: 1,
+    memberSerial: 1,
+    memberNumber: 1,
   }).lean();
 
   const memberProfiles = await ProfileModel.find(
     { _id: { $in: memberships.map((m) => m.userId) } },
-    { fullName: 1, email: 1, phone: 1 },
+    { fullName: 1, email: 1, phone: 1, contributionSettings: 1 },
   ).lean();
   const profileById = new Map(memberProfiles.map((p) => [String(p._id), p]));
 
@@ -492,18 +551,29 @@ export const listContributionTracker = catchAsync(async (req, res, next) => {
     historyMonths.push({ year: d.getUTCFullYear(), month: d.getUTCMonth() + 1 });
   }
 
-  const historyStart = new Date(
-    Date.UTC(historyMonths[0].year, historyMonths[0].month - 1, 1, 0, 0, 0, 0),
-  );
-  const lastHm = historyMonths[historyMonths.length - 1];
-  const historyEnd = endOfMonthUtc(lastHm.year, lastHm.month);
+  const typeMatch = getContributionTypeMatch("revolving") || ["revolving"];
+  const contributionTypeFilter = {
+    $or: [
+      { contributionType: { $in: typeMatch } },
+      { contributionType: { $exists: false } },
+      { contributionType: null },
+    ],
+  };
+  const historyFilters = historyMonths.map((hm) => ({
+    year: hm.year,
+    month: hm.month,
+  }));
+  const contributionFilters = [contributionTypeFilter];
+  if (historyFilters.length > 0) {
+    contributionFilters.push({ $or: historyFilters });
+  }
 
   const contribDocs = await ContributionModel.find(
     {
       groupId: { $in: scopeGroupIds },
-      contributionType: { $in: getContributionTypeMatch("revolving") || ["revolving"] },
-      createdAt: { $gte: historyStart, $lte: historyEnd },
-      year: { $in: [...new Set(historyMonths.map((m) => m.year))] },
+      ...(contributionFilters.length > 0
+        ? { $and: contributionFilters }
+        : {}),
     },
     { userId: 1, groupId: 1, year: 1, month: 1, amount: 1, status: 1 },
   ).lean();
@@ -516,8 +586,37 @@ export const listContributionTracker = catchAsync(async (req, res, next) => {
     paidByKey.set(k, Number(paidByKey.get(k) || 0) + Number(c.amount || 0));
   }
 
-  const due = dueDateUtc(year, month, 25);
+  const due = dueDateUtc(year, month);
   const now = new Date();
+  const unitAmount =
+    Number(ContributionTypeConfig?.revolving?.unitAmount ?? NaN) ||
+    ContributionUnitBase;
+  const minAmount = Number(ContributionTypeConfig?.revolving?.minAmount ?? 0);
+
+  const resolvePlannedUnits = (profile) => {
+    const settings = profile?.contributionSettings || {};
+    const settingsYear = Number(settings?.year);
+    if (!Number.isFinite(settingsYear) || settingsYear !== year) return null;
+    const rawUnits = settings?.units;
+    if (typeof rawUnits === "number" || typeof rawUnits === "string") {
+      const num = Number(rawUnits);
+      return Number.isFinite(num) && num > 0 ? num : null;
+    }
+    if (!rawUnits || typeof rawUnits !== "object") return null;
+    const num = Number(rawUnits.revolving);
+    return Number.isFinite(num) && num > 0 ? num : null;
+  };
+
+  const resolveExpectedAmount = (group, profile) => {
+    const plannedUnits = resolvePlannedUnits(profile);
+    if (plannedUnits && unitAmount) {
+      const computed = plannedUnits * unitAmount;
+      return minAmount > 0 ? Math.max(computed, minAmount) : computed;
+    }
+    if (minAmount > 0) return minAmount;
+    const base = Number(group?.monthlyContribution ?? 0);
+    return Number.isFinite(base) && base > 0 ? base : 0;
+  };
 
   const records = memberships.map((m) => {
     const userId = String(m.userId);
@@ -525,7 +624,7 @@ export const listContributionTracker = catchAsync(async (req, res, next) => {
     const g = groupById.get(groupId);
     const p = profileById.get(userId);
 
-    const expectedAmount = Number(g?.monthlyContribution || 0);
+    const expectedAmount = resolveExpectedAmount(g, p);
     const currentKey = `${userId}|${groupId}|${year}|${month}`;
     const paidAmount = Number(paidByKey.get(currentKey) || 0);
 
@@ -541,7 +640,7 @@ export const listContributionTracker = catchAsync(async (req, res, next) => {
     let monthsDefaulted = 0;
     const joinedAt = m.joinedAt ? new Date(m.joinedAt) : null;
     for (const hm of historyMonths) {
-      const monthDue = dueDateUtc(hm.year, hm.month, 25);
+      const monthDue = dueDateUtc(hm.year, hm.month);
       if (monthDue.getTime() > now.getTime()) continue;
       if (joinedAt && monthDue.getTime() < joinedAt.getTime()) continue;
       const k = `${userId}|${groupId}|${hm.year}|${hm.month}`;
@@ -554,6 +653,7 @@ export const listContributionTracker = catchAsync(async (req, res, next) => {
       userId,
       groupId,
       memberName: p?.fullName ?? "Member",
+      memberSerial: m.memberSerial ?? null,
       groupName: g?.groupName ?? "Group",
       expectedAmount,
       paidAmount,
@@ -566,9 +666,276 @@ export const listContributionTracker = catchAsync(async (req, res, next) => {
   return sendSuccess(res, { statusCode: 200, results: records.length, data: { contributions: records } });
 });
 
+export const sendContributionReminders = catchAsync(async (req, res, next) => {
+  if (!req.user) return next(new AppError("Not authenticated", 401));
+  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+
+  if (!["groupCoordinator", "group_coordinator"].includes(String(req.user.role || ""))) {
+    return next(new AppError("Only group coordinators can send reminders", 403));
+  }
+
+  const { year, month, error } = parseMonthYearPayload(req);
+  if (error) return next(new AppError(error, 400));
+
+  const sendEmailFlag = Boolean(req.body?.sendEmail ?? false);
+  const sendSmsFlag = Boolean(req.body?.sendSMS ?? false);
+  const sendNotificationFlag = Boolean(req.body?.sendNotification ?? true);
+
+  if (!sendEmailFlag && !sendSmsFlag && !sendNotificationFlag) {
+    return next(new AppError("Select at least one delivery method", 400));
+  }
+
+  const rawRecipients = Array.isArray(req.body?.recipients) ? req.body.recipients : [];
+  const recipients = rawRecipients
+    .map((item) => ({
+      userId: String(item?.userId || "").trim(),
+      groupId: String(item?.groupId || "").trim(),
+    }))
+    .filter((item) => item.userId && item.groupId);
+
+  if (recipients.length === 0) {
+    return next(new AppError("Recipients are required", 400));
+  }
+
+  const manageableGroupIds = await getManageableGroupIds(req);
+  const scopedRecipients =
+    manageableGroupIds && manageableGroupIds.length > 0
+      ? recipients.filter((r) => manageableGroupIds.includes(r.groupId))
+      : recipients;
+
+  if (scopedRecipients.length === 0) {
+    return next(new AppError("No recipients are within your managed groups", 403));
+  }
+
+  const userIds = uniqueStrings(scopedRecipients.map((r) => r.userId));
+  const groupIds = uniqueStrings(scopedRecipients.map((r) => r.groupId));
+
+  const memberships = await GroupMembershipModel.find(
+    { userId: { $in: userIds }, groupId: { $in: groupIds }, status: "active" },
+    { userId: 1, groupId: 1 },
+  ).lean();
+
+  const activeKeys = new Set(
+    memberships.map((m) => `${String(m.userId)}|${String(m.groupId)}`),
+  );
+  const activeRecipients = scopedRecipients.filter((r) =>
+    activeKeys.has(`${r.userId}|${r.groupId}`),
+  );
+
+  if (activeRecipients.length === 0) {
+    return next(new AppError("No active members found for the selected reminders", 404));
+  }
+
+  const [profiles, groups] = await Promise.all([
+    ProfileModel.find(
+      { _id: { $in: userIds } },
+      { fullName: 1, email: 1, phone: 1, contributionSettings: 1 },
+    ).lean(),
+    GroupModel.find(
+      { _id: { $in: groupIds } },
+      { groupName: 1, monthlyContribution: 1 },
+    ).lean(),
+  ]);
+
+  const profileById = new Map(profiles.map((p) => [String(p._id), p]));
+  const groupById = new Map(groups.map((g) => [String(g._id), g]));
+
+  const unitAmount =
+    Number(ContributionTypeConfig?.revolving?.unitAmount ?? NaN) ||
+    ContributionUnitBase;
+  const minAmount = Number(ContributionTypeConfig?.revolving?.minAmount ?? 0);
+
+  const resolvePlannedUnits = (profile) => {
+    const settings = profile?.contributionSettings || {};
+    const settingsYear = Number(settings?.year);
+    if (!Number.isFinite(settingsYear) || settingsYear !== year) return null;
+    const rawUnits = settings?.units;
+    if (typeof rawUnits === "number" || typeof rawUnits === "string") {
+      const num = Number(rawUnits);
+      return Number.isFinite(num) && num > 0 ? num : null;
+    }
+    if (!rawUnits || typeof rawUnits !== "object") return null;
+    const num = Number(rawUnits.revolving);
+    return Number.isFinite(num) && num > 0 ? num : null;
+  };
+
+  const resolveExpectedAmount = (group, profile) => {
+    const plannedUnits = resolvePlannedUnits(profile);
+    if (plannedUnits && unitAmount) {
+      const computed = plannedUnits * unitAmount;
+      return minAmount > 0 ? Math.max(computed, minAmount) : computed;
+    }
+    if (minAmount > 0) return minAmount;
+    const base = Number(group?.monthlyContribution ?? 0);
+    return Number.isFinite(base) && base > 0 ? base : 0;
+  };
+
+  const label = formatMonthLabel(year, month);
+  const channels = {
+    email: { requested: sendEmailFlag, attempted: 0, sent: 0, failed: 0, skipped: 0 },
+    sms: { requested: sendSmsFlag, attempted: 0, sent: 0, failed: 0, skipped: 0 },
+    notification: {
+      requested: sendNotificationFlag,
+      attempted: 0,
+      sent: 0,
+      failed: 0,
+      skipped: 0,
+    },
+  };
+  const failures = [];
+
+  const notifications = [];
+  const emailTargets = [];
+  const smsTargets = [];
+
+  for (const recipient of activeRecipients) {
+    const profile = profileById.get(String(recipient.userId));
+    const group = groupById.get(String(recipient.groupId));
+    if (!group) continue;
+
+    const expectedAmount = resolveExpectedAmount(group, profile);
+    const message = buildContributionReminderMessage({
+      groupName: group?.groupName || "your group",
+      label,
+      amount: expectedAmount,
+    });
+    const title = `${group?.groupName || "Group"} Contribution Reminder`;
+
+    if (sendNotificationFlag) {
+      notifications.push({
+        userId: recipient.userId,
+        title,
+        message,
+        type: "group_contribution_reminder",
+        status: "unread",
+        metadata: {
+          groupId: recipient.groupId,
+          year,
+          month,
+        },
+      });
+    }
+
+    if (sendEmailFlag) {
+      if (profile?.email) {
+        emailTargets.push({
+          to: profile.email,
+          subject: title,
+          message,
+        });
+      } else {
+        channels.email.skipped += 1;
+      }
+    }
+
+    if (sendSmsFlag) {
+      const phones = profile?.phone ? splitCsv(profile.phone) : [];
+      if (phones.length === 0) {
+        channels.sms.skipped += 1;
+      } else {
+        phones.forEach((phone) => smsTargets.push({ to: phone, message }));
+      }
+    }
+  }
+
+  if (sendNotificationFlag) {
+    channels.notification.attempted = notifications.length;
+    if (notifications.length === 0) {
+      channels.notification.skipped += 1;
+    } else {
+      try {
+        const saved = await NotificationModel.insertMany(notifications, { ordered: false });
+        channels.notification.sent = saved.length;
+        channels.notification.failed = notifications.length - saved.length;
+        for (const notification of saved) {
+          emitToUser(notification.userId, "notification:new", { notification });
+        }
+        if (channels.notification.failed > 0) {
+          failures.push({
+            channel: "notification",
+            to: "some recipients",
+            error: "Some notifications could not be created",
+          });
+        }
+      } catch (err) {
+        channels.notification.failed = notifications.length;
+        failures.push({
+          channel: "notification",
+          to: "recipients",
+          error: err ? String(err?.message ?? err) : "Notification creation failed",
+        });
+      }
+    }
+  }
+
+  if (sendEmailFlag) {
+    channels.email.attempted = emailTargets.length;
+    const results = await Promise.allSettled(
+      emailTargets.map((target) =>
+        sendEmail({
+          to: target.to,
+          subject: target.subject,
+          html: `<p>${target.message}</p>`,
+          text: target.message,
+        }),
+      ),
+    );
+    results.forEach((result, idx) => {
+      if (result.status === "fulfilled") {
+        channels.email.sent += 1;
+      } else {
+        channels.email.failed += 1;
+        failures.push({
+          channel: "email",
+          to: emailTargets[idx]?.to,
+          error: result.reason ? String(result.reason?.message ?? result.reason) : "Email failed",
+        });
+      }
+    });
+  }
+
+  if (sendSmsFlag) {
+    channels.sms.attempted = smsTargets.length;
+    const results = await Promise.allSettled(
+      smsTargets.map((target) =>
+        sendSms({
+          to: target.to,
+          message: target.message,
+        }),
+      ),
+    );
+    results.forEach((result, idx) => {
+      if (result.status === "fulfilled") {
+        channels.sms.sent += 1;
+      } else {
+        channels.sms.failed += 1;
+        failures.push({
+          channel: "sms",
+          to: smsTargets[idx]?.to,
+          error: result.reason ? String(result.reason?.message ?? result.reason) : "SMS failed",
+        });
+      }
+    });
+  }
+
+  return sendSuccess(res, {
+    statusCode: 200,
+    message: "Reminders dispatched",
+    data: {
+      totalRecipients: activeRecipients.length,
+      channels,
+      failures,
+    },
+  });
+});
+
 export const markContributionPaid = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
   if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+
+  if (!["groupCoordinator", "group_coordinator"].includes(String(req.user.role || ""))) {
+    return next(new AppError("Only group coordinators can mark contributions as paid", 403));
+  }
 
   const userId = String(req.body?.userId || "").trim();
   const groupId = String(req.body?.groupId || "").trim();

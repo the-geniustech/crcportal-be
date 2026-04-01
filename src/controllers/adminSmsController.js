@@ -12,7 +12,11 @@ import { GroupModel } from "../models/Group.js";
 import { GroupMembershipModel } from "../models/GroupMembership.js";
 import { ProfileModel } from "../models/Profile.js";
 import { ContributionModel } from "../models/Contribution.js";
-import { getContributionTypeMatch } from "../utils/contributionPolicy.js";
+import {
+  ContributionTypeConfig,
+  ContributionUnitBase,
+  getContributionTypeMatch,
+} from "../utils/contributionPolicy.js";
 
 function clamp(n, min, max) {
   return Math.min(max, Math.max(min, n));
@@ -38,8 +42,9 @@ function startOfUtcMonth(d) {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1, 0, 0, 0, 0));
 }
 
-function dueDateUtc(year, month1to12, day = 25) {
-  return new Date(Date.UTC(year, month1to12 - 1, day, 23, 59, 59, 999));
+function dueDateUtc(year, month1to12, day = 4) {
+  const nextMonthIndex = month1to12;
+  return new Date(Date.UTC(year, nextMonthIndex, day, 23, 59, 59, 999));
 }
 
 async function getManageableGroupIds(req) {
@@ -65,14 +70,22 @@ export const listAdminSmsTemplates = catchAsync(async (req, res) => {
   return sendSuccess(res, { statusCode: 200, results: templates.length, data: { templates } });
 });
 
-export const getAdminSmsStats = catchAsync(async (req, res) => {
+export const getAdminSmsStats = catchAsync(async (req, res, next) => {
+  if (!req.user) return next(new AppError("Not authenticated", 401));
+
   const now = new Date();
   const todayStart = startOfUtcDay(now);
   const monthStart = startOfUtcMonth(now);
 
+  const scopeFilter = {};
+  if (req.user.role === "groupCoordinator") {
+    if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+    scopeFilter.createdBy = req.user.profileId;
+  }
+
   const [todayAgg, monthAgg] = await Promise.all([
     CommunicationLogModel.aggregate([
-      { $match: { createdAt: { $gte: todayStart }, "channels.sms.requested": true } },
+      { $match: { createdAt: { $gte: todayStart }, "channels.sms.requested": true, ...scopeFilter } },
       {
         $group: {
           _id: null,
@@ -83,7 +96,7 @@ export const getAdminSmsStats = catchAsync(async (req, res) => {
       },
     ]),
     CommunicationLogModel.aggregate([
-      { $match: { createdAt: { $gte: monthStart }, "channels.sms.requested": true } },
+      { $match: { createdAt: { $gte: monthStart }, "channels.sms.requested": true, ...scopeFilter } },
       {
         $group: {
           _id: null,
@@ -164,16 +177,28 @@ async function getRecipientPhonesForTarget(req, { target, groupNumbers, month, y
       .filter((id) => mongoose.Types.ObjectId.isValid(id))
       .map((id) => new mongoose.Types.ObjectId(id));
 
+    const typeMatch = getContributionTypeMatch("revolving") || ["revolving"];
+    const contributionTypeFilter = {
+      $or: [
+        { contributionType: { $in: typeMatch } },
+        { contributionType: { $exists: false } },
+        { contributionType: null },
+      ],
+    };
+
     const [groups, profiles, contribDocs] = await Promise.all([
       GroupModel.find({ _id: { $in: groupObjectIds } }, { monthlyContribution: 1 }).lean(),
-      ProfileModel.find({ _id: { $in: userIds }, phone: { $ne: null } }, { phone: 1 }).lean(),
+      ProfileModel.find(
+        { _id: { $in: userIds }, phone: { $ne: null } },
+        { phone: 1, contributionSettings: 1 },
+      ).lean(),
       ContributionModel.find(
         {
           groupId: { $in: groupObjectIds },
           userId: { $in: userIds },
           year: y,
           month: m,
-          contributionType: { $in: getContributionTypeMatch("revolving") || ["revolving"] },
+          ...contributionTypeFilter,
         },
         { userId: 1, groupId: 1, status: 1, amount: 1, year: 1, month: 1 },
       ).lean(),
@@ -190,9 +215,42 @@ async function getRecipientPhonesForTarget(req, { target, groupNumbers, month, y
       paidByKey.set(k, Number(paidByKey.get(k) || 0) + Number(c.amount || 0));
     }
 
-    const due = dueDateUtc(y, m, 25);
+    const due = dueDateUtc(y, m);
+    const unitAmount =
+      Number(ContributionTypeConfig?.revolving?.unitAmount ?? NaN) ||
+      ContributionUnitBase;
+    const minAmount = Number(ContributionTypeConfig?.revolving?.minAmount ?? 0);
+
+    const resolvePlannedUnits = (profile) => {
+      const settings = profile?.contributionSettings || {};
+      const settingsYear = Number(settings?.year);
+      if (!Number.isFinite(settingsYear) || settingsYear !== y) return null;
+      const rawUnits = settings?.units;
+      if (typeof rawUnits === "number" || typeof rawUnits === "string") {
+        const num = Number(rawUnits);
+        return Number.isFinite(num) && num > 0 ? num : null;
+      }
+      if (!rawUnits || typeof rawUnits !== "object") return null;
+      const num = Number(rawUnits.revolving);
+      return Number.isFinite(num) && num > 0 ? num : null;
+    };
+
+    const resolveExpectedAmount = (group, profile) => {
+      const plannedUnits = resolvePlannedUnits(profile);
+      if (plannedUnits && unitAmount) {
+        const computed = plannedUnits * unitAmount;
+        return minAmount > 0 ? Math.max(computed, minAmount) : computed;
+      }
+      if (minAmount > 0) return minAmount;
+      const base = Number(group?.monthlyContribution ?? 0);
+      return Number.isFinite(base) && base > 0 ? base : 0;
+    };
+
     const isDefaulted = (userId, groupId) => {
-      const expected = Number(groupById.get(String(groupId))?.monthlyContribution || 0);
+      const expected = resolveExpectedAmount(
+        groupById.get(String(groupId)),
+        profileById.get(String(userId)),
+      );
       const key = `${String(userId)}|${String(groupId)}|${y}|${m}`;
       const paid = Number(paidByKey.get(key) || 0);
       if (paid > 0) return false;
