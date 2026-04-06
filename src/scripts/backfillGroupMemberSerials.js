@@ -6,7 +6,7 @@ import mongoose from "mongoose";
 import { connectMongo } from "../db.js";
 import { GroupModel } from "../models/Group.js";
 import { GroupMembershipModel } from "../models/GroupMembership.js";
-import { formatGroupMemberSerial } from "../utils/groupMemberSerial.js";
+import { formatGroupMemberSerial, ensureGroupMemberSequence } from "../utils/groupMemberSerial.js";
 
 const parseArgs = (args) => {
   const output = {};
@@ -23,11 +23,6 @@ const parseArgs = (args) => {
     }
   }
   return output;
-};
-
-const normalizeMemberNumber = (value) => {
-  const num = Number(value);
-  return Number.isFinite(num) && num > 0 ? num : null;
 };
 
 const args = parseArgs(process.argv.slice(2));
@@ -53,69 +48,57 @@ const stats = {
 
 await connectMongo({ mongoUri });
 
-const groups = await GroupModel.find({}, { groupNumber: 1, memberSequence: 1 }).lean();
+const groups = await GroupModel.find({}, { groupNumber: 1 }).lean();
+const groupNumberById = new Map(
+  groups.map((group) => [String(group._id), Number(group.groupNumber ?? 0)]),
+);
 
-for (const group of groups) {
-  stats.groups += 1;
-  const memberships = await GroupMembershipModel.find(
-    { groupId: group._id, ...statusFilter },
-    { memberNumber: 1, memberSerial: 1, joinedAt: 1, createdAt: 1 },
-  )
-    .sort({ joinedAt: 1, createdAt: 1 })
-    .lean();
+const memberships = await GroupMembershipModel.find(
+  { ...statusFilter },
+  { memberNumber: 1, memberSerial: 1, joinedAt: 1, createdAt: 1, groupId: 1 },
+)
+  .sort({ joinedAt: 1, createdAt: 1, _id: 1 })
+  .lean();
 
-  stats.membershipsScanned += memberships.length;
+stats.groups = groups.length;
+stats.membershipsScanned = memberships.length;
 
-  let maxNumber = 0;
-  for (const membership of memberships) {
-    const existing = normalizeMemberNumber(membership.memberNumber);
-    if (existing && existing > maxNumber) maxNumber = existing;
-  }
+let nextNumber = 1;
 
-  let nextNumber = maxNumber + 1;
+for (const membership of memberships) {
+  const joinedAt = membership.joinedAt || membership.createdAt || new Date();
+  const memberNumber = nextNumber;
+  nextNumber += 1;
+  const groupNumber = groupNumberById.get(String(membership.groupId)) ?? 0;
+  const serial = formatGroupMemberSerial({
+    groupNumber,
+    memberNumber,
+  });
 
-  for (const membership of memberships) {
-    const joinedAt = membership.joinedAt || membership.createdAt || new Date();
-    let memberNumber = normalizeMemberNumber(membership.memberNumber);
-    if (!memberNumber) {
-      memberNumber = nextNumber;
-      nextNumber += 1;
-    }
-    const serial = formatGroupMemberSerial({
-      joinedAt,
-      groupNumber: group.groupNumber,
-      memberNumber,
-    });
+  const needsUpdate =
+    membership.memberNumber !== memberNumber ||
+    membership.memberSerial !== serial ||
+    !membership.joinedAt;
 
-    const needsUpdate =
-      membership.memberNumber !== memberNumber ||
-      membership.memberSerial !== serial ||
-      !membership.joinedAt;
+  if (!needsUpdate) continue;
+  stats.membershipsUpdated += 1;
 
-    if (!needsUpdate) continue;
-    stats.membershipsUpdated += 1;
-
-    if (!isDryRun) {
-      await GroupMembershipModel.updateOne(
-        { _id: membership._id },
-        {
-          $set: {
-            memberNumber,
-            memberSerial: serial,
-            joinedAt,
-          },
+  if (!isDryRun) {
+    await GroupMembershipModel.updateOne(
+      { _id: membership._id },
+      {
+        $set: {
+          memberNumber,
+          memberSerial: serial,
+          joinedAt,
         },
-      );
-    }
-  }
-
-  const finalSequence = Math.max(maxNumber, nextNumber - 1);
-  if (!isDryRun && finalSequence > 0) {
-    await GroupModel.updateOne(
-      { _id: group._id },
-      { $set: { memberSequence: finalSequence } },
+      },
     );
   }
+}
+
+if (!isDryRun) {
+  await ensureGroupMemberSequence();
 }
 
 // eslint-disable-next-line no-console

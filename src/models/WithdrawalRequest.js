@@ -34,6 +34,7 @@ export const WithdrawalRequestSchema = new Schema(
 
     // Denormalized snapshot of account at request time (matches UI payloads)
     bankName: { type: String, required: true, trim: true },
+    bankCode: { type: String, default: null, trim: true },
     accountNumber: { type: String, required: true, trim: true },
     accountName: { type: String, required: true, trim: true },
 
@@ -54,6 +55,9 @@ export const WithdrawalRequestSchema = new Schema(
 
     payoutReference: { type: String, default: null, trim: true },
     payoutGateway: { type: String, default: null, trim: true },
+    payoutTransferCode: { type: String, default: null, trim: true },
+    payoutStatus: { type: String, default: null, trim: true },
+    payoutOtpResentAt: { type: Date, default: null },
   },
   { timestamps: true },
 );

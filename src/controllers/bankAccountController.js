@@ -2,6 +2,7 @@ import AppError from "../utils/AppError.js";
 import catchAsync from "../utils/catchAsync.js";
 import sendSuccess from "../utils/sendSuccess.js";
 import { BankAccountModel } from "../models/BankAccount.js";
+import { listBanks as listPaystackBanks } from "../services/paystack.js";
 
 function pick(obj, allowedKeys) {
   const out = {};
@@ -23,9 +24,10 @@ export const createMyBankAccount = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
   if (!req.user.profileId) return next(new AppError("User profile not found", 400));
 
-  const payload = pick(req.body || {}, ["bankName", "accountNumber", "accountName", "isPrimary"]);
+  const payload = pick(req.body || {}, ["bankName", "bankCode", "accountNumber", "accountName", "isPrimary"]);
 
   if (!payload.bankName) return next(new AppError("bankName is required", 400));
+  if (!payload.bankCode) return next(new AppError("bankCode is required", 400));
   if (!payload.accountNumber) return next(new AppError("accountNumber is required", 400));
   if (!payload.accountName) return next(new AppError("accountName is required", 400));
 
@@ -38,6 +40,7 @@ export const createMyBankAccount = catchAsync(async (req, res, next) => {
   const account = await BankAccountModel.create({
     userId: req.user.profileId,
     bankName: String(payload.bankName).trim(),
+    bankCode: String(payload.bankCode).trim(),
     accountNumber: String(payload.accountNumber).trim(),
     accountName: String(payload.accountName).trim(),
     isPrimary,
@@ -52,7 +55,7 @@ export const updateMyBankAccount = catchAsync(async (req, res, next) => {
 
   const accountId = req.params.id;
 
-  const allowed = ["bankName", "accountNumber", "accountName", "isPrimary"];
+  const allowed = ["bankName", "bankCode", "accountNumber", "accountName", "isPrimary"];
   const updates = pick(req.body || {}, allowed);
 
   if (typeof updates.isPrimary !== "undefined" && Boolean(updates.isPrimary)) {
@@ -68,6 +71,15 @@ export const updateMyBankAccount = catchAsync(async (req, res, next) => {
   if (!account) return next(new AppError("Bank account not found", 404));
 
   return sendSuccess(res, { statusCode: 200, data: { account } });
+});
+
+export const listBanks = catchAsync(async (req, res) => {
+  const countryRaw = typeof req.query?.country === "string" ? req.query.country.trim() : "";
+  const country = countryRaw || "nigeria";
+  const paystackRes = await listPaystackBanks({ country });
+  const banks = Array.isArray(paystackRes?.data) ? paystackRes.data : [];
+
+  return sendSuccess(res, { statusCode: 200, data: { banks } });
 });
 
 export const deleteMyBankAccount = catchAsync(async (req, res, next) => {
@@ -88,4 +100,3 @@ export const deleteMyBankAccount = catchAsync(async (req, res, next) => {
 
   return sendSuccess(res, { statusCode: 200, message: "Bank account deleted" });
 });
-

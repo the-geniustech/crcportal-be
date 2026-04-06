@@ -2,6 +2,7 @@ import express from "express";
 
 import { protect, restrictTo } from "../controllers/authController.js";
 import {
+  downloadMyStatement,
   downloadMyTransactionReceiptPdf,
   emailMyTransactionReceipt,
   getMyTransaction,
@@ -14,6 +15,7 @@ const router = express.Router();
 router.use(protect);
 
 router.get("/me", listMyTransactions);
+router.get("/me/statement", downloadMyStatement);
 router.get("/me/:id", getMyTransaction);
 router.get("/me/:id/receipt/pdf", downloadMyTransactionReceiptPdf);
 router.post("/me/:id/receipt", emailMyTransactionReceipt);

@@ -5,6 +5,7 @@ export const BankAccountSchema = new Schema(
     // Matches `banking_details` usage in `src/components/withdrawals/WithdrawalRequestForm.tsx`
     userId: { type: ObjectId, ref: "Profile", required: true, index: true },
     bankName: { type: String, required: true, trim: true },
+    bankCode: { type: String, default: null, trim: true },
     accountNumber: { type: String, required: true, trim: true },
     accountName: { type: String, required: true, trim: true },
     isPrimary: { type: Boolean, default: false, index: true },

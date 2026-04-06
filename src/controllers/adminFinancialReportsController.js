@@ -6,9 +6,14 @@ import sendSuccess from "../utils/sendSuccess.js";
 
 import { GroupModel } from "../models/Group.js";
 import { GroupMembershipModel } from "../models/GroupMembership.js";
+import { ContributionModel } from "../models/Contribution.js";
+import { ProfileModel } from "../models/Profile.js";
 import { TransactionModel } from "../models/Transaction.js";
 import { LoanApplicationModel } from "../models/LoanApplication.js";
-import { getContributionTypeMatch } from "../utils/contributionPolicy.js";
+import {
+  getContributionTypeMatch,
+  resolveExpectedContributionAmount,
+} from "../utils/contributionPolicy.js";
 
 function clamp(n, min, max) {
   return Math.min(max, Math.max(min, n));
@@ -81,6 +86,20 @@ function pctChange(cur, prev) {
   return ((c - p) / p) * 100;
 }
 
+const PaidContributionStatuses = ["completed", "verified"];
+
+function contributionDateExpr() {
+  return { $ifNull: ["$verifiedAt", "$createdAt"] };
+}
+
+function buildPeriodMonthFilters(months) {
+  if (!Array.isArray(months) || months.length === 0) return [];
+  return months.map((m) => ({
+    year: Number(m.year),
+    month: Number(m.month),
+  }));
+}
+
 export const getAdminFinancialReports = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
 
@@ -95,6 +114,15 @@ export const getAdminFinancialReports = catchAsync(async (req, res, next) => {
   const months = Array.from({ length: periodMonths }, (_v, i) =>
     shiftMonthUtc(startMonth, i),
   );
+  const monthsByYear = months.reduce((acc, m) => {
+    const year = Number(m.year);
+    if (!Number.isFinite(year)) return acc;
+    acc[year] = (acc[year] || 0) + 1;
+    return acc;
+  }, {});
+  const periodMonthFilters = buildPeriodMonthFilters(months);
+  const periodMonthMatch =
+    periodMonthFilters.length > 0 ? { $or: periodMonthFilters } : {};
 
   const rangeStart = monthStartUtc(startMonth.year, startMonth.month);
   const rangeEnd = monthEndUtc(endMonth.year, endMonth.month);
@@ -114,14 +142,16 @@ export const getAdminFinancialReports = catchAsync(async (req, res, next) => {
           .filter((id) => mongoose.Types.ObjectId.isValid(id))
           .map((id) => new mongoose.Types.ObjectId(id));
 
-  const txBaseMatch = {
-    status: "success",
+  const contributionRangeMatch = {
+    status: { $in: PaidContributionStatuses },
     groupId: { $ne: null },
-    type: { $in: ["group_contribution", "loan_repayment", "interest"] },
+    ...(groupObjectIds ? { groupId: { $in: groupObjectIds } } : {}),
   };
 
-  const txRangeMatch = {
-    ...txBaseMatch,
+  const repaymentRangeMatch = {
+    status: "success",
+    type: "loan_repayment",
+    groupId: { $ne: null },
     date: { $gte: rangeStart, $lte: rangeEnd },
     ...(groupObjectIds ? { groupId: { $in: groupObjectIds } } : {}),
   };
@@ -133,27 +163,25 @@ export const getAdminFinancialReports = catchAsync(async (req, res, next) => {
     ...(groupObjectIds ? { groupId: { $in: groupObjectIds } } : {}),
   };
 
-  const [txMonthly, loanMonthly] = await Promise.all([
+  const [contributionMonthly, repaymentMonthly, loanMonthly] = await Promise.all([
+    ContributionModel.aggregate([
+      { $match: contributionRangeMatch },
+      { $addFields: { effectiveDate: contributionDateExpr() } },
+      { $match: { effectiveDate: { $gte: rangeStart, $lte: rangeEnd } } },
+      {
+        $group: {
+          _id: { y: { $year: "$effectiveDate" }, m: { $month: "$effectiveDate" } },
+          contributions: { $sum: "$amount" },
+          interest: { $sum: "$interestAmount" },
+        },
+      },
+    ]),
     TransactionModel.aggregate([
-      { $match: txRangeMatch },
+      { $match: repaymentRangeMatch },
       {
         $group: {
           _id: { y: { $year: "$date" }, m: { $month: "$date" } },
-          contributions: {
-            $sum: {
-              $cond: [{ $eq: ["$type", "group_contribution"] }, "$amount", 0],
-            },
-          },
-          repayments: {
-            $sum: {
-              $cond: [{ $eq: ["$type", "loan_repayment"] }, "$amount", 0],
-            },
-          },
-          interest: {
-            $sum: {
-              $cond: [{ $eq: ["$type", "interest"] }, "$amount", 0],
-            },
-          },
+          repayments: { $sum: "$amount" },
         },
       },
     ]),
@@ -174,8 +202,11 @@ export const getAdminFinancialReports = catchAsync(async (req, res, next) => {
     ]),
   ]);
 
-  const txByYm = new Map(
-    txMonthly.map((r) => [`${r._id.y}-${r._id.m}`, r]),
+  const contributionByYm = new Map(
+    contributionMonthly.map((r) => [`${r._id.y}-${r._id.m}`, r]),
+  );
+  const repaymentByYm = new Map(
+    repaymentMonthly.map((r) => [`${r._id.y}-${r._id.m}`, r]),
   );
   const loanByYm = new Map(
     loanMonthly.map((r) => [`${r._id.y}-${r._id.m}`, r]),
@@ -183,15 +214,16 @@ export const getAdminFinancialReports = catchAsync(async (req, res, next) => {
 
   const monthlyData = months.map((m) => {
     const k = `${m.year}-${m.month}`;
-    const tx = txByYm.get(k);
+    const contrib = contributionByYm.get(k);
+    const repayment = repaymentByYm.get(k);
     const loans = loanByYm.get(k);
 
     return {
       month: monthShort(m.month),
-      contributions: Number(tx?.contributions || 0),
+      contributions: Number(contrib?.contributions || 0),
       loans: Number(loans?.loans || 0),
-      repayments: Number(tx?.repayments || 0),
-      interest: Number(tx?.interest || 0),
+      repayments: Number(repayment?.repayments || 0),
+      interest: Number(contrib?.interest || 0),
     };
   });
 
@@ -225,52 +257,109 @@ export const getAdminFinancialReports = catchAsync(async (req, res, next) => {
     });
   }
 
-  const endMonthStart = monthStartUtc(endMonth.year, endMonth.month);
-  const endMonthEnd = monthEndUtc(endMonth.year, endMonth.month);
+  const regularTypeMatch = getContributionTypeMatch("revolving") || ["revolving"];
 
-  const [activeMembersAgg, contribByGroupAgg, activeLoansAgg, collectedRegularAgg] = await Promise.all([
-    GroupMembershipModel.aggregate([
-      { $match: { groupId: { $in: groupIdsObj }, status: "active" } },
-      { $group: { _id: "$groupId", count: { $sum: 1 } } },
-    ]),
-    TransactionModel.aggregate([
-      {
-        $match: {
-          status: "success",
-          type: "group_contribution",
-          groupId: { $in: groupIdsObj },
-          date: { $gte: rangeStart, $lte: rangeEnd },
-        },
-      },
-      { $group: { _id: "$groupId", total: { $sum: "$amount" } } },
-    ]),
-    LoanApplicationModel.aggregate([
-      {
-        $match: {
-          groupId: { $in: groupIdsObj },
-          status: { $in: ["disbursed", "defaulted"] },
-          remainingBalance: { $gt: 0 },
-        },
-      },
-      { $group: { _id: "$groupId", count: { $sum: 1 } } },
-    ]),
-    TransactionModel.aggregate([
-      {
-        $match: {
-          status: "success",
-          type: "group_contribution",
-          groupId: { $in: groupIdsObj },
-          date: { $gte: endMonthStart, $lte: endMonthEnd },
-          "metadata.contributionType": { $in: getContributionTypeMatch("revolving") || ["revolving"] },
-        },
-      },
-      { $group: { _id: "$groupId", total: { $sum: "$amount" } } },
-    ]),
-  ]);
+  const activeMemberships = await GroupMembershipModel.find(
+    { groupId: { $in: groupIdsObj }, status: "active" },
+    { groupId: 1, userId: 1 },
+  ).lean();
 
-  const activeMembersByGroup = new Map(
-    activeMembersAgg.map((r) => [String(r._id), Number(r.count || 0)]),
+  const profileIds = Array.from(
+    new Set(
+      activeMemberships
+        .map((m) => String(m.userId))
+        .filter((id) => mongoose.Types.ObjectId.isValid(id)),
+    ),
+  ).map((id) => new mongoose.Types.ObjectId(id));
+
+  const [profiles, contribByGroupAgg, activeLoansAgg, collectedRegularAgg] =
+    await Promise.all([
+      profileIds.length
+        ? ProfileModel.find(
+            { _id: { $in: profileIds } },
+            { contributionSettings: 1 },
+          ).lean()
+        : Promise.resolve([]),
+      ContributionModel.aggregate([
+        {
+          $match: {
+            status: { $in: PaidContributionStatuses },
+            groupId: { $in: groupIdsObj },
+            ...periodMonthMatch,
+          },
+        },
+        { $group: { _id: "$groupId", total: { $sum: "$amount" } } },
+      ]),
+      LoanApplicationModel.aggregate([
+        {
+          $match: {
+            groupId: { $in: groupIdsObj },
+            status: { $in: ["disbursed", "defaulted"] },
+            remainingBalance: { $gt: 0 },
+          },
+        },
+        { $group: { _id: "$groupId", count: { $sum: 1 } } },
+      ]),
+      ContributionModel.aggregate([
+        {
+          $match: {
+            status: { $in: PaidContributionStatuses },
+            groupId: { $in: groupIdsObj },
+            contributionType: { $in: regularTypeMatch },
+            ...periodMonthMatch,
+          },
+        },
+        { $group: { _id: "$groupId", total: { $sum: "$amount" } } },
+      ]),
+    ]);
+
+  const settingsByProfileId = new Map(
+    profiles.map((p) => [String(p._id), p?.contributionSettings ?? null]),
   );
+
+  const groupById = new Map(groups.map((g) => [String(g._id), g]));
+  const memberCountByGroup = new Map();
+  const expectedMonthlyByGroupYear = new Map();
+
+  for (const membership of activeMemberships) {
+    const gid = String(membership.groupId);
+    const uid = String(membership.userId);
+    memberCountByGroup.set(gid, (memberCountByGroup.get(gid) ?? 0) + 1);
+
+    const group = groupById.get(gid);
+    if (!group) continue;
+    const settings = settingsByProfileId.get(uid) ?? null;
+
+    for (const [yearKey, monthsCount] of Object.entries(monthsByYear)) {
+      const year = Number(yearKey);
+      if (!Number.isFinite(year)) continue;
+      const expectedMonthly = resolveExpectedContributionAmount({
+        settings,
+        year,
+        groupMonthlyContribution: group.monthlyContribution,
+        type: "revolving",
+      });
+      const key = `${gid}:${year}`;
+      expectedMonthlyByGroupYear.set(
+        key,
+        (expectedMonthlyByGroupYear.get(key) ?? 0) +
+          Number(expectedMonthly || 0),
+      );
+    }
+  }
+
+  const expectedTotalByGroup = new Map();
+  for (const group of groups) {
+    const gid = String(group._id);
+    let expectedTotal = 0;
+    for (const [yearKey, monthsCount] of Object.entries(monthsByYear)) {
+      const key = `${gid}:${yearKey}`;
+      const expectedMonthly = expectedMonthlyByGroupYear.get(key) ?? 0;
+      expectedTotal += expectedMonthly * Number(monthsCount || 0);
+    }
+    expectedTotalByGroup.set(gid, expectedTotal);
+  }
+
   const contribByGroup = new Map(
     contribByGroupAgg.map((r) => [String(r._id), Number(r.total || 0)]),
   );
@@ -283,10 +372,11 @@ export const getAdminFinancialReports = catchAsync(async (req, res, next) => {
 
   const groupPerformance = groups.map((g) => {
     const gid = String(g._id);
-    const memberCount = activeMembersByGroup.get(gid) ?? 0;
-    const expected = Number(g.monthlyContribution || 0) * Math.max(0, memberCount);
-    const collectedRegular = collectedRegularByGroup.get(gid) ?? 0;
-    const rate = expected > 0 ? (collectedRegular / expected) * 100 : 0;
+    const memberCount = memberCountByGroup.get(gid) ?? 0;
+    const expectedTotal = expectedTotalByGroup.get(gid) ?? 0;
+    const collectedTotal = collectedRegularByGroup.get(gid) ?? 0;
+    const rate = expectedTotal > 0 ? (collectedTotal / expectedTotal) * 100 : 0;
+    const gap = expectedTotal - collectedTotal;
 
     return {
       groupName: g.groupName ?? "Group",
@@ -294,6 +384,9 @@ export const getAdminFinancialReports = catchAsync(async (req, res, next) => {
       activeLoans: activeLoansByGroup.get(gid) ?? 0,
       collectionRate: Math.round(clamp(rate, 0, 100)),
       memberCount,
+      expectedTotal,
+      collectedTotal,
+      collectionGap: gap > 0 ? gap : 0,
     };
   });
 
@@ -308,9 +401,9 @@ export const getAdminFinancialReports = catchAsync(async (req, res, next) => {
     { contributions: 0, loans: 0, repayments: 0, interest: 0 },
   );
 
-  const txPrevMatch = {
-    ...txBaseMatch,
-    date: { $gte: prevStart, $lte: prevEnd },
+  const contributionPrevMatch = {
+    status: { $in: PaidContributionStatuses },
+    groupId: { $ne: null },
     ...(groupObjectIds ? { groupId: { $in: groupObjectIds } } : {}),
   };
   const loanPrevMatch = {
@@ -319,8 +412,10 @@ export const getAdminFinancialReports = catchAsync(async (req, res, next) => {
   };
 
   const [prevContrib, prevLoans] = await Promise.all([
-    TransactionModel.aggregate([
-      { $match: { ...txPrevMatch, type: "group_contribution" } },
+    ContributionModel.aggregate([
+      { $match: contributionPrevMatch },
+      { $addFields: { effectiveDate: contributionDateExpr() } },
+      { $match: { effectiveDate: { $gte: prevStart, $lte: prevEnd } } },
       { $group: { _id: null, total: { $sum: "$amount" } } },
     ]),
     LoanApplicationModel.aggregate([
@@ -338,7 +433,7 @@ export const getAdminFinancialReports = catchAsync(async (req, res, next) => {
   const prevLoanTotal = Number(prevLoans?.[0]?.total || 0);
 
   const repaymentRatePct = totals.loans > 0 ? (totals.repayments / totals.loans) * 100 : 0;
-  const interestRatePct = totals.repayments > 0 ? (totals.interest / totals.repayments) * 100 : 0;
+  const interestRatePct = totals.contributions > 0 ? (totals.interest / totals.contributions) * 100 : 0;
 
   return sendSuccess(res, {
     statusCode: 200,

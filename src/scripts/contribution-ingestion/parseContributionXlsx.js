@@ -91,6 +91,7 @@ const profilesPath = path.join(outputDir, "profiles.json");
 const groupsPath = path.join(outputDir, "groups.json");
 const groupMembersPath = path.join(outputDir, "groupMembers.json");
 const contributionsPath = path.join(outputDir, "contributions.json");
+const transactionsPath = path.join(outputDir, "transactions.json");
 const contributionSettingsPath = path.join(
   outputDir,
   "contributionSettings.json",
@@ -110,6 +111,10 @@ await Promise.all([
     JSON.stringify(transformed.contributions, null, 2),
   ),
   fs.writeFile(
+    transactionsPath,
+    JSON.stringify(transformed.transactions ?? [], null, 2),
+  ),
+  fs.writeFile(
     contributionSettingsPath,
     JSON.stringify(transformed.contributionSettings, null, 2),
   ),
@@ -127,6 +132,7 @@ console.log(
       groupsPath,
       groupMembersPath,
       contributionsPath,
+      transactionsPath,
       contributionSettingsPath,
       metaPath,
       summary: {
@@ -135,6 +141,7 @@ console.log(
         groups: transformed.groups.length,
         groupMembers: transformed.groupMembers.length,
         contributions: transformed.contributions.length,
+        transactions: transformed.transactions?.length ?? 0,
         contributionSettings: transformed.contributionSettings.length,
         warnings: transformed.meta.warnings,
       },

@@ -109,17 +109,10 @@ const ensureNumber = (value, fallback = null) => {
   return Number.isFinite(num) ? num : fallback;
 };
 
-const resolveSerialYear = (joinedAt) => {
-  const date = joinedAt ? new Date(joinedAt) : new Date();
-  const resolved = Number.isNaN(date.getTime()) ? new Date() : date;
-  return String(resolved.getFullYear()).slice(-2);
-};
-
-const formatGroupMemberSerial = ({ joinedAt, groupNumber, memberNumber }) => {
-  const year = resolveSerialYear(joinedAt);
+const formatGroupMemberSerial = ({ groupNumber, memberNumber }) => {
   const groupPart = String(groupNumber ?? "").trim() || "0";
   const memberPart = String(memberNumber ?? 0).padStart(4, "0");
-  return `${year}/${groupPart}/${memberPart}`;
+  return `CRC/G${groupPart}/${memberPart}`;
 };
 
 export function transformContributionSheet(parsed, options = {}) {
@@ -191,6 +184,7 @@ export function transformContributionSheet(parsed, options = {}) {
   const groups = [];
   const groupMembers = [];
   const contributions = [];
+  const transactions = [];
   const contributionSettings = [];
   const warnings = [...(parsed.meta.warnings || [])];
 
@@ -297,7 +291,6 @@ export function transformContributionSheet(parsed, options = {}) {
       totalContributed: totalActual,
       memberNumber: memberCounter,
       memberSerial: formatGroupMemberSerial({
-        joinedAt,
         groupNumber,
         memberNumber: memberCounter,
       }),
@@ -353,6 +346,34 @@ export function transformContributionSheet(parsed, options = {}) {
     });
   });
 
+  contributions.forEach((contribution) => {
+    const reference = `GC-${contribution._id}`;
+    const transactionId = makeObjectId("transaction", reference);
+    const date = contribution.createdAt || contribution.verifiedAt || verifiedAt;
+    transactions.push({
+      seedKey: `transaction-${contribution.seedKey}`,
+      _id: transactionId,
+      userId: contribution.userId,
+      reference,
+      amount: contribution.amount,
+      type: "group_contribution",
+      status: "success",
+      description: `Group contribution - ${groupName}`,
+      channel: "seed",
+      groupId,
+      groupName,
+      metadata: {
+        contributionId: contribution._id,
+        month: contribution.month,
+        year: contribution.year,
+        contributionType: contribution.contributionType,
+      },
+      gateway: "internal",
+      date,
+      updatedAt: date,
+    });
+  });
+
   if (!groupNumber) {
     warnings.push("Group number not detected; defaulted to 0.");
   }
@@ -376,6 +397,7 @@ export function transformContributionSheet(parsed, options = {}) {
     groups,
     groupMembers,
     contributions,
+    transactions,
     contributionSettings,
   };
 }

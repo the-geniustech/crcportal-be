@@ -12,6 +12,22 @@ import {
   isInterestRateAllowed,
 } from "../utils/loanPolicy.js";
 
+const LOAN_OTP_RESEND_COOLDOWN_MS = (() => {
+  const secondsRaw = Number(
+    process.env.LOAN_OTP_RESEND_COOLDOWN_SECONDS ||
+      process.env.WITHDRAWAL_OTP_RESEND_COOLDOWN_SECONDS,
+  );
+  if (Number.isFinite(secondsRaw) && secondsRaw > 0) {
+    return Math.round(secondsRaw * 1000);
+  }
+  const msRaw = Number(
+    process.env.LOAN_OTP_RESEND_COOLDOWN_MS ||
+      process.env.WITHDRAWAL_OTP_RESEND_COOLDOWN_MS,
+  );
+  if (Number.isFinite(msRaw) && msRaw > 0) return Math.round(msRaw);
+  return 60_000;
+})();
+
 async function getManageableGroupIds(req) {
   if (!req.user) throw new AppError("Not authenticated", 401);
   if (!req.user.profileId) throw new AppError("User profile not found", 400);
@@ -124,6 +140,9 @@ export const listAdminLoanApplications = catchAsync(async (req, res, next) => {
     const status = String(req.query.status).trim();
     if (LoanApplicationStatuses.includes(status)) filter.status = status;
   }
+  if (!filter.status) {
+    filter.status = { $ne: "draft" };
+  }
 
   const search = typeof req.query?.search === "string" ? req.query.search.trim() : "";
   if (search) {
@@ -161,7 +180,13 @@ export const listAdminLoanApplications = catchAsync(async (req, res, next) => {
     total,
     page,
     limit,
-    data: { applications: enriched },
+    data: {
+      applications: enriched,
+      otpResendCooldownSeconds:
+        LOAN_OTP_RESEND_COOLDOWN_MS > 0
+          ? Math.ceil(LOAN_OTP_RESEND_COOLDOWN_MS / 1000)
+          : 0,
+    },
   });
 });
 

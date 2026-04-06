@@ -91,6 +91,41 @@ export function getContributionTypeMatch(type) {
   return Array.from(new Set([canonical, ...legacy]));
 }
 
+export function resolvePlannedContributionUnits(settings, year, type = "revolving") {
+  if (!settings || !year) return null;
+  const settingsYear = Number(settings?.year);
+  if (!Number.isFinite(settingsYear) || settingsYear !== year) return null;
+  const rawUnits = settings?.units;
+  if (typeof rawUnits === "number" || typeof rawUnits === "string") {
+    const num = Number(rawUnits);
+    return Number.isFinite(num) && num > 0 ? num : null;
+  }
+  if (!rawUnits || typeof rawUnits !== "object") return null;
+  const num = Number(rawUnits?.[type]);
+  return Number.isFinite(num) && num > 0 ? num : null;
+}
+
+export function resolveExpectedContributionAmount({
+  settings,
+  year,
+  groupMonthlyContribution,
+  type = "revolving",
+} = {}) {
+  const config = getContributionTypeConfig(type);
+  const unitAmount = Number(config?.unitAmount ?? ContributionUnitBase);
+  const minAmount = Number(config?.minAmount ?? 0);
+  const base = Number(groupMonthlyContribution ?? 0);
+  const baseline = Math.max(minAmount, Number.isFinite(base) ? base : 0);
+
+  const plannedUnits = resolvePlannedContributionUnits(settings, year, type);
+  if (plannedUnits && Number.isFinite(unitAmount) && unitAmount > 0) {
+    const computed = plannedUnits * unitAmount;
+    return Math.max(computed, baseline);
+  }
+
+  return baseline > 0 ? baseline : 0;
+}
+
 export function isContributionWindowOpen(date = new Date()) {
   const day = date.getDate();
   return day >= ContributionWindow.startDay || day <= ContributionWindow.endDay;

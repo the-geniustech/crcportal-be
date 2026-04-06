@@ -5,6 +5,7 @@ import {
 } from "../utils/loanPolicy.js";
 
 export const LoanApplicationStatuses = [
+  "draft",
   "pending",
   "under_review",
   "approved",
@@ -28,9 +29,23 @@ const LoanDocumentSchema = new Schema(
 
 const LoanGuarantorInfoSchema = new Schema(
   {
-    type: { type: String, enum: ["member", "external"], required: true },
+    type: {
+      type: String,
+      enum: ["member", "external"],
+      required: function requiredType() {
+        const parent = typeof this.ownerDocument === "function" ? this.ownerDocument() : null;
+        return parent?.status !== "draft";
+      },
+    },
     profileId: { type: ObjectId, ref: "Profile", default: null },
-    name: { type: String, required: true, trim: true },
+    name: {
+      type: String,
+      required: function requiredName() {
+        const parent = typeof this.ownerDocument === "function" ? this.ownerDocument() : null;
+        return parent?.status !== "draft";
+      },
+      trim: true,
+    },
     email: { type: String, default: "", trim: true, lowercase: true },
     phone: { type: String, default: "", trim: true },
     relationship: { type: String, default: "", trim: true },
@@ -39,6 +54,18 @@ const LoanGuarantorInfoSchema = new Schema(
     memberSince: { type: String, default: "", trim: true },
     savingsBalance: { type: Number, default: null, min: 0 },
     liabilityPercentage: { type: Number, default: null, min: 1, max: 100 },
+    signature: {
+      method: {
+        type: String,
+        enum: ["text", "draw", "upload"],
+        default: null,
+      },
+      text: { type: String, default: "", trim: true },
+      font: { type: String, default: "", trim: true },
+      imageUrl: { type: String, default: null, trim: true },
+      imagePublicId: { type: String, default: null, trim: true },
+      signedAt: { type: Date, default: null },
+    },
   },
   { _id: false },
 );
@@ -59,11 +86,29 @@ export const LoanApplicationSchema = new Schema(
       index: true,
     },
 
-    loanAmount: { type: Number, required: true, min: 0 },
-    loanPurpose: { type: String, required: true, trim: true },
+    loanAmount: {
+      type: Number,
+      required: function requiredLoanAmount() {
+        return this.status !== "draft";
+      },
+      min: 0,
+    },
+    loanPurpose: {
+      type: String,
+      required: function requiredLoanPurpose() {
+        return this.status !== "draft";
+      },
+      trim: true,
+    },
     purposeDescription: { type: String, default: "", trim: true },
 
-    repaymentPeriod: { type: Number, required: true, min: 1 },
+    repaymentPeriod: {
+      type: Number,
+      required: function requiredRepayment() {
+        return this.status !== "draft";
+      },
+      min: 1,
+    },
     interestRate: { type: Number, default: null, min: 0 },
     interestRateType: {
       type: String,
@@ -82,9 +127,23 @@ export const LoanApplicationSchema = new Schema(
       index: true,
     },
 
+    draftStep: { type: Number, default: 0 },
+    draftLastSavedAt: { type: Date, default: null },
+
     approvedAmount: { type: Number, default: null, min: 0 },
     approvedInterestRate: { type: Number, default: null, min: 0 },
     approvedAt: { type: Date, default: null },
+
+    disbursementBankAccountId: {
+      type: ObjectId,
+      ref: "BankAccount",
+      default: null,
+      index: true,
+    },
+    disbursementBankName: { type: String, default: null, trim: true },
+    disbursementBankCode: { type: String, default: null, trim: true },
+    disbursementAccountNumber: { type: String, default: null, trim: true },
+    disbursementAccountName: { type: String, default: null, trim: true },
 
     disbursedAt: { type: Date, default: null, index: true },
     disbursedBy: { type: ObjectId, ref: "Profile", default: null },
@@ -92,6 +151,12 @@ export const LoanApplicationSchema = new Schema(
     monthlyPayment: { type: Number, default: null, min: 0 },
     totalRepayable: { type: Number, default: null, min: 0 },
     remainingBalance: { type: Number, default: 0, min: 0 },
+
+    payoutReference: { type: String, default: null, trim: true },
+    payoutGateway: { type: String, default: null, trim: true },
+    payoutTransferCode: { type: String, default: null, trim: true },
+    payoutStatus: { type: String, default: null, trim: true },
+    payoutOtpResentAt: { type: Date, default: null },
 
     reviewNotes: { type: String, default: null, trim: true },
     reviewedBy: { type: ObjectId, ref: "Profile", default: null },

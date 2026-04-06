@@ -3,7 +3,11 @@ import catchAsync from "../utils/catchAsync.js";
 import sendSuccess from "../utils/sendSuccess.js";
 import { randomId } from "../utils/crypto.js";
 import { TransactionModel } from "../models/Transaction.js";
-import { computeSavingsBalances, sumDepositsForMonth, sumInterestAllTime } from "../utils/finance.js";
+import {
+  computeSavingsBalances,
+  sumDepositsForMonth,
+  sumInterestAllTime,
+} from "../utils/finance.js";
 
 function getDefaultAnnualInterestRatePct() {
   const raw = process.env.SAVINGS_INTEREST_RATE_ANNUAL_PCT;
@@ -18,7 +22,8 @@ function getInterestReference(profileId, year, month1to12) {
 
 export const getMySavingsSummary = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
-  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
 
   const now = new Date();
   const year = now.getUTCFullYear();
@@ -43,15 +48,21 @@ export const getMySavingsSummary = catchAsync(async (req, res, next) => {
 
 export const createDeposit = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
-  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
 
   const amount = Number(req.body?.amount);
-  if (!amount || amount <= 0) return next(new AppError("amount is required", 400));
+  if (!amount || amount <= 0)
+    return next(new AppError("amount is required", 400));
 
   const reference = String(req.body?.reference || `DEP-${randomId(8)}`).trim();
   const channel = req.body?.channel ? String(req.body.channel).trim() : null;
-  const description = req.body?.description ? String(req.body.description).trim() : "Savings deposit";
-  const gateway = req.body?.gateway ? String(req.body.gateway).trim() : "paystack";
+  const description = req.body?.description
+    ? String(req.body.description).trim()
+    : "Savings deposit";
+  const gateway = req.body?.gateway
+    ? String(req.body.gateway).trim()
+    : "paystack";
 
   const tx = await TransactionModel.create({
     userId: req.user.profileId,
@@ -72,7 +83,9 @@ export const createDeposit = catchAsync(async (req, res, next) => {
 });
 
 export const confirmDeposit = catchAsync(async (req, res, next) => {
-  const reference = String(req.body?.reference || req.params?.reference || "").trim();
+  const reference = String(
+    req.body?.reference || req.params?.reference || "",
+  ).trim();
   if (!reference) return next(new AppError("reference is required", 400));
 
   const status = String(req.body?.status || "success").toLowerCase();
@@ -82,12 +95,17 @@ export const confirmDeposit = catchAsync(async (req, res, next) => {
 
   const tx = await TransactionModel.findOne({ reference });
   if (!tx) return next(new AppError("Transaction not found", 404));
-  if (tx.type !== "deposit") return next(new AppError("Not a deposit transaction", 400));
+  if (tx.type !== "deposit")
+    return next(new AppError("Not a deposit transaction", 400));
 
   if (tx.status !== "success") {
     tx.status = status;
-    tx.channel = req.body?.channel ? String(req.body.channel).trim() : tx.channel;
-    tx.gateway = req.body?.gateway ? String(req.body.gateway).trim() : tx.gateway;
+    tx.channel = req.body?.channel
+      ? String(req.body.channel).trim()
+      : tx.channel;
+    tx.gateway = req.body?.gateway
+      ? String(req.body.gateway).trim()
+      : tx.gateway;
     tx.metadata = req.body?.metadata ?? tx.metadata;
     await tx.save();
   }
@@ -97,9 +115,12 @@ export const confirmDeposit = catchAsync(async (req, res, next) => {
 
 export const verifyMyDeposit = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
-  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
 
-  const reference = String(req.body?.reference || req.params?.reference || "").trim();
+  const reference = String(
+    req.body?.reference || req.params?.reference || "",
+  ).trim();
   if (!reference) return next(new AppError("reference is required", 400));
 
   const tx = await TransactionModel.findOne({
@@ -120,7 +141,8 @@ export const verifyMyDeposit = catchAsync(async (req, res, next) => {
 
 export const applyMonthlyInterest = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
-  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
 
   const profileId = req.user.profileId;
 
@@ -135,12 +157,18 @@ export const applyMonthlyInterest = catchAsync(async (req, res, next) => {
   const interestAmount = Math.floor(ledgerBalance * monthlyRate);
 
   if (interestAmount <= 0) {
-    return sendSuccess(res, { statusCode: 200, data: { applied: false, interestAmount: 0 } });
+    return sendSuccess(res, {
+      statusCode: 200,
+      data: { applied: false, interestAmount: 0 },
+    });
   }
 
   const existing = await TransactionModel.findOne({ reference });
   if (existing) {
-    return sendSuccess(res, { statusCode: 200, data: { applied: false, transaction: existing } });
+    return sendSuccess(res, {
+      statusCode: 200,
+      data: { applied: false, transaction: existing },
+    });
   }
 
   const tx = await TransactionModel.create({
@@ -155,5 +183,8 @@ export const applyMonthlyInterest = catchAsync(async (req, res, next) => {
     metadata: { year, month, annualRatePct: annualRate },
   });
 
-  return sendSuccess(res, { statusCode: 201, data: { applied: true, transaction: tx } });
+  return sendSuccess(res, {
+    statusCode: 201,
+    data: { applied: true, transaction: tx },
+  });
 });

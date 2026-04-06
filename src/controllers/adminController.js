@@ -15,13 +15,12 @@ import mongoose from "mongoose";
 import { assignGroupMemberSerial } from "../utils/groupMemberSerial.js";
 import {
   ContributionTypeCanonical,
-  ContributionTypeConfig,
-  ContributionUnitBase,
   calculateContributionInterestForType,
   calculateContributionUnits,
   getContributionTypeMatch,
   isContributionAmountValid,
   normalizeContributionType,
+  resolveExpectedContributionAmount,
 } from "../utils/contributionPolicy.js";
 import { sendEmail } from "../services/mail/resendClient.js";
 import { sendSms } from "../services/sms/termiiClient.js";
@@ -499,8 +498,14 @@ export const listContributionTracker = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
   if (!req.user.profileId) return next(new AppError("User profile not found", 400));
 
-  if (!["groupCoordinator", "group_coordinator"].includes(String(req.user.role || ""))) {
-    return next(new AppError("Only group coordinators can access contribution tracking", 403));
+  if (
+    !["admin", "groupCoordinator", "group_coordinator"].includes(
+      String(req.user.role || ""),
+    )
+  ) {
+    return next(
+      new AppError("Only admins and group coordinators can access contribution tracking", 403),
+    );
   }
 
   const { year, month, error } = parseMonthYear(req);
@@ -588,43 +593,18 @@ export const listContributionTracker = catchAsync(async (req, res, next) => {
 
   const due = dueDateUtc(year, month);
   const now = new Date();
-  const unitAmount =
-    Number(ContributionTypeConfig?.revolving?.unitAmount ?? NaN) ||
-    ContributionUnitBase;
-  const minAmount = Number(ContributionTypeConfig?.revolving?.minAmount ?? 0);
-
-  const resolvePlannedUnits = (profile) => {
-    const settings = profile?.contributionSettings || {};
-    const settingsYear = Number(settings?.year);
-    if (!Number.isFinite(settingsYear) || settingsYear !== year) return null;
-    const rawUnits = settings?.units;
-    if (typeof rawUnits === "number" || typeof rawUnits === "string") {
-      const num = Number(rawUnits);
-      return Number.isFinite(num) && num > 0 ? num : null;
-    }
-    if (!rawUnits || typeof rawUnits !== "object") return null;
-    const num = Number(rawUnits.revolving);
-    return Number.isFinite(num) && num > 0 ? num : null;
-  };
-
-  const resolveExpectedAmount = (group, profile) => {
-    const plannedUnits = resolvePlannedUnits(profile);
-    if (plannedUnits && unitAmount) {
-      const computed = plannedUnits * unitAmount;
-      return minAmount > 0 ? Math.max(computed, minAmount) : computed;
-    }
-    if (minAmount > 0) return minAmount;
-    const base = Number(group?.monthlyContribution ?? 0);
-    return Number.isFinite(base) && base > 0 ? base : 0;
-  };
-
   const records = memberships.map((m) => {
     const userId = String(m.userId);
     const groupId = String(m.groupId);
     const g = groupById.get(groupId);
     const p = profileById.get(userId);
 
-    const expectedAmount = resolveExpectedAmount(g, p);
+    const expectedAmount = resolveExpectedContributionAmount({
+      settings: p?.contributionSettings,
+      year,
+      groupMonthlyContribution: g?.monthlyContribution,
+      type: "revolving",
+    });
     const currentKey = `${userId}|${groupId}|${year}|${month}`;
     const paidAmount = Number(paidByKey.get(currentKey) || 0);
 
@@ -740,36 +720,6 @@ export const sendContributionReminders = catchAsync(async (req, res, next) => {
   const profileById = new Map(profiles.map((p) => [String(p._id), p]));
   const groupById = new Map(groups.map((g) => [String(g._id), g]));
 
-  const unitAmount =
-    Number(ContributionTypeConfig?.revolving?.unitAmount ?? NaN) ||
-    ContributionUnitBase;
-  const minAmount = Number(ContributionTypeConfig?.revolving?.minAmount ?? 0);
-
-  const resolvePlannedUnits = (profile) => {
-    const settings = profile?.contributionSettings || {};
-    const settingsYear = Number(settings?.year);
-    if (!Number.isFinite(settingsYear) || settingsYear !== year) return null;
-    const rawUnits = settings?.units;
-    if (typeof rawUnits === "number" || typeof rawUnits === "string") {
-      const num = Number(rawUnits);
-      return Number.isFinite(num) && num > 0 ? num : null;
-    }
-    if (!rawUnits || typeof rawUnits !== "object") return null;
-    const num = Number(rawUnits.revolving);
-    return Number.isFinite(num) && num > 0 ? num : null;
-  };
-
-  const resolveExpectedAmount = (group, profile) => {
-    const plannedUnits = resolvePlannedUnits(profile);
-    if (plannedUnits && unitAmount) {
-      const computed = plannedUnits * unitAmount;
-      return minAmount > 0 ? Math.max(computed, minAmount) : computed;
-    }
-    if (minAmount > 0) return minAmount;
-    const base = Number(group?.monthlyContribution ?? 0);
-    return Number.isFinite(base) && base > 0 ? base : 0;
-  };
-
   const label = formatMonthLabel(year, month);
   const channels = {
     email: { requested: sendEmailFlag, attempted: 0, sent: 0, failed: 0, skipped: 0 },
@@ -793,7 +743,12 @@ export const sendContributionReminders = catchAsync(async (req, res, next) => {
     const group = groupById.get(String(recipient.groupId));
     if (!group) continue;
 
-    const expectedAmount = resolveExpectedAmount(group, profile);
+    const expectedAmount = resolveExpectedContributionAmount({
+      settings: profile?.contributionSettings,
+      year,
+      groupMonthlyContribution: group?.monthlyContribution,
+      type: "revolving",
+    });
     const message = buildContributionReminderMessage({
       groupName: group?.groupName || "your group",
       label,

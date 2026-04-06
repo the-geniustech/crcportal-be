@@ -27,3 +27,7 @@ async function run() {
 }
 
 run();
+
+/*
+Me and the agency manager have been dragging my fixed pay throughout the project from foundation to delivery now, he saying that they only little payment on the project considering that they are Nigerian agency and that some how also affect their charges on fiverr. So I reduced the to as low as $3k and He's still comfortable with that yet.
+*/

@@ -5,6 +5,7 @@ import { TransactionModel, TransactionStatuses, TransactionTypes } from "../mode
 import { ProfileModel } from "../models/Profile.js";
 import { sendEmail } from "../services/mail/resendClient.js";
 import { generateReceiptPdfBuffer } from "../services/pdf/receiptPdf.js";
+import { generateStatementPdfBuffer, formatCurrency, formatDate } from "../services/pdf/statementPdf.js";
 
 const typeLabels = {
   deposit: "Savings Deposit",
@@ -23,13 +24,8 @@ const organizationInfo = {
   email: "Email: olayoyinoyeniyi@gmail.com",
 };
 
-function formatCurrency(amount) {
-  const value = Number(amount || 0);
-  if (!Number.isFinite(value)) return "NGN 0.00";
-  return `NGN ${value.toLocaleString("en-NG", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
+function formatStatementAmount(amount) {
+  return formatCurrency(amount);
 }
 
 function formatCurrencyHtml(amount) {
@@ -213,6 +209,159 @@ export const listMyTransactions = catchAsync(async (req, res, next) => {
     limit,
     data: { transactions },
   });
+});
+
+function formatStatementDate(value) {
+  return formatDate(value);
+}
+
+function buildPeriodLabel({ startDate, endDate }) {
+  if (startDate && endDate) {
+    return `${formatStatementDate(startDate)} to ${formatStatementDate(endDate)}`;
+  }
+  if (startDate) {
+    return `From ${formatStatementDate(startDate)}`;
+  }
+  if (endDate) {
+    return `Up to ${formatStatementDate(endDate)}`;
+  }
+  return "All Time";
+}
+
+function toCsvValue(value) {
+  if (value === null || value === undefined) return "";
+  const text = String(value);
+  if (/[",\n]/.test(text)) {
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+  return text;
+}
+
+function buildStatementCsv({ memberName, periodLabel, generatedAt, summary, rows }) {
+  const lines = [];
+  lines.push(`Member,${toCsvValue(memberName)}`);
+  lines.push(`Generated,${toCsvValue(formatStatementDate(generatedAt))}`);
+  lines.push(`Period,${toCsvValue(periodLabel)}`);
+  lines.push("");
+  lines.push("Date,Type,Description,Reference,Status,Amount");
+  rows.forEach((row) => {
+    lines.push(
+      [
+        toCsvValue(row.date),
+        toCsvValue(row.type),
+        toCsvValue(row.description),
+        toCsvValue(row.reference),
+        toCsvValue(row.status),
+        toCsvValue(row.amount),
+      ].join(","),
+    );
+  });
+  lines.push("");
+  lines.push(`Total Credits,${toCsvValue(formatStatementAmount(summary.totalCredits))}`);
+  lines.push(`Total Debits,${toCsvValue(formatStatementAmount(summary.totalDebits))}`);
+  lines.push(`Net Position,${toCsvValue(formatStatementAmount(summary.netPosition))}`);
+  lines.push(`Transactions,${toCsvValue(summary.transactionCount)}`);
+  return lines.join("\n");
+}
+
+export const downloadMyStatement = catchAsync(async (req, res, next) => {
+  if (!req.user) return next(new AppError("Not authenticated", 401));
+  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+
+  const format = String(req.query?.format || "pdf").toLowerCase();
+  if (!["pdf", "csv"].includes(format)) {
+    return next(new AppError("Invalid format. Use pdf or csv.", 400));
+  }
+
+  const filter = { userId: req.user.profileId };
+  const rawType = typeof req.query?.type === "string" ? req.query.type.trim() : "";
+  const normalizedType =
+    rawType === "contribution" ? "group_contribution" : rawType;
+  if (normalizedType && Object.keys(typeLabels).includes(normalizedType)) {
+    filter.type = normalizedType;
+  }
+
+  const startDate = req.query?.startDate ? new Date(String(req.query.startDate)) : null;
+  const endDate = req.query?.endDate ? new Date(String(req.query.endDate)) : null;
+  if (startDate && Number.isNaN(startDate.getTime())) {
+    return next(new AppError("Invalid start date", 400));
+  }
+  if (endDate && Number.isNaN(endDate.getTime())) {
+    return next(new AppError("Invalid end date", 400));
+  }
+
+  if (startDate || endDate) {
+    const start = startDate ? new Date(startDate) : new Date(0);
+    const end = endDate ? new Date(endDate) : new Date();
+    if (endDate) {
+      end.setHours(23, 59, 59, 999);
+    }
+    filter.date = { $gte: start, $lte: end };
+  }
+
+  const transactions = await TransactionModel.find(filter).sort({ date: -1 }).lean();
+
+  const creditTypes = new Set(["deposit", "group_contribution", "interest"]);
+  const debitTypes = new Set(["withdrawal", "loan_repayment"]);
+
+  const summary = transactions.reduce(
+    (acc, t) => {
+      const amount = Number(t.amount || 0);
+      if (creditTypes.has(t.type)) acc.totalCredits += amount;
+      if (debitTypes.has(t.type)) acc.totalDebits += amount;
+      acc.transactionCount += 1;
+      return acc;
+    },
+    { totalCredits: 0, totalDebits: 0, transactionCount: 0 },
+  );
+  summary.netPosition = summary.totalCredits - summary.totalDebits;
+
+  const rows = transactions.map((t) => ({
+    date: formatStatementDate(t.date),
+    type: typeLabels[t.type] || t.type,
+    description: t.description || "-",
+    reference: t.reference || "-",
+    status: String(t.status || "pending").toUpperCase(),
+    amount: formatStatementAmount(t.amount),
+  }));
+
+  const profile = await ProfileModel.findById(req.user.profileId).lean();
+  const periodLabel = buildPeriodLabel({
+    startDate: startDate || null,
+    endDate: endDate || null,
+  });
+  const generatedAt = new Date();
+  const memberName = profile?.fullName || "Member";
+  const memberEmail = profile?.email || null;
+
+  const safeLabel = periodLabel.replace(/\s+/g, "-").replace(/[^a-zA-Z0-9\-]/g, "");
+  const filename = `statement-${safeLabel || "all-time"}.${format}`;
+
+  if (format === "csv") {
+    const csv = buildStatementCsv({
+      memberName,
+      periodLabel,
+      generatedAt,
+      summary,
+      rows,
+    });
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    return res.status(200).send(csv);
+  }
+
+  const pdfBuffer = await generateStatementPdfBuffer({
+    memberName,
+    memberEmail,
+    periodLabel,
+    generatedAt,
+    summary,
+    rows,
+  });
+
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+  return res.status(200).send(pdfBuffer);
 });
 
 export const getMyTransaction = catchAsync(async (req, res, next) => {

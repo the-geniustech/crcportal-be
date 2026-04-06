@@ -10,13 +10,23 @@ import { GroupModel } from "../../../models/Group.js";
 import { GroupMembershipModel } from "../../../models/GroupMembership.js";
 import { ContributionModel } from "../../../models/Contribution.js";
 import { ContributionSettingModel } from "../../../models/ContributionSetting.js";
-import { formatGroupMemberSerial } from "../../../utils/groupMemberSerial.js";
+import { TransactionModel } from "../../../models/Transaction.js";
+import { formatGroupMemberSerial, ensureGroupMemberSequence } from "../../../utils/groupMemberSerial.js";
 
 dotenv.config();
 
 const readJson = async (filePath) => {
   const raw = await fs.readFile(filePath, "utf8");
   return JSON.parse(raw);
+};
+
+const fileExists = async (filePath) => {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
@@ -96,6 +106,7 @@ export async function loadSeedFiles({
   groupsPath,
   groupMembersPath,
   contributionsPath,
+  transactionsPath,
   contributionSettingsPath,
 }) {
   const resolved = {
@@ -104,6 +115,7 @@ export async function loadSeedFiles({
     groupsPath,
     groupMembersPath,
     contributionsPath,
+    transactionsPath,
     contributionSettingsPath,
   };
 
@@ -123,6 +135,11 @@ export async function loadSeedFiles({
     readJson(resolved.contributionSettingsPath),
   ]);
 
+  const transactions =
+    resolved.transactionsPath && (await fileExists(resolved.transactionsPath))
+      ? await readJson(resolved.transactionsPath)
+      : [];
+
   return {
     inputDir,
     users: asArray(users),
@@ -131,6 +148,7 @@ export async function loadSeedFiles({
     groupMembers: asArray(groupMembers),
     contributions: asArray(contributions),
     contributionSettings: asArray(contributionSettings),
+    transactions: asArray(transactions),
     paths: resolved,
   };
 }
@@ -142,6 +160,7 @@ export async function seedContributionData({
   groupsPath,
   groupMembersPath,
   contributionsPath,
+  transactionsPath,
   contributionSettingsPath,
   dryRun = false,
   reset = false,
@@ -185,6 +204,11 @@ export async function seedContributionData({
     },
     contributions: {
       total: seed.contributions.length,
+      upserted: 0,
+      skipped: 0,
+    },
+    transactions: {
+      total: seed.transactions.length,
       upserted: 0,
       skipped: 0,
     },
@@ -274,6 +298,15 @@ export async function seedContributionData({
       { field: "groupId", set: groupIds },
     ],
   );
+  const validTransactions = validateCollection(
+    seed.transactions,
+    ["userId", "reference", "amount", "type", "status"],
+    "transactions",
+    [
+      { field: "userId", set: profileIds },
+      { field: "groupId", set: groupIds },
+    ],
+  );
 
   if (dryRun) {
     return {
@@ -315,6 +348,9 @@ export async function seedContributionData({
       }),
       ContributionModel.deleteMany({
         _id: { $in: collectValues(validContributions, "_id") },
+      }),
+      TransactionModel.deleteMany({
+        _id: { $in: collectValues(validTransactions, "_id") },
       }),
     ]);
   }
@@ -451,44 +487,82 @@ export async function seedContributionData({
     validGroups.map((group) => [String(group._id), group]),
   );
 
-  const groupedMemberships = new Map();
-  validGroupMembers.forEach((membership) => {
-    const key = String(membership.groupId);
-    if (!groupedMemberships.has(key)) groupedMemberships.set(key, []);
-    groupedMemberships.get(key).push(membership);
-  });
+  const membershipPairs = validGroupMembers.map((membership) => ({
+    userId: membership.userId,
+    groupId: membership.groupId,
+  }));
 
-  const normalizedGroupMembers = [];
-  groupedMemberships.forEach((members, groupId) => {
-    const group = groupById.get(groupId);
-    let maxNumber = 0;
-    members.forEach((membership) => {
-      const existing = normalizeMemberNumber(membership.memberNumber);
-      if (existing && existing > maxNumber) maxNumber = existing;
-    });
-    let nextNumber = maxNumber + 1;
-    members.forEach((membership) => {
-      const memberNumber =
-        normalizeMemberNumber(membership.memberNumber) ?? nextNumber++;
-      const joinedAt =
-        membership.joinedAt || membership.createdAt || new Date().toISOString();
-      const memberSerial =
-        membership.memberSerial ||
-        (group
-          ? formatGroupMemberSerial({
-              joinedAt,
-              groupNumber: group.groupNumber,
-              memberNumber,
-            })
-          : null);
+  const existingMemberships =
+    membershipPairs.length > 0
+      ? await GroupMembershipModel.find(
+          { $or: membershipPairs },
+          {
+            userId: 1,
+            groupId: 1,
+            memberNumber: 1,
+            memberSerial: 1,
+            joinedAt: 1,
+            createdAt: 1,
+          },
+        ).lean()
+      : [];
 
-      normalizedGroupMembers.push({
-        ...membership,
-        memberNumber,
-        joinedAt,
-        memberSerial,
-      });
-    });
+  const existingMembershipByKey = new Map(
+    existingMemberships.map((membership) => [
+      `${membership.userId}-${membership.groupId}`,
+      membership,
+    ]),
+  );
+
+  const maxExistingMember = await GroupMembershipModel.findOne(
+    { memberNumber: { $type: "number" } },
+    { memberNumber: 1 },
+  )
+    .sort({ memberNumber: -1 })
+    .lean();
+
+  let nextGlobalNumber = Number(maxExistingMember?.memberNumber ?? 0) + 1;
+
+  const normalizedGroupMembers = validGroupMembers.map((membership) => {
+    const key = `${membership.userId}-${membership.groupId}`;
+    const existing = existingMembershipByKey.get(key);
+    const group = groupById.get(String(membership.groupId));
+
+    let memberNumber = normalizeMemberNumber(existing?.memberNumber);
+    if (!memberNumber) {
+      memberNumber = nextGlobalNumber;
+      nextGlobalNumber += 1;
+    }
+
+    const joinedAt =
+      existing?.joinedAt ||
+      membership.joinedAt ||
+      membership.createdAt ||
+      new Date().toISOString();
+
+    const existingSerial =
+      typeof existing?.memberSerial === "string" ? existing.memberSerial : null;
+    const isNewFormat = (value) =>
+      typeof value === "string" && value.startsWith("CRC/G");
+    const computedSerial = group
+      ? formatGroupMemberSerial({
+          groupNumber: group.groupNumber,
+          memberNumber,
+        })
+      : null;
+    const hasExistingNumber = normalizeMemberNumber(existing?.memberNumber);
+    const memberSerial = existing
+      ? (isNewFormat(existingSerial) && hasExistingNumber
+          ? existingSerial
+          : computedSerial)
+      : computedSerial;
+
+    return {
+      ...membership,
+      memberNumber,
+      joinedAt,
+      memberSerial,
+    };
   });
 
   const membershipOps = normalizedGroupMembers.map((membership) => {
@@ -523,6 +597,10 @@ export async function seedContributionData({
             { memberSerial: { $exists: false } },
             { memberSerial: null },
             { memberSerial: "" },
+            { memberSerial: { $not: /^CRC\/G/ } },
+            { memberNumber: { $exists: false } },
+            { memberNumber: null },
+            { memberNumber: { $lte: 0 } },
           ],
         },
         update: {
@@ -540,34 +618,7 @@ export async function seedContributionData({
       ordered: false,
     });
   }
-
-  const sequenceByGroup = new Map();
-  normalizedGroupMembers.forEach((membership) => {
-    const memberNumber = normalizeMemberNumber(membership.memberNumber);
-    if (!memberNumber) return;
-    const key = String(membership.groupId);
-    const current = sequenceByGroup.get(key) ?? 0;
-    if (memberNumber > current) sequenceByGroup.set(key, memberNumber);
-  });
-
-  const sequenceOps = Array.from(sequenceByGroup.entries()).map(
-    ([groupId, maxNumber]) => ({
-      updateOne: {
-        filter: {
-          _id: groupId,
-          $or: [
-            { memberSequence: { $exists: false } },
-            { memberSequence: { $lt: maxNumber } },
-          ],
-        },
-        update: { $set: { memberSequence: maxNumber } },
-      },
-    }),
-  );
-
-  if (sequenceOps.length) {
-    await GroupModel.bulkWrite(sequenceOps, { ordered: false });
-  }
+  await ensureGroupMemberSequence();
 
   const settingsOps = validContributionSettings.map((setting) => ({
     updateOne: {
@@ -611,6 +662,24 @@ export async function seedContributionData({
       ordered: false,
     });
     stats.contributions.upserted = contribResult.upsertedCount ?? 0;
+  }
+
+  const transactionOps = validTransactions.map((transaction) => {
+    const insertDoc = stripFields(transaction, ["updatedAt"]);
+    return {
+      updateOne: {
+        filter: { reference: transaction.reference },
+        update: { $setOnInsert: insertDoc },
+        upsert: true,
+      },
+    };
+  });
+
+  if (transactionOps.length) {
+    const txResult = await TransactionModel.bulkWrite(transactionOps, {
+      ordered: false,
+    });
+    stats.transactions.upserted = txResult.upsertedCount ?? 0;
   }
 
   await mongoose.disconnect();

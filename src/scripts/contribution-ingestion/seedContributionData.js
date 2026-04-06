@@ -63,6 +63,7 @@ const profilesPath = args.profiles ?? path.join(inputDir, "profiles.json");
 const groupsPath = args.groups ?? path.join(inputDir, "groups.json");
 const groupMembersPath = args.groupMembers ?? path.join(inputDir, "groupMembers.json");
 const contributionsPath = args.contributions ?? path.join(inputDir, "contributions.json");
+const transactionsPath = args.transactions ?? path.join(inputDir, "transactions.json");
 const contributionSettingsPath =
   args.contributionSettings ?? path.join(inputDir, "contributionSettings.json");
 
@@ -73,6 +74,7 @@ const result = await seedContributionData({
   groupsPath,
   groupMembersPath,
   contributionsPath,
+  transactionsPath,
   contributionSettingsPath,
   dryRun: Boolean(args["dry-run"]),
   reset: Boolean(args.reset),

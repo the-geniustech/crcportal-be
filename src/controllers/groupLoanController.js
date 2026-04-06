@@ -1,10 +1,18 @@
 import catchAsync from "../utils/catchAsync.js";
 import sendSuccess from "../utils/sendSuccess.js";
+import AppError from "../utils/AppError.js";
+import { canViewFullGroupData, resolveScopedGroupUserId } from "../utils/groupAccess.js";
 
 import { LoanApplicationModel } from "../models/LoanApplication.js";
 
 export const listGroupLoans = catchAsync(async (req, res) => {
   const group = req.group;
+  const canViewAll = canViewFullGroupData(req);
+  const scopedUserId = resolveScopedGroupUserId(req);
+
+  if (!canViewAll && !scopedUserId) {
+    throw new AppError("User profile not found", 400);
+  }
 
   const filter = { groupId: group._id };
   if (req.query?.status) {
@@ -14,6 +22,9 @@ export const listGroupLoans = catchAsync(async (req, res) => {
     } else {
       filter.status = status;
     }
+  }
+  if (!canViewAll && scopedUserId) {
+    filter.userId = scopedUserId;
   }
 
   const loans = await LoanApplicationModel.find(filter)

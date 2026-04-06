@@ -35,6 +35,15 @@ function parseContributionType(req) {
   return { type: canonical };
 }
 
+function parseMonth(req) {
+  if (typeof req.query?.month === "undefined") return { month: null };
+  const month = Number(req.query?.month);
+  if (!Number.isFinite(month) || month < 1 || month > 12) {
+    return { error: "Invalid month" };
+  }
+  return { month };
+}
+
 async function getManageableGroupIds(req) {
   if (!req.user) throw new AppError("Not authenticated", 401);
   if (!req.user.profileId) throw new AppError("User profile not found", 400);
@@ -60,9 +69,12 @@ export const getAdminContributionTracking = catchAsync(async (req, res, next) =>
   if (yearParsed.error) return next(new AppError(yearParsed.error, 400));
   const typeParsed = parseContributionType(req);
   if (typeParsed.error) return next(new AppError(typeParsed.error, 400));
+  const monthParsed = parseMonth(req);
+  if (monthParsed.error) return next(new AppError(monthParsed.error, 400));
 
   const { year } = yearParsed;
   const { type: contributionType } = typeParsed;
+  const { month } = monthParsed;
   const typeMatch = getContributionTypeMatch(contributionType) || [contributionType];
 
   const manageableGroupIds = await getManageableGroupIds(req);
@@ -74,7 +86,7 @@ export const getAdminContributionTracking = catchAsync(async (req, res, next) =>
     return sendSuccess(res, {
       statusCode: 200,
       results: 0,
-      data: { year, contributionType, groups: [] },
+      data: { year, month, contributionType, groups: [] },
     });
   }
 
@@ -83,19 +95,22 @@ export const getAdminContributionTracking = catchAsync(async (req, res, next) =>
     .filter((id) => mongoose.Types.ObjectId.isValid(id))
     .map((id) => new mongoose.Types.ObjectId(id));
 
+  const match = {
+    groupId: { $in: groupObjectIds },
+    year,
+    contributionType: { $in: typeMatch },
+  };
+  if (month) {
+    match.month = { $lte: month };
+  }
+
   const [activeCounts, contribAgg] = await Promise.all([
     GroupMembershipModel.aggregate([
       { $match: { groupId: { $in: groupObjectIds }, status: "active" } },
       { $group: { _id: "$groupId", count: { $sum: 1 } } },
     ]),
     ContributionModel.aggregate([
-      {
-        $match: {
-          groupId: { $in: groupObjectIds },
-          year,
-          contributionType: { $in: typeMatch },
-        },
-      },
+      { $match: match },
       {
         $group: {
           _id: { groupId: "$groupId", month: "$month" },
@@ -123,7 +138,8 @@ export const getAdminContributionTracking = catchAsync(async (req, res, next) =>
     ]),
   );
 
-  const months = Array.from({ length: 12 }, (_, idx) => idx + 1);
+  const monthCount = month ? Math.max(1, Number(month)) : 12;
+  const months = Array.from({ length: monthCount }, (_, idx) => idx + 1);
 
   const rows = groups.map((g) => {
     const gid = String(g._id);
@@ -169,7 +185,7 @@ export const getAdminContributionTracking = catchAsync(async (req, res, next) =>
   return sendSuccess(res, {
     statusCode: 200,
     results: rows.length,
-    data: { year, contributionType, groups: rows },
+    data: { year, month, contributionType, groups: rows },
   });
 });
 

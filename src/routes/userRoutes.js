@@ -6,6 +6,10 @@ import {
   getMyContributionSettings,
   listMyGroups,
   listUsers,
+  requestEmailChange,
+  confirmEmailChange,
+  requestPhoneChange,
+  confirmPhoneChange,
   updateMe,
   updateMyContributionSettings,
   updateUserRole,
@@ -29,6 +33,10 @@ router.put("/me/notification-preferences", updateMyNotificationPreferences);
 router.get("/me/contribution-settings", getMyContributionSettings);
 router.put("/me/contribution-settings", updateMyContributionSettings);
 router.post("/me/reports", generateMyFinancialReport);
+router.post("/me/email-change/request", requestEmailChange);
+router.post("/me/email-change/confirm", confirmEmailChange);
+router.post("/me/phone-change/request", requestPhoneChange);
+router.post("/me/phone-change/confirm", confirmPhoneChange);
 router.patch(
   "/me",
   uploadSingle("avatar"),

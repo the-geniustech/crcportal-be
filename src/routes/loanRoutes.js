@@ -4,15 +4,22 @@ import { protect, restrictTo } from "../controllers/authController.js";
 import AppError from "../utils/AppError.js";
 import sendSuccess from "../utils/sendSuccess.js";
 import {
+  createLoanDraft,
   createLoanApplication,
+  deleteLoanDraft,
   disburseLoan,
+  finalizeLoanDisbursementOtp,
   getLoanEligibility,
   getLoanApplication,
   listLoanApplications,
   listLoanSchedule,
+  listLoanBorrowerBankAccounts,
   listMyLoanApplications,
   recordLoanRepayment,
+  resendLoanDisbursementOtp,
   reviewLoanApplication,
+  verifyLoanDisbursementTransfer,
+  updateLoanDraft,
 } from "../controllers/loanController.js";
 import {
   listMyGuarantorCommitments,
@@ -28,7 +35,8 @@ import {
   requireGuarantorOwnerOrAdmin,
   requireLoanOwnerOrAdmin,
 } from "../middlewares/loanContext.js";
-import { uploadMultiple } from "../middlewares/upload.js";
+import { uploadMultiple, uploadSingle } from "../middlewares/upload.js";
+import { cloudinaryUploadSingle } from "../middlewares/cloudinaryUpload.js";
 
 const router = express.Router();
 
@@ -138,8 +146,44 @@ router.post(
   },
 );
 
+const signatureUpload = uploadSingle("signature", {
+  limits: { fileSize: 2 * 1024 * 1024 },
+});
+const signatureCloudinary = cloudinaryUploadSingle({
+  fileField: "signature",
+  bodyField: "signatureUpload",
+  folder: "crc/loans/signatures",
+  resourceType: "image",
+});
+
+router.post("/signatures", signatureUpload, signatureCloudinary, (req, res) => {
+  const signature = req.body?.signatureUpload || null;
+  return sendSuccess(res, {
+    statusCode: 201,
+    data: { signature },
+  });
+});
+
 // Borrower (member) flows
 router.get("/applications/me", listMyLoanApplications);
+router.post(
+  "/applications/draft",
+  normalizeLoanDocuments,
+  createLoanDraft,
+);
+router.patch(
+  "/applications/:applicationId/draft",
+  normalizeLoanDocuments,
+  loadLoanApplication,
+  requireLoanOwnerOrAdmin(),
+  updateLoanDraft,
+);
+router.delete(
+  "/applications/:applicationId/draft",
+  loadLoanApplication,
+  requireLoanOwnerOrAdmin(),
+  deleteLoanDraft,
+);
 router.post(
   "/applications",
   maybeUploadLoanDocuments,
@@ -179,6 +223,30 @@ router.post(
   restrictTo("admin"),
   loadLoanApplication,
   disburseLoan,
+);
+router.patch(
+  "/applications/:applicationId/finalize-otp",
+  restrictTo("admin"),
+  loadLoanApplication,
+  finalizeLoanDisbursementOtp,
+);
+router.patch(
+  "/applications/:applicationId/resend-otp",
+  restrictTo("admin"),
+  loadLoanApplication,
+  resendLoanDisbursementOtp,
+);
+router.get(
+  "/applications/:applicationId/bank-accounts",
+  restrictTo("admin"),
+  loadLoanApplication,
+  listLoanBorrowerBankAccounts,
+);
+router.patch(
+  "/applications/:applicationId/verify-transfer",
+  restrictTo("admin"),
+  loadLoanApplication,
+  verifyLoanDisbursementTransfer,
 );
 
 // Guarantor flows (member)

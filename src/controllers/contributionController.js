@@ -6,6 +6,7 @@ import { GroupModel } from "../models/Group.js";
 import { GroupMembershipModel } from "../models/GroupMembership.js";
 import { TransactionModel } from "../models/Transaction.js";
 import { generateGroupContributionReportPdfBuffer } from "../services/pdf/groupContributionReportPdf.js";
+import { canViewFullGroupData, resolveScopedGroupUserId } from "../utils/groupAccess.js";
 import {
   ContributionTypeCanonical,
   calculateContributionInterest,
@@ -107,6 +108,12 @@ async function ensureGroupLeader(group) {
 
 export const listGroupContributions = catchAsync(async (req, res, next) => {
   const group = req.group;
+  const canViewAll = canViewFullGroupData(req);
+  const scopedUserId = resolveScopedGroupUserId(req);
+
+  if (!canViewAll && !scopedUserId) {
+    return next(new AppError("User profile not found", 400));
+  }
 
   const filter = { groupId: group._id };
   if (req.query?.year) filter.year = parseInt(String(req.query.year), 10);
@@ -120,6 +127,9 @@ export const listGroupContributions = catchAsync(async (req, res, next) => {
     filter.contributionType = { $in: match };
   }
   if (req.query?.userId) filter.userId = String(req.query.userId);
+  if (!canViewAll && scopedUserId) {
+    filter.userId = scopedUserId;
+  }
 
   const contributions = await ContributionModel.find(filter)
     .sort({ year: -1, month: -1, createdAt: -1 })
@@ -363,6 +373,12 @@ export const verifyContribution = catchAsync(async (req, res, next) => {
 export const downloadGroupContributionReportPdf = catchAsync(async (req, res, next) => {
   const group = req.group;
   if (!group) return next(new AppError("Group not found", 404));
+  const canViewAll = canViewFullGroupData(req);
+  const scopedUserId = resolveScopedGroupUserId(req);
+
+  if (!canViewAll && !scopedUserId) {
+    return next(new AppError("User profile not found", 400));
+  }
 
   const now = new Date();
   const year = Number.isFinite(Number(req.query?.year))
@@ -379,16 +395,24 @@ export const downloadGroupContributionReportPdf = catchAsync(async (req, res, ne
     return next(new AppError("Invalid year or month provided", 400));
   }
 
+  const membershipFilter = {
+    groupId: group._id,
+    status: "active",
+    ...(canViewAll ? {} : { userId: scopedUserId }),
+  };
+  const contributionFilter = {
+    groupId: group._id,
+    year,
+    month,
+    ...(contributionType ? { contributionType } : {}),
+    ...(canViewAll ? {} : { userId: scopedUserId }),
+  };
+
   const [memberships, contributions] = await Promise.all([
-    GroupMembershipModel.find({ groupId: group._id, status: "active" })
+    GroupMembershipModel.find(membershipFilter)
       .populate("userId")
       .lean(),
-    ContributionModel.find({
-      groupId: group._id,
-      year,
-      month,
-      ...(contributionType ? { contributionType } : {}),
-    })
+    ContributionModel.find(contributionFilter)
       .sort({ createdAt: -1 })
       .populate("userId")
       .lean(),
@@ -518,6 +542,12 @@ export const downloadGroupContributionLedgerPdf = catchAsync(
   async (req, res, next) => {
     const group = req.group;
     if (!group) return next(new AppError("Group not found", 404));
+    const canViewAll = canViewFullGroupData(req);
+    const scopedUserId = resolveScopedGroupUserId(req);
+
+    if (!canViewAll && !scopedUserId) {
+      return next(new AppError("User profile not found", 400));
+    }
 
     const now = new Date();
     const year = Number.isFinite(Number(req.query?.year))
@@ -558,15 +588,23 @@ export const downloadGroupContributionLedgerPdf = catchAsync(
           }
         : { contributionType: { $in: typeMatch } };
 
+    const membershipFilter = {
+      groupId: group._id,
+      status: "active",
+      ...(canViewAll ? {} : { userId: scopedUserId }),
+    };
+    const contributionFilter = {
+      groupId: group._id,
+      year,
+      ...contributionTypeFilter,
+      ...(canViewAll ? {} : { userId: scopedUserId }),
+    };
+
     const [memberships, contributions] = await Promise.all([
-      GroupMembershipModel.find({ groupId: group._id, status: "active" })
+      GroupMembershipModel.find(membershipFilter)
         .populate("userId")
         .lean(),
-      ContributionModel.find({
-        groupId: group._id,
-        year,
-        ...contributionTypeFilter,
-      })
+      ContributionModel.find(contributionFilter)
         .sort({ year: 1, month: 1 })
         .populate("userId")
         .lean(),

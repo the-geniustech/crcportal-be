@@ -10,10 +10,12 @@ import { GuarantorNotificationModel } from "../models/GuarantorNotification.js";
 import { LoanRepaymentScheduleItemModel } from "../models/LoanRepaymentScheduleItem.js";
 import { TransactionModel } from "../models/Transaction.js";
 import { ProfileModel } from "../models/Profile.js";
+import { BankAccountModel } from "../models/BankAccount.js";
 import { GroupModel } from "../models/Group.js";
 import { GroupMembershipModel } from "../models/GroupMembership.js";
 import { ContributionModel } from "../models/Contribution.js";
 import { createNotification } from "../services/notificationService.js";
+import { randomId } from "../utils/crypto.js";
 import {
   LoanFacilityTypes,
   getLoanFacility,
@@ -23,6 +25,14 @@ import {
   isLoanFacilityAvailable,
   resolveInterestRate,
 } from "../utils/loanPolicy.js";
+import {
+  createTransferRecipient,
+  finalizeTransfer,
+  initiateTransfer,
+  listBanks as listPaystackBanks,
+  resendTransferOtp,
+  verifyTransfer,
+} from "../services/paystack.js";
 
 function pick(obj, allowedKeys) {
   const out = {};
@@ -62,7 +72,8 @@ function addMonths(date, months) {
 }
 
 function withRepaymentToDate(loan) {
-  const plain = loan && typeof loan.toObject === "function" ? loan.toObject() : loan;
+  const plain =
+    loan && typeof loan.toObject === "function" ? loan.toObject() : loan;
   if (!plain) return plain;
   const totalRepayable = Number(plain.totalRepayable ?? 0);
   const remainingBalance = Number(plain.remainingBalance ?? 0);
@@ -73,6 +84,348 @@ function withRepaymentToDate(loan) {
       ? Math.max(0, totalRepayable - remainingBalance)
       : null;
   return { ...plain, repaymentToDate };
+}
+
+function normalizeLoanType(raw) {
+  if (!raw) return null;
+  const loanTypeRaw = String(raw).trim().toLowerCase();
+  if (!loanTypeRaw) return null;
+  if (!LoanFacilityTypes.includes(loanTypeRaw)) {
+    throw new AppError("Invalid loanType", 400);
+  }
+  return loanTypeRaw;
+}
+
+const LOAN_OTP_RESEND_COOLDOWN_MS = (() => {
+  const secondsRaw = Number(
+    process.env.LOAN_OTP_RESEND_COOLDOWN_SECONDS ||
+      process.env.WITHDRAWAL_OTP_RESEND_COOLDOWN_SECONDS,
+  );
+  if (Number.isFinite(secondsRaw) && secondsRaw > 0) {
+    return Math.round(secondsRaw * 1000);
+  }
+  const msRaw = Number(
+    process.env.LOAN_OTP_RESEND_COOLDOWN_MS ||
+      process.env.WITHDRAWAL_OTP_RESEND_COOLDOWN_MS,
+  );
+  if (Number.isFinite(msRaw) && msRaw > 0) return Math.round(msRaw);
+  return 60_000;
+})();
+
+function normalizeBankName(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function buildTransferReference() {
+  const stamp = Date.now().toString(36);
+  const rand = randomId(4);
+  return `loan_${stamp}_${rand}`.slice(0, 50);
+}
+
+function sanitizeTransferReference(input) {
+  const raw = String(input || "").toLowerCase().replace(/[^a-z0-9_-]/g, "");
+  if (raw.length >= 16 && raw.length <= 50) return raw;
+  return buildTransferReference();
+}
+
+async function resolveBankCode({ bankCode, bankName } = {}) {
+  if (bankCode) return String(bankCode).trim();
+  if (!bankName) return null;
+  const paystackRes = await listPaystackBanks({ country: "nigeria" });
+  const banks = Array.isArray(paystackRes?.data) ? paystackRes.data : [];
+  if (banks.length === 0) return null;
+  const target = normalizeBankName(bankName);
+  const match = banks.find(
+    (bank) =>
+      normalizeBankName(bank?.name) === target ||
+      normalizeBankName(bank?.slug) === target,
+  );
+  return match?.code ? String(match.code) : null;
+}
+
+function normalizeBankAccountId(value) {
+  if (value === null || value === undefined) return null;
+  const text = String(value).trim();
+  return text ? text : null;
+}
+
+function applyDisbursementSnapshot(payload, account) {
+  if (!payload || !account) return;
+  payload.disbursementBankAccountId = account._id;
+  payload.disbursementBankName = account.bankName;
+  payload.disbursementBankCode = account.bankCode || null;
+  payload.disbursementAccountNumber = account.accountNumber;
+  payload.disbursementAccountName = account.accountName;
+}
+
+function clearDisbursementSnapshot(payload) {
+  if (!payload) return;
+  payload.disbursementBankAccountId = null;
+  payload.disbursementBankName = null;
+  payload.disbursementBankCode = null;
+  payload.disbursementAccountNumber = null;
+  payload.disbursementAccountName = null;
+}
+
+async function resolveBorrowerBankAccount(profileId, bankAccountId) {
+  const normalizedId = normalizeBankAccountId(bankAccountId);
+  if (!normalizedId) return null;
+  const account = await BankAccountModel.findOne({
+    _id: normalizedId,
+    userId: profileId,
+  });
+  if (!account) {
+    throw new AppError("Bank account not found", 404);
+  }
+  return account;
+}
+
+async function selectDisbursementAccount(loan, bankAccountId) {
+  if (!loan?.userId) return null;
+  if (bankAccountId) {
+    return BankAccountModel.findOne({
+      _id: bankAccountId,
+      userId: loan.userId,
+    });
+  }
+  return BankAccountModel.findOne({ userId: loan.userId }).sort({
+    isPrimary: -1,
+    createdAt: -1,
+  });
+}
+
+async function buildDisbursementContext(loan) {
+  if (!loan) throw new AppError("Missing loan context", 500);
+
+  if (loan.status !== "approved") {
+    throw new AppError(
+      "Loan application must be approved before disbursement",
+      400,
+    );
+  }
+
+  const loanType = loan.loanType || "revolving";
+  if (!isLoanFacilityAvailable(loanType, new Date())) {
+    const facility = getLoanFacility(loanType);
+    const label = facility?.label || "This loan type";
+    throw new AppError(`${label} is not available at this time`, 400);
+  }
+
+  const principal = Number(loan.approvedAmount ?? loan.loanAmount);
+  const rate = Number(loan.approvedInterestRate ?? loan.interestRate ?? 0);
+  const termMonths = Number(loan.repaymentPeriod);
+  const interestCfg = getLoanInterestConfig(loanType);
+
+  if (
+    interestCfg.termMonths &&
+    Number(termMonths) !== Number(interestCfg.termMonths)
+  ) {
+    throw new AppError(
+      `repaymentPeriod must be ${interestCfg.termMonths} months for this loan type`,
+      400,
+    );
+  }
+
+  if (!isInterestRateAllowed(loanType, rate)) {
+    throw new AppError("interestRate is not allowed for this loan type", 400);
+  }
+
+  const guarantors = await LoanGuarantorModel.find({
+    loanApplicationId: loan._id,
+  });
+  const appGuarantors = Array.isArray(loan.guarantors)
+    ? loan.guarantors
+    : [];
+  const externalGuarantors = appGuarantors.filter(
+    (g) => g && g.type === "external",
+  );
+
+  if (guarantors.length === 0 && externalGuarantors.length === 0) {
+    throw new AppError(
+      "At least one guarantor is required to disburse this loan",
+      400,
+    );
+  }
+
+  const liabilitySource =
+    appGuarantors.length > 0 ? appGuarantors : guarantors;
+  const liabilityTotal = liabilitySource.reduce(
+    (sum, g) => sum + Number(g.liabilityPercentage || 0),
+    0,
+  );
+  const allAccepted =
+    guarantors.length === 0
+      ? true
+      : guarantors.every((g) => g.status === "accepted");
+  const externalSigned =
+    externalGuarantors.length === 0
+      ? true
+      : externalGuarantors.every((g) => isValidSignature(g.signature));
+
+  if (liabilityTotal !== 100) {
+    throw new AppError(
+      "Guarantor liabilityPercentage must total 100 to disburse this loan",
+      400,
+    );
+  }
+  if (!allAccepted) {
+    throw new AppError("All guarantors must accept before disbursement", 400);
+  }
+  if (!externalSigned) {
+    throw new AppError(
+      "External guarantors must provide a valid signature before disbursement",
+      400,
+    );
+  }
+
+  return { loanType, principal, rate, termMonths, interestCfg };
+}
+
+function buildDisbursementSchedule({
+  principal,
+  rate,
+  termMonths,
+  rateType,
+  repaymentStartDate,
+  loanType,
+}) {
+  const { items, totalRepayable, monthlyPayment } = buildRepaymentSchedule({
+    principal,
+    ratePct: rate,
+    rateType,
+    months: termMonths,
+    startDate: repaymentStartDate,
+  });
+
+  const deadline = getLoanRepaymentDeadline(loanType, repaymentStartDate);
+  const lastDueDate = items.length ? items[items.length - 1].dueDate : null;
+  if (
+    deadline &&
+    lastDueDate &&
+    new Date(lastDueDate).getTime() > deadline.getTime()
+  ) {
+    throw new AppError(
+      loanType === "bridging"
+        ? "Bridging loans must be fully repaid by January"
+        : "Loans must be fully repaid by October",
+      400,
+    );
+  }
+
+  return { items, totalRepayable, monthlyPayment };
+}
+
+async function applyLoanDisbursement({
+  loan,
+  items,
+  repaymentStartDate,
+  rateType,
+  monthlyPayment,
+  totalRepayable,
+  principal,
+  disbursedBy,
+}) {
+  await LoanRepaymentScheduleItemModel.deleteMany({
+    loanApplicationId: loan._id,
+  });
+  await LoanRepaymentScheduleItemModel.insertMany(
+    items.map((it) => ({
+      loanApplicationId: loan._id,
+      ...it,
+    })),
+    { ordered: false },
+  );
+
+  loan.status = "disbursed";
+  loan.disbursedAt = new Date();
+  loan.disbursedBy = disbursedBy;
+  loan.repaymentStartDate = repaymentStartDate;
+  loan.interestRateType = rateType;
+  loan.monthlyPayment = monthlyPayment;
+  loan.totalRepayable = totalRepayable;
+  loan.remainingBalance = totalRepayable;
+
+  await loan.save();
+
+  createNotification({
+    userId: loan.userId,
+    title: "Loan disbursed",
+    message: `Your loan ${loan.loanCode} has been disbursed.`,
+    type: "loan_disbursed",
+    metadata: {
+      loanId: loan._id,
+      loanCode: loan.loanCode,
+      amount: principal,
+    },
+  }).catch((err) => {
+    // eslint-disable-next-line no-console
+    console.error("Failed to create loan disbursement notification", err);
+  });
+
+  return loan;
+}
+
+function sanitizeDraftPayload(body = {}) {
+  const allowed = [
+    "groupId",
+    "groupName",
+    "loanType",
+    "loanAmount",
+    "loanPurpose",
+    "purposeDescription",
+    "repaymentPeriod",
+    "interestRate",
+    "interestRateType",
+    "monthlyIncome",
+    "documents",
+    "guarantors",
+    "bankAccountId",
+    "draftStep",
+  ];
+  const payload = pick(body || {}, allowed);
+
+  if (payload.loanType) {
+    payload.loanType = normalizeLoanType(payload.loanType);
+  }
+
+  if (
+    typeof payload.interestRate !== "undefined" &&
+    payload.interestRate !== null &&
+    payload.loanType &&
+    !isInterestRateAllowed(payload.loanType, payload.interestRate)
+  ) {
+    throw new AppError("interestRate is not allowed for this loan type", 400);
+  }
+
+  payload.documents = Array.isArray(payload.documents) ? payload.documents : [];
+  payload.guarantors = Array.isArray(payload.guarantors)
+    ? payload.guarantors
+    : [];
+
+  if (payload.draftStep !== undefined && payload.draftStep !== null) {
+    payload.draftStep = Math.max(0, Number(payload.draftStep) || 0);
+  }
+
+  return payload;
+}
+
+function isValidSignature(signature) {
+  if (!signature || typeof signature !== "object") return false;
+  const method = String(signature.method || "").toLowerCase();
+  const text = String(signature.text || "").trim();
+  const imageUrl = String(signature.imageUrl || "").trim();
+
+  if (method === "text") {
+    return Boolean(text);
+  }
+  if (method === "draw" || method === "upload") {
+    return Boolean(imageUrl);
+  }
+
+  // Backwards/lenient support: accept if either form is present.
+  return Boolean(text || imageUrl);
 }
 
 async function buildNextPaymentMap(apps) {
@@ -117,13 +470,9 @@ function buildRepaymentSchedule({
 
     for (let i = 1; i <= n; i += 1) {
       const interest =
-        i === n
-          ? remainingInterest
-          : Math.round(totalInterest / n);
+        i === n ? remainingInterest : Math.round(totalInterest / n);
       const principalPaid =
-        i === n
-          ? remainingPrincipal
-          : Math.round(basePayment - interest);
+        i === n ? remainingPrincipal : Math.round(basePayment - interest);
       const total = principalPaid + interest;
 
       remainingPrincipal = Math.max(0, remainingPrincipal - principalPaid);
@@ -188,8 +537,9 @@ function buildRepaymentSchedule({
 }
 
 async function ensureActiveMember(profileId) {
-  const profile =
-    await ProfileModel.findById(profileId).select("membershipStatus email phone");
+  const profile = await ProfileModel.findById(profileId).select(
+    "membershipStatus email phone",
+  );
   if (!profile) throw new AppError("User profile not found", 400);
   if (profile.membershipStatus !== "active") {
     throw new AppError("Membership is not active", 403);
@@ -312,6 +662,26 @@ export const createLoanApplication = catchAsync(async (req, res, next) => {
   if (!req.user.profileId)
     return next(new AppError("User profile not found", 400));
 
+  const draftId = req.body?.draftId || req.body?.applicationId || null;
+  let draftApplication = null;
+  if (draftId) {
+    draftApplication = await LoanApplicationModel.findById(draftId);
+    if (!draftApplication) {
+      return next(new AppError("Draft loan application not found", 404));
+    }
+    if (!req.user.profileId) {
+      return next(new AppError("User profile not found", 400));
+    }
+    if (String(draftApplication.userId) !== String(req.user.profileId)) {
+      return next(new AppError("You do not have access to this draft", 403));
+    }
+    if (draftApplication.status !== "draft") {
+      return next(
+        new AppError("Only draft applications can be submitted", 400),
+      );
+    }
+  }
+
   let borrowerProfile = null;
   if (req.user.role !== "admin") {
     borrowerProfile = await ensureActiveMember(req.user.profileId);
@@ -336,8 +706,41 @@ export const createLoanApplication = catchAsync(async (req, res, next) => {
   ];
 
   const payload = pick(req.body || {}, allowed);
+  const hasDocuments = Object.prototype.hasOwnProperty.call(
+    req.body || {},
+    "documents",
+  );
+  const hasGuarantors = Object.prototype.hasOwnProperty.call(
+    req.body || {},
+    "guarantors",
+  );
 
-  const loanTypeRaw = String(payload.loanType || "").trim().toLowerCase();
+  if (draftApplication) {
+    for (const key of allowed) {
+      if (
+        payload[key] === undefined ||
+        payload[key] === null ||
+        payload[key] === ""
+      ) {
+        if (
+          draftApplication[key] !== undefined &&
+          draftApplication[key] !== null
+        ) {
+          payload[key] = draftApplication[key];
+        }
+      }
+    }
+    if (!hasDocuments && Array.isArray(draftApplication.documents)) {
+      payload.documents = draftApplication.documents;
+    }
+    if (!hasGuarantors && Array.isArray(draftApplication.guarantors)) {
+      payload.guarantors = draftApplication.guarantors;
+    }
+  }
+
+  const loanTypeRaw = String(payload.loanType || "")
+    .trim()
+    .toLowerCase();
   if (!loanTypeRaw) {
     return next(new AppError("loanType is required", 400));
   }
@@ -405,7 +808,9 @@ export const createLoanApplication = catchAsync(async (req, res, next) => {
     payload.interestRate !== null &&
     !isInterestRateAllowed(payload.loanType, payload.interestRate)
   ) {
-    return next(new AppError("interestRate is not allowed for this loan type", 400));
+    return next(
+      new AppError("interestRate is not allowed for this loan type", 400),
+    );
   }
 
   const resolvedInterest = resolveInterestRate(
@@ -414,6 +819,28 @@ export const createLoanApplication = catchAsync(async (req, res, next) => {
   );
   payload.interestRate = resolvedInterest.rate;
   payload.interestRateType = resolvedInterest.rateType;
+
+  const requestedBankAccountId =
+    req.body?.bankAccountId ||
+    req.body?.bank_account_id ||
+    req.body?.disbursementBankAccountId ||
+    draftApplication?.disbursementBankAccountId ||
+    null;
+
+  if (requestedBankAccountId) {
+    const disbursementAccount = await resolveBorrowerBankAccount(
+      req.user.profileId,
+      requestedBankAccountId,
+    );
+    applyDisbursementSnapshot(payload, disbursementAccount);
+  } else if (req.user.role !== "admin") {
+    return next(
+      new AppError(
+        "bankAccountId is required to submit a loan application",
+        400,
+      ),
+    );
+  }
 
   const now = new Date();
   const [contributionAgg, overdueContribs, defaultedLoans, activeLoans] =
@@ -499,10 +926,15 @@ export const createLoanApplication = catchAsync(async (req, res, next) => {
     ? payload.guarantors
     : [];
   const memberGuarantors = guarantors.filter((g) => g && g.type === "member");
-  const externalGuarantors = guarantors.filter((g) => g && g.type === "external");
+  const externalGuarantors = guarantors.filter(
+    (g) => g && g.type === "external",
+  );
   const borrowerProfileId = String(req.user.profileId);
 
-  const normalizeEmail = (value) => String(value || "").trim().toLowerCase();
+  const normalizeEmail = (value) =>
+    String(value || "")
+      .trim()
+      .toLowerCase();
   const normalizePhone = (value) =>
     String(value || "")
       .replace(/\s+/g, "")
@@ -540,13 +972,25 @@ export const createLoanApplication = catchAsync(async (req, res, next) => {
     const emailKey = normalizeEmail(g.email);
     const phoneKey = normalizePhone(g.phone);
     if (borrowerEmail && emailKey && emailKey === borrowerEmail) {
+      console.log("Borrower email match the guarantor's own", {
+        borrowerEmail,
+        guarantorEmail: emailKey,
+      });
       return next(new AppError("Borrower cannot be a guarantor", 400));
     }
     if (borrowerPhone && phoneKey && phoneKey === borrowerPhone) {
+      console.log("Borrower phone match the guarantor's own", {
+        borrowerPhone,
+        guarantorPhone: phoneKey,
+      });
       return next(new AppError("Borrower cannot be a guarantor", 400));
     }
-    const key =
-      emailKey || phoneKey ? `${emailKey}::${phoneKey}` : null;
+    if (!isValidSignature(g.signature)) {
+      return next(
+        new AppError("External guarantors must provide a valid signature", 400),
+      );
+    }
+    const key = emailKey || phoneKey ? `${emailKey}::${phoneKey}` : null;
     if (key && seenExternal.has(key)) {
       return next(new AppError("Duplicate external guarantor", 400));
     }
@@ -580,16 +1024,33 @@ export const createLoanApplication = catchAsync(async (req, res, next) => {
   const loanNumber = await getNextLoanNumber();
   const loanCode = formatLoanCode(loanNumber);
 
-  const application = await LoanApplicationModel.create({
-    ...payload,
-    userId: req.user.profileId,
-    groupId: payload.groupId || null,
-    groupName: payload.groupName || null,
-    loanNumber,
-    loanCode,
-    status: "pending",
-    remainingBalance: 0,
-  });
+  let application;
+  if (draftApplication) {
+    draftApplication.set({
+      ...payload,
+      userId: req.user.profileId,
+      groupId: payload.groupId || null,
+      groupName: payload.groupName || null,
+      loanNumber,
+      loanCode,
+      status: "pending",
+      remainingBalance: 0,
+      draftStep: 0,
+      draftLastSavedAt: null,
+    });
+    application = await draftApplication.save();
+  } else {
+    application = await LoanApplicationModel.create({
+      ...payload,
+      userId: req.user.profileId,
+      groupId: payload.groupId || null,
+      groupName: payload.groupName || null,
+      loanNumber,
+      loanCode,
+      status: "pending",
+      remainingBalance: 0,
+    });
+  }
 
   const guarantorOps = [];
   for (const g of memberGuarantors) {
@@ -646,6 +1107,131 @@ export const createLoanApplication = catchAsync(async (req, res, next) => {
   });
 });
 
+export const createLoanDraft = catchAsync(async (req, res, next) => {
+  if (!req.user) return next(new AppError("Not authenticated", 401));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
+
+  let payload;
+  try {
+    payload = sanitizeDraftPayload(req.body || {});
+  } catch (err) {
+    return next(err);
+  }
+
+  let group = null;
+  if (payload.groupId) {
+    group = await GroupModel.findById(payload.groupId);
+    if (!group) return next(new AppError("Group not found", 404));
+    payload.groupName = payload.groupName || group.groupName;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(payload, "bankAccountId")) {
+    const bankAccountId = normalizeBankAccountId(payload.bankAccountId);
+    if (bankAccountId) {
+      const account = await resolveBorrowerBankAccount(
+        req.user.profileId,
+        bankAccountId,
+      );
+      applyDisbursementSnapshot(payload, account);
+    } else {
+      clearDisbursementSnapshot(payload);
+    }
+    delete payload.bankAccountId;
+  }
+
+  const application = await LoanApplicationModel.create({
+    ...payload,
+    userId: req.user.profileId,
+    groupId: payload.groupId || null,
+    groupName: payload.groupName || null,
+    status: "draft",
+    draftStep: payload.draftStep ?? 0,
+    draftLastSavedAt: new Date(),
+  });
+
+  return sendSuccess(res, {
+    statusCode: 201,
+    message: "Draft saved",
+    data: { application },
+  });
+});
+
+export const updateLoanDraft = catchAsync(async (req, res, next) => {
+  if (!req.user) return next(new AppError("Not authenticated", 401));
+  if (!req.loanApplication)
+    return next(new AppError("Missing loan context", 500));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
+
+  if (req.loanApplication.status !== "draft") {
+    return next(new AppError("Only draft applications can be updated", 400));
+  }
+
+  let payload;
+  try {
+    payload = sanitizeDraftPayload(req.body || {});
+  } catch (err) {
+    return next(err);
+  }
+
+  if (payload.groupId) {
+    const group = await GroupModel.findById(payload.groupId);
+    if (!group) return next(new AppError("Group not found", 404));
+    payload.groupName = payload.groupName || group.groupName;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(payload, "bankAccountId")) {
+    const bankAccountId = normalizeBankAccountId(payload.bankAccountId);
+    if (bankAccountId) {
+      const account = await resolveBorrowerBankAccount(
+        req.user.profileId,
+        bankAccountId,
+      );
+      applyDisbursementSnapshot(payload, account);
+    } else {
+      clearDisbursementSnapshot(payload);
+    }
+    delete payload.bankAccountId;
+  }
+
+  req.loanApplication.set({
+    ...payload,
+    groupId: payload.groupId || req.loanApplication.groupId || null,
+    groupName: payload.groupName || req.loanApplication.groupName || null,
+    draftStep:
+      typeof payload.draftStep === "number"
+        ? payload.draftStep
+        : req.loanApplication.draftStep || 0,
+    draftLastSavedAt: new Date(),
+  });
+
+  const updated = await req.loanApplication.save();
+
+  return sendSuccess(res, {
+    statusCode: 200,
+    message: "Draft updated",
+    data: { application: updated },
+  });
+});
+
+export const deleteLoanDraft = catchAsync(async (req, res, next) => {
+  if (!req.user) return next(new AppError("Not authenticated", 401));
+  if (!req.loanApplication)
+    return next(new AppError("Missing loan context", 500));
+
+  if (req.loanApplication.status !== "draft") {
+    return next(new AppError("Only draft applications can be deleted", 400));
+  }
+
+  await LoanApplicationModel.deleteOne({ _id: req.loanApplication._id });
+
+  return sendSuccess(res, {
+    statusCode: 200,
+    message: "Draft deleted",
+  });
+});
+
 export const listMyLoanApplications = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
   if (!req.user.profileId)
@@ -680,6 +1266,9 @@ export const listLoanApplications = catchAsync(async (req, res) => {
   if (typeof req.query?.status === "string" && req.query.status.trim()) {
     const status = req.query.status.trim();
     if (LoanApplicationStatuses.includes(status)) filter.status = status;
+  }
+  if (!filter.status) {
+    filter.status = { $ne: "draft" };
   }
 
   const search =
@@ -837,7 +1426,7 @@ export const reviewLoanApplication = catchAsync(async (req, res, next) => {
   });
 });
 
-export const disburseLoan = catchAsync(async (req, res, next) => {
+export const finalizeLoanDisbursementOtp = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
   if (!req.user.profileId)
     return next(new AppError("User profile not found", 400));
@@ -853,137 +1442,464 @@ export const disburseLoan = catchAsync(async (req, res, next) => {
     );
   }
 
-  const loanType = req.loanApplication.loanType || "revolving";
-  if (!isLoanFacilityAvailable(loanType, new Date())) {
-    const facility = getLoanFacility(loanType);
-    const label = facility?.label || "This loan type";
-    return next(new AppError(`${label} is not available at this time`, 400));
-  }
+  const transferCodeRaw =
+    req.body?.transferCode ||
+    req.body?.transfer_code ||
+    req.loanApplication.payoutTransferCode ||
+    null;
+  const transferCode = transferCodeRaw ? String(transferCodeRaw).trim() : "";
+  if (!transferCode)
+    return next(new AppError("transfer_code is required", 400));
 
-  const principal = Number(
-    req.loanApplication.approvedAmount ?? req.loanApplication.loanAmount,
-  );
-  const rate = Number(
-    req.loanApplication.approvedInterestRate ??
-      req.loanApplication.interestRate ??
-      0,
-  );
-  const termMonths = Number(req.loanApplication.repaymentPeriod);
-  const interestCfg = getLoanInterestConfig(loanType);
+  const otpRaw = req.body?.otp ? String(req.body.otp).trim() : "";
+  if (!otpRaw) return next(new AppError("otp is required", 400));
 
-  if (
-    interestCfg.termMonths &&
-    Number(termMonths) !== Number(interestCfg.termMonths)
-  ) {
-    return next(
-      new AppError(
-        `repaymentPeriod must be ${interestCfg.termMonths} months for this loan type`,
-        400,
-      ),
-    );
-  }
-
-  if (!isInterestRateAllowed(loanType, rate)) {
-    return next(
-      new AppError("interestRate is not allowed for this loan type", 400),
-    );
-  }
-
-  const guarantors = await LoanGuarantorModel.find({
-    loanApplicationId: req.loanApplication._id,
+  const finalizeRes = await finalizeTransfer({
+    transfer_code: transferCode,
+    otp: otpRaw,
   });
-  if (!guarantors.length) {
+  const transfer = finalizeRes?.data;
+  if (!transfer) {
+    return next(new AppError("Invalid Paystack transfer response", 502));
+  }
+
+  const status = String(transfer?.status || "").toLowerCase();
+  const reference = transfer?.reference
+    ? String(transfer.reference)
+    : req.loanApplication.payoutReference;
+  const resolvedTransferCode = transfer?.transfer_code || transferCode;
+
+  req.loanApplication.payoutReference = reference || null;
+  req.loanApplication.payoutGateway = "paystack";
+  req.loanApplication.payoutTransferCode = resolvedTransferCode;
+  req.loanApplication.payoutStatus = status || null;
+
+  if (status === "success") {
+    const { loanType, principal, rate, termMonths, interestCfg } =
+      await buildDisbursementContext(req.loanApplication);
+
+    const repaymentStartDate =
+      parseDateOrNull(req.body?.repaymentStartDate) ||
+      req.loanApplication.repaymentStartDate ||
+      addMonths(new Date(), 1);
+
+    const rateType =
+      req.loanApplication.interestRateType ||
+      interestCfg.rateType ||
+      "annual";
+
+    const { items, totalRepayable, monthlyPayment } = buildDisbursementSchedule({
+      principal,
+      rate,
+      termMonths,
+      rateType,
+      repaymentStartDate,
+      loanType,
+    });
+
+    await applyLoanDisbursement({
+      loan: req.loanApplication,
+      items,
+      repaymentStartDate,
+      rateType,
+      monthlyPayment,
+      totalRepayable,
+      principal,
+      disbursedBy: req.user.profileId,
+    });
+  } else {
+    await req.loanApplication.save();
+  }
+
+  return sendSuccess(res, {
+    statusCode: 200,
+    data: { application: req.loanApplication },
+  });
+});
+
+export const resendLoanDisbursementOtp = catchAsync(async (req, res, next) => {
+  if (!req.user) return next(new AppError("Not authenticated", 401));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
+  if (!req.loanApplication)
+    return next(new AppError("Missing loan context", 500));
+
+  if (req.loanApplication.status !== "approved") {
     return next(
       new AppError(
-        "At least one guarantor is required to disburse this loan",
+        "Loan application must be approved before disbursement",
         400,
       ),
     );
   }
 
-  const liabilityTotal = guarantors.reduce(
-    (sum, g) => sum + Number(g.liabilityPercentage || 0),
-    0,
-  );
-  const allAccepted = guarantors.every((g) => g.status === "accepted");
+  if (LOAN_OTP_RESEND_COOLDOWN_MS > 0 && req.loanApplication.payoutOtpResentAt) {
+    const lastResentAt = new Date(
+      req.loanApplication.payoutOtpResentAt,
+    ).getTime();
+    if (Number.isFinite(lastResentAt)) {
+      const elapsedMs = Date.now() - lastResentAt;
+      if (elapsedMs >= 0 && elapsedMs < LOAN_OTP_RESEND_COOLDOWN_MS) {
+        const retryAfterSeconds = Math.ceil(
+          (LOAN_OTP_RESEND_COOLDOWN_MS - elapsedMs) / 1000,
+        );
+        res.set("Retry-After", String(retryAfterSeconds));
+        return next(
+          new AppError(
+            `Please wait ${retryAfterSeconds}s before resending OTP.`,
+            429,
+          ),
+        );
+      }
+    }
+  }
 
-  if (liabilityTotal !== 100) {
+  const transferCodeRaw =
+    req.body?.transferCode ||
+    req.body?.transfer_code ||
+    req.loanApplication.payoutTransferCode ||
+    null;
+  const transferCode = transferCodeRaw ? String(transferCodeRaw).trim() : "";
+  if (!transferCode)
+    return next(new AppError("transfer_code is required", 400));
+
+  const reasonRaw = req.body?.reason ? String(req.body.reason).trim() : "";
+  const normalizedReason = reasonRaw.toLowerCase();
+  let reason = "transfer";
+  if (normalizedReason === "disable_otp") {
+    reason = "disable_otp";
+  } else if (normalizedReason === "transfer") {
+    reason = "transfer";
+  } else if (normalizedReason === "resend_otp") {
+    reason = "transfer";
+  }
+
+  await resendTransferOtp({
+    transfer_code: transferCode,
+    reason,
+  });
+
+  req.loanApplication.payoutTransferCode = transferCode;
+  req.loanApplication.payoutStatus = "otp";
+  req.loanApplication.payoutGateway = "paystack";
+  req.loanApplication.payoutOtpResentAt = new Date();
+
+  await req.loanApplication.save();
+
+  if (LOAN_OTP_RESEND_COOLDOWN_MS > 0) {
+    res.set(
+      "Retry-After",
+      String(Math.ceil(LOAN_OTP_RESEND_COOLDOWN_MS / 1000)),
+    );
+  }
+
+  return sendSuccess(res, {
+    statusCode: 200,
+    data: { application: req.loanApplication },
+  });
+});
+
+export const listLoanBorrowerBankAccounts = catchAsync(async (req, res, next) => {
+  if (!req.user) return next(new AppError("Not authenticated", 401));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
+  if (!req.loanApplication)
+    return next(new AppError("Missing loan context", 500));
+
+  const borrowerId = req.loanApplication.userId;
+  if (!borrowerId) {
+    return next(new AppError("Borrower profile not found", 400));
+  }
+
+  const accounts = await BankAccountModel.find({ userId: borrowerId }).sort({
+    isPrimary: -1,
+    createdAt: -1,
+  });
+
+  return sendSuccess(res, {
+    statusCode: 200,
+    results: accounts.length,
+    data: { accounts },
+  });
+});
+
+export const verifyLoanDisbursementTransfer = catchAsync(async (req, res, next) => {
+  if (!req.user) return next(new AppError("Not authenticated", 401));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
+  if (!req.loanApplication)
+    return next(new AppError("Missing loan context", 500));
+
+  if (req.loanApplication.status !== "approved") {
     return next(
       new AppError(
-        "Guarantor liabilityPercentage must total 100 to disburse this loan",
+        "Loan application must be approved before disbursement",
         400,
       ),
     );
   }
-  if (!allAccepted) {
-    return next(
-      new AppError("All guarantors must accept before disbursement", 400),
-    );
+
+  const referenceRaw = req.loanApplication.payoutReference;
+  if (!referenceRaw) {
+    return next(new AppError("payoutReference is required to verify transfer", 400));
   }
+
+  const verifyRes = await verifyTransfer(referenceRaw);
+  const transfer = verifyRes?.data;
+  if (!transfer) {
+    return next(new AppError("Invalid Paystack transfer response", 502));
+  }
+
+  const status = String(transfer?.status || "").toLowerCase();
+  const reference = transfer?.reference
+    ? String(transfer.reference)
+    : referenceRaw;
+  const transferCode =
+    transfer?.transfer_code || req.loanApplication.payoutTransferCode || null;
+
+  req.loanApplication.payoutReference = reference || null;
+  req.loanApplication.payoutGateway = "paystack";
+  req.loanApplication.payoutTransferCode = transferCode;
+  req.loanApplication.payoutStatus = status || null;
+
+  if (status === "success") {
+    const { loanType, principal, rate, termMonths, interestCfg } =
+      await buildDisbursementContext(req.loanApplication);
+
+    const repaymentStartDate =
+      parseDateOrNull(req.body?.repaymentStartDate) ||
+      req.loanApplication.repaymentStartDate ||
+      addMonths(new Date(), 1);
+
+    const rateType =
+      req.loanApplication.interestRateType || interestCfg.rateType || "annual";
+
+    const { items, totalRepayable, monthlyPayment } = buildDisbursementSchedule({
+      principal,
+      rate,
+      termMonths,
+      rateType,
+      repaymentStartDate,
+      loanType,
+    });
+
+    await applyLoanDisbursement({
+      loan: req.loanApplication,
+      items,
+      repaymentStartDate,
+      rateType,
+      monthlyPayment,
+      totalRepayable,
+      principal,
+      disbursedBy: req.user.profileId,
+    });
+  } else {
+    await req.loanApplication.save();
+  }
+
+  return sendSuccess(res, {
+    statusCode: 200,
+    data: { application: req.loanApplication },
+  });
+});
+
+export const disburseLoan = catchAsync(async (req, res, next) => {
+  if (!req.user) return next(new AppError("Not authenticated", 401));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
+  if (!req.loanApplication)
+    return next(new AppError("Missing loan context", 500));
+
+  if (req.loanApplication.status === "disbursed") {
+    return next(new AppError("Loan has already been disbursed", 400));
+  }
+
+  const { loanType, principal, rate, termMonths, interestCfg } =
+    await buildDisbursementContext(req.loanApplication);
 
   const repaymentStartDate =
-    parseDateOrNull(req.body?.repaymentStartDate) || addMonths(new Date(), 1);
+    parseDateOrNull(req.body?.repaymentStartDate) ||
+    req.loanApplication.repaymentStartDate ||
+    addMonths(new Date(), 1);
 
   const rateType =
     req.loanApplication.interestRateType || interestCfg.rateType || "annual";
 
-  const { items, totalRepayable, monthlyPayment } = buildRepaymentSchedule({
+  const { items, totalRepayable, monthlyPayment } = buildDisbursementSchedule({
     principal,
-    ratePct: rate,
+    rate,
+    termMonths,
     rateType,
-    months: termMonths,
-    startDate: repaymentStartDate,
+    repaymentStartDate,
+    loanType,
   });
 
-  const deadline = getLoanRepaymentDeadline(loanType, repaymentStartDate);
-  const lastDueDate = items.length ? items[items.length - 1].dueDate : null;
-  if (deadline && lastDueDate && new Date(lastDueDate).getTime() > deadline.getTime()) {
+  const gateway = String(req.body?.gateway || "paystack").trim().toLowerCase();
+  const requestedReference = req.body?.reference
+    ? String(req.body.reference).trim()
+    : null;
+
+  if (gateway !== "paystack") {
+    const reference = requestedReference || `LOAN-${randomId(8)}`;
+    req.loanApplication.payoutReference = reference;
+    req.loanApplication.payoutGateway = gateway;
+    req.loanApplication.payoutStatus = "success";
+    req.loanApplication.repaymentStartDate = repaymentStartDate;
+    req.loanApplication.interestRateType = rateType;
+
+    await applyLoanDisbursement({
+      loan: req.loanApplication,
+      items,
+      repaymentStartDate,
+      rateType,
+      monthlyPayment,
+      totalRepayable,
+      principal,
+      disbursedBy: req.user.profileId,
+    });
+
+    return sendSuccess(res, {
+      statusCode: 200,
+      data: { application: req.loanApplication },
+    });
+  }
+
+  const bankAccountId =
+    req.body?.bankAccountId ||
+    req.body?.bank_account_id ||
+    req.loanApplication.disbursementBankAccountId ||
+    null;
+  const account = await selectDisbursementAccount(
+    req.loanApplication,
+    bankAccountId,
+  );
+  if (!account) {
     return next(
       new AppError(
-        loanType === "bridging"
-          ? "Bridging loans must be fully repaid by January"
-          : "Loans must be fully repaid by October",
+        "Borrower has no bank account on file. Please add one before disbursement.",
         400,
       ),
     );
   }
 
-  await LoanRepaymentScheduleItemModel.deleteMany({
-    loanApplicationId: req.loanApplication._id,
+  const bankCode = await resolveBankCode({
+    bankCode: account.bankCode,
+    bankName: account.bankName,
   });
-  await LoanRepaymentScheduleItemModel.insertMany(
-    items.map((it) => ({
-      loanApplicationId: req.loanApplication._id,
-      ...it,
-    })),
-    { ordered: false },
-  );
+  if (!bankCode) {
+    return next(
+      new AppError(
+        "Bank code is required for Paystack transfers. Please update the bank account.",
+        400,
+      ),
+    );
+  }
+  if (!account.bankCode) {
+    account.bankCode = bankCode;
+    await account.save();
+  }
 
-  req.loanApplication.status = "disbursed";
-  req.loanApplication.disbursedAt = new Date();
-  req.loanApplication.disbursedBy = req.user.profileId;
+  req.loanApplication.disbursementBankAccountId = account._id;
+  req.loanApplication.disbursementBankName = account.bankName;
+  req.loanApplication.disbursementBankCode = bankCode;
+  req.loanApplication.disbursementAccountNumber = account.accountNumber;
+  req.loanApplication.disbursementAccountName = account.accountName;
   req.loanApplication.repaymentStartDate = repaymentStartDate;
   req.loanApplication.interestRateType = rateType;
-  req.loanApplication.monthlyPayment = monthlyPayment;
-  req.loanApplication.totalRepayable = totalRepayable;
-  req.loanApplication.remainingBalance = totalRepayable;
 
-  await req.loanApplication.save();
+  const existingReference =
+    req.loanApplication.payoutReference &&
+    !["failed", "reversed"].includes(
+      String(req.loanApplication.payoutStatus || "").toLowerCase(),
+    )
+      ? req.loanApplication.payoutReference
+      : null;
 
-  createNotification({
-    userId: req.loanApplication.userId,
-    title: "Loan disbursed",
-    message: `Your loan ${req.loanApplication.loanCode} has been disbursed.`,
-    type: "loan_disbursed",
-    metadata: {
-      loanId: req.loanApplication._id,
-      loanCode: req.loanApplication.loanCode,
-      amount: principal,
-    },
-  }).catch((err) => {
-    // eslint-disable-next-line no-console
-    console.error("Failed to create loan disbursement notification", err);
+  if (existingReference) {
+    const verifyRes = await verifyTransfer(existingReference);
+    const transfer = verifyRes?.data;
+    if (!transfer) {
+      return next(new AppError("Invalid Paystack transfer response", 502));
+    }
+
+    const status = String(transfer?.status || "").toLowerCase();
+    const transferCode =
+      transfer?.transfer_code || req.loanApplication.payoutTransferCode || null;
+
+    req.loanApplication.payoutReference = existingReference;
+    req.loanApplication.payoutGateway = "paystack";
+    req.loanApplication.payoutTransferCode = transferCode;
+    req.loanApplication.payoutStatus = status || null;
+
+    if (status === "success") {
+      await applyLoanDisbursement({
+        loan: req.loanApplication,
+        items,
+        repaymentStartDate,
+        rateType,
+        monthlyPayment,
+        totalRepayable,
+        principal,
+        disbursedBy: req.user.profileId,
+      });
+    } else {
+      await req.loanApplication.save();
+    }
+
+    return sendSuccess(res, {
+      statusCode: 200,
+      data: { application: req.loanApplication },
+    });
+  }
+
+  const reference = sanitizeTransferReference(requestedReference);
+
+  const recipientRes = await createTransferRecipient({
+    type: "nuban",
+    name: account.accountName,
+    account_number: account.accountNumber,
+    bank_code: bankCode,
+    currency: "NGN",
   });
+  const recipientCode = recipientRes?.data?.recipient_code;
+  if (!recipientCode) {
+    return next(new AppError("Unable to create transfer recipient", 502));
+  }
+
+  const transferRes = await initiateTransfer({
+    source: "balance",
+    amount: Math.round(Number(principal || 0) * 100),
+    recipient: recipientCode,
+    reference,
+    reason: `Loan ${req.loanApplication._id}`,
+  });
+  const transfer = transferRes?.data;
+  if (!transfer) {
+    return next(new AppError("Invalid Paystack transfer response", 502));
+  }
+
+  const status = String(transfer?.status || "").toLowerCase();
+  const transferCode = transfer?.transfer_code || null;
+
+  req.loanApplication.payoutReference = reference;
+  req.loanApplication.payoutGateway = "paystack";
+  req.loanApplication.payoutTransferCode = transferCode;
+  req.loanApplication.payoutStatus = status || null;
+
+  if (status === "success") {
+    await applyLoanDisbursement({
+      loan: req.loanApplication,
+      items,
+      repaymentStartDate,
+      rateType,
+      monthlyPayment,
+      totalRepayable,
+      principal,
+      disbursedBy: req.user.profileId,
+    });
+  } else {
+    await req.loanApplication.save();
+  }
 
   return sendSuccess(res, {
     statusCode: 200,

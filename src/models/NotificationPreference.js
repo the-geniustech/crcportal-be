@@ -13,6 +13,10 @@ export const NotificationPreferenceSchema = new Schema(
     loanUpdates: { type: Boolean, default: true },
     meetingReminders: { type: Boolean, default: true },
     marketingEmails: { type: Boolean, default: false },
+
+    loanPdfSendApplicant: { type: Boolean, default: true },
+    loanPdfSendGuarantors: { type: Boolean, default: true },
+    loanPdfExtraEmails: { type: [String], default: [] },
   },
   { timestamps: true },
 );
@@ -21,4 +25,3 @@ export const NotificationPreferenceModel = model(
   "NotificationPreference",
   NotificationPreferenceSchema,
 );
-

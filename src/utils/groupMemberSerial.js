@@ -1,57 +1,55 @@
+import { Schema, model } from "../models/_shared.js";
 import { GroupModel } from "../models/Group.js";
 import { GroupMembershipModel } from "../models/GroupMembership.js";
 
-function resolveSerialYear(joinedAt) {
-  const date = joinedAt ? new Date(joinedAt) : new Date();
-  const resolved = Number.isNaN(date.getTime()) ? new Date() : date;
-  return String(resolved.getFullYear()).slice(-2);
-}
+const MemberSequenceSchema = new Schema(
+  {
+    key: { type: String, required: true, unique: true, trim: true },
+    value: { type: Number, default: 0, min: 0 },
+  },
+  { timestamps: true },
+);
+
+const MemberSequenceModel = model("MemberSequence", MemberSequenceSchema);
+const MEMBER_SEQUENCE_KEY = "group_member";
 
 export function formatGroupMemberSerial({
-  joinedAt,
   groupNumber,
   memberNumber,
 }) {
-  const year = resolveSerialYear(joinedAt);
   const groupPart = String(groupNumber ?? "").trim() || "0";
   const memberPart = String(memberNumber ?? 0).padStart(4, "0");
-  return `${year}/${groupPart}/${memberPart}`;
+  return `CRC/G${groupPart}/${memberPart}`;
 }
 
 export async function ensureGroupMemberSequence(groupId) {
-  if (!groupId) return 0;
   const maxMember = await GroupMembershipModel.findOne(
-    { groupId, memberNumber: { $type: "number" } },
+    { memberNumber: { $type: "number" } },
     { memberNumber: 1 },
   )
     .sort({ memberNumber: -1 })
     .lean();
   const maxNumber = Number(maxMember?.memberNumber ?? 0);
-  if (maxNumber > 0) {
-    await GroupModel.updateOne(
-      {
-        _id: groupId,
-        $or: [
-          { memberSequence: { $exists: false } },
-          { memberSequence: { $lt: maxNumber } },
-        ],
-      },
-      { $set: { memberSequence: maxNumber } },
-    );
-  }
+  const update = maxNumber > 0 ? { $set: { value: maxNumber } } : { $setOnInsert: { value: 0 } };
+  await MemberSequenceModel.updateOne(
+    {
+      key: MEMBER_SEQUENCE_KEY,
+      ...(maxNumber > 0
+        ? { $or: [{ value: { $exists: false } }, { value: { $lt: maxNumber } }] }
+        : {}),
+    },
+    update,
+    { upsert: true },
+  );
   return maxNumber;
 }
 
 export async function reserveGroupMemberNumbers(groupId, count) {
-  if (!groupId) {
-    return { groupNumber: null, start: null, end: null };
-  }
   const total = Number(count ?? 0);
   if (!Number.isFinite(total) || total <= 0) {
-    const group = await GroupModel.findById(groupId, {
-      groupNumber: 1,
-      memberSequence: 1,
-    }).lean();
+    const group = groupId
+      ? await GroupModel.findById(groupId, { groupNumber: 1 }).lean()
+      : null;
     return {
       groupNumber: Number(group?.groupNumber ?? 0),
       start: null,
@@ -60,19 +58,21 @@ export async function reserveGroupMemberNumbers(groupId, count) {
   }
 
   await ensureGroupMemberSequence(groupId);
-  const group = await GroupModel.findByIdAndUpdate(
-    groupId,
-    { $inc: { memberSequence: total } },
-    { new: true, select: { groupNumber: 1, memberSequence: 1 } },
+  const sequence = await MemberSequenceModel.findOneAndUpdate(
+    { key: MEMBER_SEQUENCE_KEY },
+    { $inc: { value: total } },
+    { new: true, upsert: true, setDefaultsOnInsert: true },
   ).lean();
 
-  if (!group) {
-    return { groupNumber: null, start: null, end: null };
-  }
+  const group = groupId
+    ? await GroupModel.findById(groupId, { groupNumber: 1 }).lean()
+    : null;
 
-  const end = Number(group.memberSequence ?? 0);
+  if (!sequence) return { groupNumber: null, start: null, end: null };
+
+  const end = Number(sequence.value ?? 0);
   const start = end - total + 1;
-  return { groupNumber: Number(group.groupNumber ?? 0), start, end };
+  return { groupNumber: Number(group?.groupNumber ?? 0), start, end };
 }
 
 export async function assignGroupMemberSerial({ membership, group }) {
@@ -94,7 +94,6 @@ export async function assignGroupMemberSerial({ membership, group }) {
   if (!memberNumber || !groupNumber) return membership;
 
   const serial = formatGroupMemberSerial({
-    joinedAt,
     groupNumber,
     memberNumber,
   });

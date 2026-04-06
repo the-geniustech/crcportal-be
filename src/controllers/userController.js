@@ -4,7 +4,13 @@ import { GroupMembershipModel } from "../models/GroupMembership.js";
 import AppError from "../utils/AppError.js";
 import catchAsync from "../utils/catchAsync.js";
 import sendSuccess from "../utils/sendSuccess.js";
-import { getContributionSettingsWindowStatus } from "../utils/contributionPolicy.js";
+import {
+  getContributionSettingsWindowStatus,
+  resolveExpectedContributionAmount,
+} from "../utils/contributionPolicy.js";
+import { sha256 } from "../utils/crypto.js";
+import { sendPhoneOtp } from "../services/sms/sendPhoneOtp.js";
+import { sendEmailOtp } from "../services/mail/sendEmailOtp.js";
 
 function pick(obj, allowedKeys) {
   const out = {};
@@ -15,6 +21,25 @@ function pick(obj, allowedKeys) {
   }
   return out;
 }
+
+function normalizeEmail(email) {
+  return String(email || "").trim().toLowerCase();
+}
+
+function normalizePhone(phone) {
+  return String(phone || "").trim().replace(/\s+/g, "");
+}
+
+function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
+}
+
+function generateOtp() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+const OTP_TTL_MINUTES = 10;
+const OTP_RESEND_COOLDOWN_MS = 60_000;
 
 const PlannedContributionUnitTypes = ["revolving", "endwell", "festive"];
 
@@ -95,7 +120,6 @@ export const updateMe = catchAsync(async (req, res, next) => {
 
   const updates = pick(req.body || {}, [
     "fullName",
-    "phone",
     "dateOfBirth",
     "address",
     "city",
@@ -125,6 +149,297 @@ export const updateMe = catchAsync(async (req, res, next) => {
   return sendSuccess(res, {
     statusCode: 200,
     data: { profile },
+  });
+});
+
+export const requestEmailChange = catchAsync(async (req, res, next) => {
+  if (!req.user) return next(new AppError("Not authenticated", 401));
+
+  const rawEmail = req.body?.email || req.body?.newEmail;
+  if (!rawEmail) return next(new AppError("New email is required", 400));
+  const newEmail = normalizeEmail(rawEmail);
+  if (!isValidEmail(newEmail)) {
+    return next(new AppError("Provide a valid email address", 400));
+  }
+
+  if (req.user.email && normalizeEmail(req.user.email) === newEmail) {
+    return next(new AppError("New email matches current email", 400));
+  }
+
+  const existing = await UserModel.findOne({
+    email: newEmail,
+    _id: { $ne: req.user._id },
+  });
+  if (existing) {
+    return next(new AppError("Email is already in use", 409));
+  }
+
+  const user = await UserModel.findById(req.user._id).select(
+    "+emailChangeOtpSentAt",
+  );
+  if (!user) return next(new AppError("User not found", 404));
+
+  const now = Date.now();
+  const lastSent = user.emailChangeOtpSentAt
+    ? new Date(user.emailChangeOtpSentAt).getTime()
+    : 0;
+  if (lastSent && now - lastSent < OTP_RESEND_COOLDOWN_MS) {
+    const wait = Math.ceil(
+      (OTP_RESEND_COOLDOWN_MS - (now - lastSent)) / 1000,
+    );
+    return next(
+      new AppError(`Please wait ${wait}s before requesting a new code.`, 429),
+    );
+  }
+
+  const otp = generateOtp();
+
+  user.pendingEmail = newEmail;
+  user.emailChangeOtpHash = sha256(otp);
+  user.emailChangeOtpExpiresAt = new Date(now + OTP_TTL_MINUTES * 60 * 1000);
+  user.emailChangeOtpSentAt = new Date(now);
+
+  await user.save({ validateBeforeSave: false });
+
+  await sendEmailOtp({
+    toEmail: newEmail,
+    otp,
+    ttlMinutes: OTP_TTL_MINUTES,
+    purpose: "email change",
+  });
+
+  return sendSuccess(res, {
+    statusCode: 200,
+    message: "Verification code sent to your new email.",
+    data: {
+      pendingEmail: newEmail,
+      expiresInMinutes: OTP_TTL_MINUTES,
+    },
+  });
+});
+
+export const confirmEmailChange = catchAsync(async (req, res, next) => {
+  if (!req.user) return next(new AppError("Not authenticated", 401));
+
+  const rawEmail = req.body?.email || req.body?.newEmail;
+  const otp = req.body?.otp;
+  if (!rawEmail || !otp) {
+    return next(new AppError("Email and OTP are required", 400));
+  }
+
+  const newEmail = normalizeEmail(rawEmail);
+  if (!isValidEmail(newEmail)) {
+    return next(new AppError("Provide a valid email address", 400));
+  }
+
+  const user = await UserModel.findById(req.user._id).select(
+    "+emailChangeOtpHash +emailChangeOtpExpiresAt",
+  );
+  if (!user) return next(new AppError("User not found", 404));
+
+  if (!user.pendingEmail || normalizeEmail(user.pendingEmail) !== newEmail) {
+    return next(
+      new AppError("No pending email change found for this address.", 400),
+    );
+  }
+
+  if (!user.emailChangeOtpHash || !user.emailChangeOtpExpiresAt) {
+    return next(
+      new AppError(
+        "No verification request found. Please request a new code.",
+        400,
+      ),
+    );
+  }
+
+  if (user.emailChangeOtpExpiresAt.getTime() <= Date.now()) {
+    return next(
+      new AppError(
+        "Verification code has expired. Please request a new code.",
+        400,
+      ),
+    );
+  }
+
+  if (sha256(String(otp).trim()) !== user.emailChangeOtpHash) {
+    return next(new AppError("Invalid verification code", 400));
+  }
+
+  const existing = await UserModel.findOne({
+    email: newEmail,
+    _id: { $ne: user._id },
+  });
+  if (existing) {
+    return next(new AppError("Email is already in use", 409));
+  }
+
+  user.email = newEmail;
+  user.emailVerifiedAt = new Date();
+  user.pendingEmail = null;
+  user.emailChangeOtpHash = null;
+  user.emailChangeOtpExpiresAt = null;
+  user.emailChangeOtpSentAt = null;
+
+  await user.save({ validateBeforeSave: false });
+
+  await ProfileModel.findByIdAndUpdate(
+    user.profileId,
+    { email: newEmail },
+    { new: true, runValidators: true },
+  );
+
+  return sendSuccess(res, {
+    statusCode: 200,
+    message: "Email updated successfully.",
+    data: {
+      user: {
+        id: user._id,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+      },
+    },
+  });
+});
+
+export const requestPhoneChange = catchAsync(async (req, res, next) => {
+  if (!req.user) return next(new AppError("Not authenticated", 401));
+
+  const rawPhone = req.body?.phone || req.body?.newPhone;
+  if (!rawPhone) return next(new AppError("New phone number is required", 400));
+  const newPhone = normalizePhone(rawPhone);
+  if (!newPhone) return next(new AppError("Provide a valid phone number", 400));
+
+  if (req.user.phone && normalizePhone(req.user.phone) === newPhone) {
+    return next(new AppError("New phone matches current phone number", 400));
+  }
+
+  const existing = await UserModel.findOne({
+    phone: newPhone,
+    _id: { $ne: req.user._id },
+  });
+  if (existing) {
+    return next(new AppError("Phone number is already in use", 409));
+  }
+
+  const user = await UserModel.findById(req.user._id).select(
+    "+phoneChangeOtpSentAt",
+  );
+  if (!user) return next(new AppError("User not found", 404));
+
+  const now = Date.now();
+  const lastSent = user.phoneChangeOtpSentAt
+    ? new Date(user.phoneChangeOtpSentAt).getTime()
+    : 0;
+  if (lastSent && now - lastSent < OTP_RESEND_COOLDOWN_MS) {
+    const wait = Math.ceil(
+      (OTP_RESEND_COOLDOWN_MS - (now - lastSent)) / 1000,
+    );
+    return next(
+      new AppError(`Please wait ${wait}s before requesting a new code.`, 429),
+    );
+  }
+
+  const otp = generateOtp();
+
+  user.pendingPhone = newPhone;
+  user.phoneChangeOtpHash = sha256(otp);
+  user.phoneChangeOtpExpiresAt = new Date(now + OTP_TTL_MINUTES * 60 * 1000);
+  user.phoneChangeOtpSentAt = new Date(now);
+
+  await user.save({ validateBeforeSave: false });
+
+  await sendPhoneOtp({ toPhone: newPhone, otp, ttlMinutes: OTP_TTL_MINUTES });
+
+  return sendSuccess(res, {
+    statusCode: 200,
+    message: "Verification code sent to your new phone number.",
+    data: {
+      pendingPhone: newPhone,
+      expiresInMinutes: OTP_TTL_MINUTES,
+    },
+  });
+});
+
+export const confirmPhoneChange = catchAsync(async (req, res, next) => {
+  if (!req.user) return next(new AppError("Not authenticated", 401));
+
+  const rawPhone = req.body?.phone || req.body?.newPhone;
+  const otp = req.body?.otp;
+  if (!rawPhone || !otp) {
+    return next(new AppError("Phone and OTP are required", 400));
+  }
+
+  const newPhone = normalizePhone(rawPhone);
+  if (!newPhone) return next(new AppError("Provide a valid phone number", 400));
+
+  const user = await UserModel.findById(req.user._id).select(
+    "+phoneChangeOtpHash +phoneChangeOtpExpiresAt",
+  );
+  if (!user) return next(new AppError("User not found", 404));
+
+  if (!user.pendingPhone || normalizePhone(user.pendingPhone) !== newPhone) {
+    return next(
+      new AppError("No pending phone change found for this number.", 400),
+    );
+  }
+
+  if (!user.phoneChangeOtpHash || !user.phoneChangeOtpExpiresAt) {
+    return next(
+      new AppError(
+        "No verification request found. Please request a new code.",
+        400,
+      ),
+    );
+  }
+
+  if (user.phoneChangeOtpExpiresAt.getTime() <= Date.now()) {
+    return next(
+      new AppError(
+        "Verification code has expired. Please request a new code.",
+        400,
+      ),
+    );
+  }
+
+  if (sha256(String(otp).trim()) !== user.phoneChangeOtpHash) {
+    return next(new AppError("Invalid verification code", 400));
+  }
+
+  const existing = await UserModel.findOne({
+    phone: newPhone,
+    _id: { $ne: user._id },
+  });
+  if (existing) {
+    return next(new AppError("Phone number is already in use", 409));
+  }
+
+  user.phone = newPhone;
+  user.phoneVerifiedAt = new Date();
+  user.pendingPhone = null;
+  user.phoneChangeOtpHash = null;
+  user.phoneChangeOtpExpiresAt = null;
+  user.phoneChangeOtpSentAt = null;
+
+  await user.save({ validateBeforeSave: false });
+
+  await ProfileModel.findByIdAndUpdate(
+    user.profileId,
+    { phone: newPhone },
+    { new: true, runValidators: true },
+  );
+
+  return sendSuccess(res, {
+    statusCode: 200,
+    message: "Phone number updated successfully.",
+    data: {
+      user: {
+        id: user._id,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+      },
+    },
   });
 });
 
@@ -328,11 +643,35 @@ export const listMyGroups = catchAsync(async (req, res, next) => {
     status: "active",
   })
     .sort({ joinedAt: -1 })
-    .populate("groupId");
+    .populate("groupId")
+    .lean();
+
+  const profile = await ProfileModel.findById(req.user.profileId, {
+    contributionSettings: 1,
+  }).lean();
+  const currentYear = new Date().getFullYear();
+
+  const enriched = memberships.map((membership) => {
+    const group =
+      membership && typeof membership.groupId === "object"
+        ? membership.groupId
+        : null;
+    const expectedMonthlyContribution = resolveExpectedContributionAmount({
+      settings: profile?.contributionSettings,
+      year: currentYear,
+      groupMonthlyContribution: group?.monthlyContribution,
+      type: "revolving",
+    });
+
+    return {
+      ...membership,
+      expectedMonthlyContribution,
+    };
+  });
 
   return sendSuccess(res, {
     statusCode: 200,
-    results: memberships.length,
-    data: { memberships },
+    results: enriched.length,
+    data: { memberships: enriched },
   });
 });

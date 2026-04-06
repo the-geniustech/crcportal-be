@@ -48,7 +48,7 @@ router.use("/loans", adminLoanRoutes);
 
 router.get(
   "/contributions/tracker",
-  restrictTo("groupCoordinator"),
+  restrictTo("admin", "groupCoordinator"),
   listContributionTracker,
 );
 router.post(
@@ -63,12 +63,12 @@ router.post(
 );
 router.get(
   "/contributions/tracking",
-  restrictTo("groupCoordinator"),
+  restrictTo("admin", "groupCoordinator"),
   getAdminContributionTracking,
 );
 router.get(
   "/contributions/special-summary",
-  restrictTo("groupCoordinator"),
+  restrictTo("admin", "groupCoordinator"),
   getAdminSpecialContributionSummary,
 );
 

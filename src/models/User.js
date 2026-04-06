@@ -20,6 +20,17 @@ export const UserSchema = new Schema(
       type: String,
       trim: true,
     },
+    pendingEmail: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      default: null,
+    },
+    pendingPhone: {
+      type: String,
+      trim: true,
+      default: null,
+    },
     password: {
       type: String,
       required: [true, "Password is required"],
@@ -76,6 +87,38 @@ export const UserSchema = new Schema(
       select: false,
     },
     phoneOtpSentAt: {
+      type: Date,
+      default: null,
+      select: false,
+    },
+
+    emailChangeOtpHash: {
+      type: String,
+      default: null,
+      select: false,
+    },
+    emailChangeOtpExpiresAt: {
+      type: Date,
+      default: null,
+      select: false,
+    },
+    emailChangeOtpSentAt: {
+      type: Date,
+      default: null,
+      select: false,
+    },
+
+    phoneChangeOtpHash: {
+      type: String,
+      default: null,
+      select: false,
+    },
+    phoneChangeOtpExpiresAt: {
+      type: Date,
+      default: null,
+      select: false,
+    },
+    phoneChangeOtpSentAt: {
       type: Date,
       default: null,
       select: false,
