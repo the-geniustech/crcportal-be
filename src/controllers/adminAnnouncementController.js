@@ -8,6 +8,7 @@ import { sendEmail } from "../services/mail/resendClient.js";
 import { sendSms } from "../services/sms/termiiClient.js";
 import { CommunicationLogModel } from "../models/CommunicationLog.js";
 import { createNotificationsBulk } from "../services/notificationService.js";
+import { hasUserRole, normalizeUserRoles, pickPrimaryRole } from "../utils/roles.js";
 
 function splitCsv(value) {
   if (!value) return [];
@@ -25,9 +26,9 @@ async function getManageableGroupIds(req) {
   if (!req.user) throw new AppError("Not authenticated", 401);
   if (!req.user.profileId) throw new AppError("User profile not found", 400);
 
-  if (req.user.role === "admin") return null;
+  if (hasUserRole(req.user, "admin")) return null;
 
-  if (req.user.role !== "groupCoordinator") {
+  if (!hasUserRole(req.user, "groupCoordinator")) {
     throw new AppError("Insufficient permissions", 403);
   }
 
@@ -255,7 +256,7 @@ export const createAdminAnnouncement = catchAsync(async (req, res, next) => {
 
   CommunicationLogModel.create({
     createdBy: req.user.profileId,
-    creatorRole: req.user.role,
+    creatorRole: pickPrimaryRole(normalizeUserRoles(req.user)),
     kind: "announcement",
     target,
     groupNumbers:

@@ -25,6 +25,11 @@ import {
   signTwoFactorToken,
   verifyTwoFactorToken,
 } from "../utils/tokens.js";
+import {
+  hasUserRole,
+  normalizeUserRoles,
+  pickPrimaryRole,
+} from "../utils/roles.js";
 import { sendEmailVerification } from "../services/mail/sendEmailVerification.js";
 import { sendPasswordResetEmail } from "../services/mail/sendPasswordResetEmail.js";
 import { sendPhoneOtp } from "../services/sms/sendPhoneOtp.js";
@@ -106,11 +111,13 @@ async function sendPhoneOtpIfNeeded(user, req) {
 
 async function buildAuthResponse(user, req) {
   await ensureActiveGroupMembership(user);
+  const roles = normalizeUserRoles(user);
   const safeUser = {
     id: user._id,
     email: user.email,
     phone: user.phone,
-    role: user.role,
+    role: pickPrimaryRole(roles),
+    roles,
     profileId: user.profileId,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
@@ -120,7 +127,8 @@ async function buildAuthResponse(user, req) {
 
   const accessToken = signAccessToken({
     userId: user._id.toString(),
-    role: user.role,
+    role: pickPrimaryRole(roles),
+    roles,
   });
 
   const jti = randomId(16);
@@ -145,8 +153,7 @@ async function buildAuthResponse(user, req) {
 
 async function ensureActiveGroupMembership(user) {
   if (!user) return;
-  const role = String(user.role || "");
-  if (role === "admin") return;
+  if (hasUserRole(user, "admin")) return;
 
   if (!user.profileId) {
     throw new AppError(
@@ -341,6 +348,7 @@ export const signup = catchAsync(async (req, res, next) => {
 
   if (user.email) await sendEmailVerificationIfNeeded(user, req);
   if (!email && user.phone) await sendPhoneOtpIfNeeded(user, req);
+  const roles = normalizeUserRoles(user);
 
   let message = "Signup successful.";
   if (user.email && user.phone) {
@@ -361,7 +369,8 @@ export const signup = catchAsync(async (req, res, next) => {
         id: user._id,
         email: user.email,
         phone: user.phone,
-        role: user.role,
+        role: pickPrimaryRole(roles),
+        roles,
         profileId: user.profileId,
       },
     },
@@ -865,9 +874,11 @@ export const refresh = catchAsync(async (req, res, next) => {
     userAgent: req.get("user-agent") || null,
   });
 
+  const roles = normalizeUserRoles(user);
   const accessToken = signAccessToken({
     userId: user._id.toString(),
-    role: user.role,
+    role: pickPrimaryRole(roles),
+    roles,
   });
   const profile = await ProfileModel.findById(user.profileId);
 
@@ -880,7 +891,8 @@ export const refresh = catchAsync(async (req, res, next) => {
         id: user._id,
         email: user.email,
         phone: user.phone,
-        role: user.role,
+        role: pickPrimaryRole(roles),
+        roles,
         profileId: user.profileId,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
@@ -1443,7 +1455,7 @@ export function restrictTo(...roles) {
   return (req, res, next) => {
     if (!req.user) return next(new AppError("Not authenticated", 401));
 
-    if (!roles.includes(req.user.role)) {
+    if (!hasUserRole(req.user, roles)) {
       return next(
         new AppError("You do not have permission to perform this action", 403),
       );

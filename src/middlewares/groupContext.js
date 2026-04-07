@@ -2,6 +2,7 @@ import AppError from "../utils/AppError.js";
 import catchAsync from "../utils/catchAsync.js";
 import { GroupModel } from "../models/Group.js";
 import { GroupMembershipModel } from "../models/GroupMembership.js";
+import { hasUserRole } from "../utils/roles.js";
 
 export const loadGroup = catchAsync(async (req, res, next) => {
   const groupId = req.params.groupId || req.params.id;
@@ -30,7 +31,7 @@ export const loadMyGroupMembership = catchAsync(async (req, res, next) => {
 
 export function requireActiveMembership() {
   return (req, res, next) => {
-    if (req.user?.role === "admin") return next();
+    if (hasUserRole(req.user, "admin")) return next();
     if (!req.groupMembership) return next(new AppError("Not a group member", 403));
     if (req.groupMembership.status !== "active") {
       return next(new AppError("Group membership is not active", 403));
@@ -41,7 +42,7 @@ export function requireActiveMembership() {
 
 export function requireGroupRole(...allowedRoles) {
   return (req, res, next) => {
-    if (req.user?.role === "admin") return next();
+    if (hasUserRole(req.user, "admin")) return next();
     if (!req.groupMembership) return next(new AppError("Not a group member", 403));
     if (req.groupMembership.status !== "active") {
       return next(new AppError("Group membership is not active", 403));
@@ -56,8 +57,10 @@ export function requireGroupRole(...allowedRoles) {
 export function requireGroupReadAccess() {
   return (req, res, next) => {
     if (
-      ["admin", "groupCoordinator", "groupGuarantor", "group_guarantor"].includes(
-        req.user?.role || "",
+      hasUserRole(
+        req.user,
+        "admin",
+        "groupCoordinator",
       )
     ) {
       return next();

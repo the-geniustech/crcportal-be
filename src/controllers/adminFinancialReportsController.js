@@ -14,6 +14,7 @@ import {
   getContributionTypeMatch,
   resolveExpectedContributionAmount,
 } from "../utils/contributionPolicy.js";
+import { hasUserRole } from "../utils/roles.js";
 
 function clamp(n, min, max) {
   return Math.min(max, Math.max(min, n));
@@ -23,9 +24,9 @@ async function getManageableGroupIds(req) {
   if (!req.user) throw new AppError("Not authenticated", 401);
   if (!req.user.profileId) throw new AppError("User profile not found", 400);
 
-  if (req.user.role === "admin") return null;
+  if (hasUserRole(req.user, "admin")) return null;
 
-  if (req.user.role !== "groupCoordinator") {
+  if (!hasUserRole(req.user, "groupCoordinator")) {
     throw new AppError("Insufficient permissions", 403);
   }
 
@@ -114,15 +115,11 @@ export const getAdminFinancialReports = catchAsync(async (req, res, next) => {
   const months = Array.from({ length: periodMonths }, (_v, i) =>
     shiftMonthUtc(startMonth, i),
   );
-  const monthsByYear = months.reduce((acc, m) => {
-    const year = Number(m.year);
-    if (!Number.isFinite(year)) return acc;
-    acc[year] = (acc[year] || 0) + 1;
-    return acc;
-  }, {});
   const periodMonthFilters = buildPeriodMonthFilters(months);
   const periodMonthMatch =
     periodMonthFilters.length > 0 ? { $or: periodMonthFilters } : {};
+  const ytdMonthMatch = { year: end.year, month: { $gte: 1, $lte: end.month } };
+  const ytdMonthsCount = Math.max(0, Math.min(12, end.month));
 
   const rangeStart = monthStartUtc(startMonth.year, startMonth.month);
   const rangeEnd = monthEndUtc(endMonth.year, endMonth.month);
@@ -285,7 +282,7 @@ export const getAdminFinancialReports = catchAsync(async (req, res, next) => {
           $match: {
             status: { $in: PaidContributionStatuses },
             groupId: { $in: groupIdsObj },
-            ...periodMonthMatch,
+            ...ytdMonthMatch,
           },
         },
         { $group: { _id: "$groupId", total: { $sum: "$amount" } } },
@@ -306,7 +303,7 @@ export const getAdminFinancialReports = catchAsync(async (req, res, next) => {
             status: { $in: PaidContributionStatuses },
             groupId: { $in: groupIdsObj },
             contributionType: { $in: regularTypeMatch },
-            ...periodMonthMatch,
+            ...ytdMonthMatch,
           },
         },
         { $group: { _id: "$groupId", total: { $sum: "$amount" } } },
@@ -319,7 +316,7 @@ export const getAdminFinancialReports = catchAsync(async (req, res, next) => {
 
   const groupById = new Map(groups.map((g) => [String(g._id), g]));
   const memberCountByGroup = new Map();
-  const expectedMonthlyByGroupYear = new Map();
+  const expectedMonthlyByGroup = new Map();
 
   for (const membership of activeMemberships) {
     const gid = String(membership.groupId);
@@ -330,33 +327,23 @@ export const getAdminFinancialReports = catchAsync(async (req, res, next) => {
     if (!group) continue;
     const settings = settingsByProfileId.get(uid) ?? null;
 
-    for (const [yearKey, monthsCount] of Object.entries(monthsByYear)) {
-      const year = Number(yearKey);
-      if (!Number.isFinite(year)) continue;
-      const expectedMonthly = resolveExpectedContributionAmount({
-        settings,
-        year,
-        groupMonthlyContribution: group.monthlyContribution,
-        type: "revolving",
-      });
-      const key = `${gid}:${year}`;
-      expectedMonthlyByGroupYear.set(
-        key,
-        (expectedMonthlyByGroupYear.get(key) ?? 0) +
-          Number(expectedMonthly || 0),
-      );
-    }
+    const expectedMonthly = resolveExpectedContributionAmount({
+      settings,
+      year: end.year,
+      groupMonthlyContribution: group.monthlyContribution,
+      type: "revolving",
+    });
+    expectedMonthlyByGroup.set(
+      gid,
+      (expectedMonthlyByGroup.get(gid) ?? 0) + Number(expectedMonthly || 0),
+    );
   }
 
   const expectedTotalByGroup = new Map();
   for (const group of groups) {
     const gid = String(group._id);
-    let expectedTotal = 0;
-    for (const [yearKey, monthsCount] of Object.entries(monthsByYear)) {
-      const key = `${gid}:${yearKey}`;
-      const expectedMonthly = expectedMonthlyByGroupYear.get(key) ?? 0;
-      expectedTotal += expectedMonthly * Number(monthsCount || 0);
-    }
+    const expectedMonthly = expectedMonthlyByGroup.get(gid) ?? 0;
+    const expectedTotal = expectedMonthly * ytdMonthsCount;
     expectedTotalByGroup.set(gid, expectedTotal);
   }
 

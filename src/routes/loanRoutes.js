@@ -6,6 +6,7 @@ import sendSuccess from "../utils/sendSuccess.js";
 import {
   createLoanDraft,
   createLoanApplication,
+  createLoanEditRequest,
   deleteLoanDraft,
   disburseLoan,
   finalizeLoanDisbursementOtp,
@@ -190,6 +191,13 @@ router.post(
   maybeCloudinaryLoanDocuments,
   normalizeLoanDocuments,
   createLoanApplication,
+);
+router.post(
+  "/applications/:applicationId/edit-requests",
+  normalizeLoanDocuments,
+  loadLoanApplication,
+  requireLoanOwnerOrAdmin(),
+  createLoanEditRequest,
 );
 router.get(
   "/applications/:applicationId",

@@ -6,6 +6,7 @@ import { MeetingModel, MeetingStatuses, MeetingTypes } from "../models/Meeting.j
 import { MeetingAgendaItemModel } from "../models/MeetingAgendaItem.js";
 import { MeetingMinutesModel } from "../models/MeetingMinutes.js";
 import { MeetingAttendanceModel, AttendanceStatuses } from "../models/MeetingAttendance.js";
+import { hasUserRole } from "../utils/roles.js";
 
 async function getMeetingInGroup({ meetingId, groupId }) {
   return MeetingModel.findOne({ _id: meetingId, groupId });
@@ -294,7 +295,7 @@ export const upsertAttendance = catchAsync(async (req, res, next) => {
   if (
     userId &&
     String(userId) !== String(req.user.profileId) &&
-    req.user.role !== "admin" &&
+    !hasUserRole(req.user, "admin") &&
     !["coordinator", "secretary", "admin"].includes(req.groupMembership?.role)
   ) {
     return next(new AppError("Insufficient group permissions to set attendance for others", 403));

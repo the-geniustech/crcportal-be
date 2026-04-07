@@ -3,6 +3,7 @@ import { Server as SocketIOServer } from "socket.io";
 
 import { UserModel } from "./models/User.js";
 import { GroupMembershipModel } from "./models/GroupMembership.js";
+import { hasUserRole } from "./utils/roles.js";
 
 let io = null;
 
@@ -54,7 +55,7 @@ export function initSocket(server) {
         return next(new Error("User not found"));
       }
 
-      if (String(user.role || "") !== "admin") {
+      if (!hasUserRole(user, "admin")) {
         const activeMembership = await GroupMembershipModel.exists({
           userId: user.profileId,
           status: "active",

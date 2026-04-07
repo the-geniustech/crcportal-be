@@ -13,6 +13,7 @@ import { ProfileModel } from "../models/Profile.js";
 import { NotificationModel } from "../models/Notification.js";
 import mongoose from "mongoose";
 import { assignGroupMemberSerial } from "../utils/groupMemberSerial.js";
+import { hasUserRole } from "../utils/roles.js";
 import {
   ContributionTypeCanonical,
   calculateContributionInterestForType,
@@ -324,9 +325,9 @@ async function getManageableGroupIds(req) {
   if (!req.user) throw new AppError("Not authenticated", 401);
   if (!req.user.profileId) throw new AppError("User profile not found", 400);
 
-  if (req.user.role === "admin") return null;
+  if (hasUserRole(req.user, "admin")) return null;
 
-  if (req.user.role !== "groupCoordinator") {
+  if (!hasUserRole(req.user, "groupCoordinator")) {
     throw new AppError("Insufficient permissions", 403);
   }
 
@@ -498,11 +499,7 @@ export const listContributionTracker = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
   if (!req.user.profileId) return next(new AppError("User profile not found", 400));
 
-  if (
-    !["admin", "groupCoordinator", "group_coordinator"].includes(
-      String(req.user.role || ""),
-    )
-  ) {
+  if (!hasUserRole(req.user, "admin", "groupCoordinator", "group_coordinator")) {
     return next(
       new AppError("Only admins and group coordinators can access contribution tracking", 403),
     );
@@ -650,7 +647,7 @@ export const sendContributionReminders = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
   if (!req.user.profileId) return next(new AppError("User profile not found", 400));
 
-  if (!["groupCoordinator", "group_coordinator"].includes(String(req.user.role || ""))) {
+  if (!hasUserRole(req.user, "groupCoordinator", "group_coordinator")) {
     return next(new AppError("Only group coordinators can send reminders", 403));
   }
 
@@ -888,7 +885,7 @@ export const markContributionPaid = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
   if (!req.user.profileId) return next(new AppError("User profile not found", 400));
 
-  if (!["groupCoordinator", "group_coordinator"].includes(String(req.user.role || ""))) {
+  if (!hasUserRole(req.user, "groupCoordinator", "group_coordinator")) {
     return next(new AppError("Only group coordinators can mark contributions as paid", 403));
   }
 

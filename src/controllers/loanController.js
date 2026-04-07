@@ -5,6 +5,7 @@ import {
   LoanApplicationModel,
   LoanApplicationStatuses,
 } from "../models/LoanApplication.js";
+import { LoanApplicationEditRequestModel } from "../models/LoanApplicationEditRequest.js";
 import { LoanGuarantorModel } from "../models/LoanGuarantor.js";
 import { GuarantorNotificationModel } from "../models/GuarantorNotification.js";
 import { LoanRepaymentScheduleItemModel } from "../models/LoanRepaymentScheduleItem.js";
@@ -33,6 +34,7 @@ import {
   resendTransferOtp,
   verifyTransfer,
 } from "../services/paystack.js";
+import { hasUserRole } from "../utils/roles.js";
 
 function pick(obj, allowedKeys) {
   const out = {};
@@ -411,6 +413,285 @@ function sanitizeDraftPayload(body = {}) {
   return payload;
 }
 
+const EDIT_REQUEST_FIELDS = [
+  "loanAmount",
+  "loanPurpose",
+  "purposeDescription",
+  "repaymentPeriod",
+  "documents",
+  "guarantors",
+  "bankAccountId",
+];
+
+function sanitizeSignatureInput(signature) {
+  if (!signature || typeof signature !== "object") return null;
+  const method = String(signature.method || "").trim().toLowerCase();
+  const allowedMethods = new Set(["text", "draw", "upload"]);
+  return {
+    method: allowedMethods.has(method) ? method : null,
+    text: signature.text ? String(signature.text) : "",
+    font: signature.font ? String(signature.font) : "",
+    imageUrl: signature.imageUrl ? String(signature.imageUrl) : null,
+    imagePublicId: signature.imagePublicId
+      ? String(signature.imagePublicId)
+      : null,
+    signedAt: parseDateOrNull(signature.signedAt),
+  };
+}
+
+function sanitizeGuarantorInput(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const typeRaw = String(raw.type || "").trim().toLowerCase();
+  const type = typeRaw === "member" || typeRaw === "external" ? typeRaw : null;
+  if (!type) return null;
+
+  return {
+    type,
+    profileId: raw.profileId ? String(raw.profileId) : null,
+    name: String(raw.name || "").trim(),
+    email: raw.email ? String(raw.email).trim().toLowerCase() : "",
+    phone: raw.phone ? String(raw.phone).trim() : "",
+    relationship: raw.relationship ? String(raw.relationship).trim() : "",
+    occupation: raw.occupation ? String(raw.occupation).trim() : "",
+    address: raw.address ? String(raw.address).trim() : "",
+    memberSince: raw.memberSince ? String(raw.memberSince).trim() : "",
+    savingsBalance: Number.isFinite(Number(raw.savingsBalance))
+      ? Number(raw.savingsBalance)
+      : null,
+    liabilityPercentage: Number.isFinite(Number(raw.liabilityPercentage))
+      ? Number(raw.liabilityPercentage)
+      : null,
+    requestMessage: raw.requestMessage ? String(raw.requestMessage) : null,
+    signature: sanitizeSignatureInput(raw.signature),
+  };
+}
+
+function sanitizeEditPayload(body = {}) {
+  const payload = pick(body || {}, EDIT_REQUEST_FIELDS);
+  const requestedBankAccountId =
+    body?.bankAccountId ||
+    body?.bank_account_id ||
+    body?.disbursementBankAccountId ||
+    null;
+  if (requestedBankAccountId !== null) {
+    payload.bankAccountId = requestedBankAccountId;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(payload, "loanAmount")) {
+    payload.loanAmount = Number(payload.loanAmount);
+  }
+  if (Object.prototype.hasOwnProperty.call(payload, "repaymentPeriod")) {
+    payload.repaymentPeriod = Number(payload.repaymentPeriod);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(payload, "documents")) {
+    const docs = Array.isArray(payload.documents) ? payload.documents : [];
+    payload.documents = docs
+      .filter((doc) => doc && typeof doc === "object")
+      .map((doc) => ({
+        name: String(doc.name || "document"),
+        type: String(doc.type || "application/octet-stream"),
+        size: Number(doc.size || 0),
+        status: String(doc.status || "uploaded"),
+        url: doc.url ? String(doc.url) : null,
+      }));
+  }
+
+  if (Object.prototype.hasOwnProperty.call(payload, "guarantors")) {
+    const guarantors = Array.isArray(payload.guarantors)
+      ? payload.guarantors
+      : [];
+    payload.guarantors = guarantors
+      .map((g) => sanitizeGuarantorInput(g))
+      .filter(Boolean);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(payload, "bankAccountId")) {
+    payload.bankAccountId = normalizeBankAccountId(payload.bankAccountId);
+  }
+
+  return payload;
+}
+
+function summarizeDocuments(docs = []) {
+  if (!Array.isArray(docs) || docs.length === 0) return "No documents";
+  const names = docs.map((d) => d?.name).filter(Boolean);
+  if (names.length === 0) return `${docs.length} document(s)`;
+  return names.slice(0, 3).join(", ") + (names.length > 3 ? "…" : "");
+}
+
+function summarizeGuarantors(list = []) {
+  if (!Array.isArray(list) || list.length === 0) return "No guarantors";
+  const names = list.map((g) => g?.name).filter(Boolean);
+  if (names.length === 0) return `${list.length} guarantor(s)`;
+  if (names.length <= 2) return names.join(", ");
+  return `${names.slice(0, 2).join(", ")} +${names.length - 2} more`;
+}
+
+function summarizeBankSnapshot({ bankName, accountNumber, accountName } = {}) {
+  const name = bankName ? String(bankName) : "Bank account";
+  const lastFour = accountNumber ? String(accountNumber).slice(-4) : "";
+  const holder = accountName ? ` (${accountName})` : "";
+  if (!lastFour) return `${name}${holder}`;
+  return `${name} **** ${lastFour}${holder}`;
+}
+
+function normalizeGuarantorForCompare(guarantor = {}) {
+  const signature =
+    guarantor?.signature && typeof guarantor.signature === "object"
+      ? {
+          method: guarantor.signature.method ?? null,
+          text: guarantor.signature.text ?? null,
+          font: guarantor.signature.font ?? null,
+          imageUrl: guarantor.signature.imageUrl ?? null,
+          imagePublicId: guarantor.signature.imagePublicId ?? null,
+          signedAt: guarantor.signature.signedAt
+            ? String(guarantor.signature.signedAt)
+            : null,
+        }
+      : null;
+
+  return {
+    type: guarantor?.type || null,
+    profileId: guarantor?.profileId ? String(guarantor.profileId) : null,
+    name: String(guarantor?.name || "").trim(),
+    email: String(guarantor?.email || "")
+      .trim()
+      .toLowerCase(),
+    phone: String(guarantor?.phone || "").replace(/\s+/g, ""),
+    relationship: String(guarantor?.relationship || "").trim(),
+    occupation: String(guarantor?.occupation || "").trim(),
+    address: String(guarantor?.address || "").trim(),
+    signature,
+  };
+}
+
+function buildEditChanges(current, payload) {
+  const changes = [];
+
+  if (
+    Object.prototype.hasOwnProperty.call(payload, "loanAmount") &&
+    Number(payload.loanAmount) !== Number(current.loanAmount)
+  ) {
+    changes.push({
+      field: "loanAmount",
+      label: "Loan Amount",
+      from: Number(current.loanAmount || 0),
+      to: Number(payload.loanAmount || 0),
+    });
+  }
+
+  if (
+    Object.prototype.hasOwnProperty.call(payload, "loanPurpose") &&
+    String(payload.loanPurpose || "").trim() !==
+      String(current.loanPurpose || "").trim()
+  ) {
+    changes.push({
+      field: "loanPurpose",
+      label: "Loan Purpose",
+      from: String(current.loanPurpose || ""),
+      to: String(payload.loanPurpose || ""),
+    });
+  }
+
+  if (
+    Object.prototype.hasOwnProperty.call(payload, "purposeDescription") &&
+    String(payload.purposeDescription || "").trim() !==
+      String(current.purposeDescription || "").trim()
+  ) {
+    changes.push({
+      field: "purposeDescription",
+      label: "Purpose Description",
+      from: String(current.purposeDescription || ""),
+      to: String(payload.purposeDescription || ""),
+    });
+  }
+
+  if (
+    Object.prototype.hasOwnProperty.call(payload, "repaymentPeriod") &&
+    Number(payload.repaymentPeriod) !== Number(current.repaymentPeriod)
+  ) {
+    changes.push({
+      field: "repaymentPeriod",
+      label: "Repayment Period",
+      from: Number(current.repaymentPeriod || 0),
+      to: Number(payload.repaymentPeriod || 0),
+    });
+  }
+
+  if (Object.prototype.hasOwnProperty.call(payload, "documents")) {
+    const currentDocs = Array.isArray(current.documents) ? current.documents : [];
+    const nextDocs = Array.isArray(payload.documents) ? payload.documents : [];
+    const currentKey = JSON.stringify(
+      currentDocs.map((doc) => ({
+        name: doc.name,
+        type: doc.type,
+        size: doc.size,
+        url: doc.url || null,
+      })),
+    );
+    const nextKey = JSON.stringify(
+      nextDocs.map((doc) => ({
+        name: doc.name,
+        type: doc.type,
+        size: doc.size,
+        url: doc.url || null,
+      })),
+    );
+
+    if (currentKey !== nextKey) {
+      changes.push({
+        field: "documents",
+        label: "Documents",
+        from: summarizeDocuments(currentDocs),
+        to: summarizeDocuments(nextDocs),
+      });
+    }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(payload, "guarantors")) {
+    const currentGuarantors = Array.isArray(current.guarantors)
+      ? current.guarantors
+      : [];
+    const nextGuarantors = Array.isArray(payload.guarantors)
+      ? payload.guarantors
+      : [];
+    const currentKey = JSON.stringify(
+      currentGuarantors.map((g) => normalizeGuarantorForCompare(g)),
+    );
+    const nextKey = JSON.stringify(
+      nextGuarantors.map((g) => normalizeGuarantorForCompare(g)),
+    );
+    if (currentKey !== nextKey) {
+      changes.push({
+        field: "guarantors",
+        label: "Guarantors",
+        from: summarizeGuarantors(currentGuarantors),
+        to: summarizeGuarantors(nextGuarantors),
+      });
+    }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(payload, "bankAccountId")) {
+    const nextId = normalizeBankAccountId(payload.bankAccountId);
+    const currentId = normalizeBankAccountId(current.disbursementBankAccountId);
+    if (nextId && nextId !== currentId) {
+      changes.push({
+        field: "bankAccountId",
+        label: "Disbursement Account",
+        from: summarizeBankSnapshot({
+          bankName: current.disbursementBankName,
+          accountNumber: current.disbursementAccountNumber,
+          accountName: current.disbursementAccountName,
+        }),
+        to: "Updated bank account",
+      });
+    }
+  }
+
+  return changes;
+}
+
 function isValidSignature(signature) {
   if (!signature || typeof signature !== "object") return false;
   const method = String(signature.method || "").toLowerCase();
@@ -426,6 +707,95 @@ function isValidSignature(signature) {
 
   // Backwards/lenient support: accept if either form is present.
   return Boolean(text || imageUrl);
+}
+
+async function validateEditGuarantors({
+  guarantors,
+  borrowerProfileId,
+  borrowerProfile,
+  groupId,
+}) {
+  const list = Array.isArray(guarantors) ? guarantors : [];
+  const memberGuarantors = list.filter((g) => g && g.type === "member");
+  const externalGuarantors = list.filter((g) => g && g.type === "external");
+
+  const normalizeEmail = (value) =>
+    String(value || "")
+      .trim()
+      .toLowerCase();
+  const normalizePhone = (value) =>
+    String(value || "")
+      .replace(/\s+/g, "")
+      .replace(/[^0-9+]/g, "");
+
+  const borrowerEmail = normalizeEmail(borrowerProfile?.email);
+  const borrowerPhone = normalizePhone(borrowerProfile?.phone);
+
+  let liabilitySum = 0;
+  const seenProfiles = new Set();
+  const seenExternal = new Set();
+
+  for (const g of memberGuarantors) {
+    if (!g.profileId) {
+      throw new AppError("Member guarantors must include profileId", 400);
+    }
+    const profileId = String(g.profileId);
+    if (profileId === borrowerProfileId) {
+      throw new AppError("Borrower cannot be a guarantor", 400);
+    }
+    if (seenProfiles.has(profileId)) {
+      throw new AppError("Duplicate guarantor profileId", 400);
+    }
+    seenProfiles.add(profileId);
+
+    const pct = Number(g.liabilityPercentage);
+    if (!pct || pct < 1 || pct > 100) {
+      throw new AppError("Invalid guarantor liabilityPercentage", 400);
+    }
+    liabilitySum += pct;
+  }
+
+  for (const g of externalGuarantors) {
+    const emailKey = normalizeEmail(g.email);
+    const phoneKey = normalizePhone(g.phone);
+    if (borrowerEmail && emailKey && emailKey === borrowerEmail) {
+      throw new AppError("Borrower cannot be a guarantor", 400);
+    }
+    if (borrowerPhone && phoneKey && phoneKey === borrowerPhone) {
+      throw new AppError("Borrower cannot be a guarantor", 400);
+    }
+    if (!isValidSignature(g.signature)) {
+      throw new AppError(
+        "External guarantors must provide a valid signature",
+        400,
+      );
+    }
+    const key = emailKey || phoneKey ? `${emailKey}::${phoneKey}` : null;
+    if (key && seenExternal.has(key)) {
+      throw new AppError("Duplicate external guarantor", 400);
+    }
+    if (key) seenExternal.add(key);
+  }
+
+  if (liabilitySum > 100) {
+    throw new AppError("Total liabilityPercentage cannot exceed 100", 400);
+  }
+
+  if (groupId) {
+    for (const g of memberGuarantors) {
+      const membership = await GroupMembershipModel.findOne({
+        groupId,
+        userId: g.profileId,
+        status: "active",
+      });
+      if (!membership) {
+        throw new AppError(
+          "All member guarantors must be active group members",
+          400,
+        );
+      }
+    }
+  }
 }
 
 async function buildNextPaymentMap(apps) {
@@ -683,7 +1053,7 @@ export const createLoanApplication = catchAsync(async (req, res, next) => {
   }
 
   let borrowerProfile = null;
-  if (req.user.role !== "admin") {
+  if (!hasUserRole(req.user, "admin")) {
     borrowerProfile = await ensureActiveMember(req.user.profileId);
   } else if (req.user.profileId) {
     borrowerProfile = await ProfileModel.findById(req.user.profileId).select(
@@ -754,7 +1124,7 @@ export const createLoanApplication = catchAsync(async (req, res, next) => {
   }
   payload.loanType = loanTypeRaw;
 
-  if (req.user.role !== "admin" && !payload.groupId) {
+  if (!hasUserRole(req.user, "admin") && !payload.groupId) {
     return next(
       new AppError("groupId is required for member loan applications", 400),
     );
@@ -774,7 +1144,7 @@ export const createLoanApplication = catchAsync(async (req, res, next) => {
     group = await GroupModel.findById(payload.groupId);
     if (!group) return next(new AppError("Group not found", 404));
 
-    if (req.user.role !== "admin") {
+    if (!hasUserRole(req.user, "admin")) {
       const membership = await GroupMembershipModel.findOne({
         groupId: group._id,
         userId: req.user.profileId,
@@ -833,7 +1203,7 @@ export const createLoanApplication = catchAsync(async (req, res, next) => {
       requestedBankAccountId,
     );
     applyDisbursementSnapshot(payload, disbursementAccount);
-  } else if (req.user.role !== "admin") {
+  } else if (!hasUserRole(req.user, "admin")) {
     return next(
       new AppError(
         "bankAccountId is required to submit a loan application",
@@ -1232,6 +1602,119 @@ export const deleteLoanDraft = catchAsync(async (req, res, next) => {
   });
 });
 
+export const createLoanEditRequest = catchAsync(async (req, res, next) => {
+  if (!req.user) return next(new AppError("Not authenticated", 401));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
+  if (!req.loanApplication)
+    return next(new AppError("Missing loan context", 500));
+
+  const application = req.loanApplication;
+  if (String(application.userId) !== String(req.user.profileId)) {
+    return next(new AppError("You do not have access to this loan", 403));
+  }
+
+  const disallowedStatuses = new Set([
+    "draft",
+    "disbursed",
+    "completed",
+    "defaulted",
+    "cancelled",
+  ]);
+  if (disallowedStatuses.has(String(application.status))) {
+    return next(
+      new AppError(
+        "Edits are only allowed before a loan is finalized or disbursed",
+        400,
+      ),
+    );
+  }
+
+  const existingPending = await LoanApplicationEditRequestModel.findOne({
+    loanApplicationId: application._id,
+    status: "pending",
+  }).lean();
+  if (existingPending) {
+    return next(
+      new AppError(
+        "You already have a pending edit request for this loan",
+        400,
+      ),
+    );
+  }
+
+  const payload = sanitizeEditPayload(req.body || {});
+  let requestedBankAccount = null;
+
+  if (Object.prototype.hasOwnProperty.call(payload, "guarantors")) {
+    const borrowerProfile = await ProfileModel.findById(
+      req.user.profileId,
+    ).select("email phone");
+    await validateEditGuarantors({
+      guarantors: payload.guarantors,
+      borrowerProfileId: String(req.user.profileId),
+      borrowerProfile,
+      groupId: application.groupId,
+    });
+  }
+
+  if (payload.bankAccountId) {
+    requestedBankAccount = await resolveBorrowerBankAccount(
+      req.user.profileId,
+      payload.bankAccountId,
+    );
+  }
+
+  const changes = buildEditChanges(application, payload);
+  if (requestedBankAccount) {
+    const bankChange = changes.find(
+      (change) => change.field === "bankAccountId",
+    );
+    if (bankChange) {
+      bankChange.from = summarizeBankSnapshot({
+        bankName: application.disbursementBankName,
+        accountNumber: application.disbursementAccountNumber,
+        accountName: application.disbursementAccountName,
+      });
+      bankChange.to = summarizeBankSnapshot(requestedBankAccount);
+    }
+  }
+  if (changes.length === 0) {
+    return next(new AppError("No changes provided", 400));
+  }
+
+  const request = await LoanApplicationEditRequestModel.create({
+    loanApplicationId: application._id,
+    userId: req.user.profileId,
+    status: "pending",
+    requestedAt: new Date(),
+    changes,
+    payload,
+  });
+
+  createNotification({
+    userId: req.user.profileId,
+    title: "Loan edit request submitted",
+    message:
+      "Your loan edit request has been submitted for review by the admin.",
+    type: "loan_edit_request",
+    metadata: {
+      loanId: application._id,
+      requestId: request._id,
+      status: request.status,
+    },
+  }).catch((err) => {
+    // eslint-disable-next-line no-console
+    console.error("Failed to create loan edit request notification", err);
+  });
+
+  return sendSuccess(res, {
+    statusCode: 201,
+    message: "Edit request submitted",
+    data: { editRequest: request },
+  });
+});
+
 export const listMyLoanApplications = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
   if (!req.user.profileId)
@@ -1243,14 +1726,47 @@ export const listMyLoanApplications = catchAsync(async (req, res, next) => {
     .sort({ createdAt: -1 })
     .lean();
   const nextPaymentMap = await buildNextPaymentMap(apps);
+  const editRequests = await LoanApplicationEditRequestModel.find({
+    loanApplicationId: { $in: apps.map((app) => app._id) },
+  })
+    .sort({ requestedAt: -1 })
+    .lean();
+  const latestEditMap = new Map();
+  for (const request of editRequests) {
+    const key = String(request.loanApplicationId);
+    if (!latestEditMap.has(key)) {
+      latestEditMap.set(key, request);
+    }
+  }
+
   const enriched = apps.map((app) => {
     const base = withRepaymentToDate(app);
     const next = nextPaymentMap.get(String(app._id));
+    const editRequest = latestEditMap.get(String(app._id));
     return {
       ...base,
       nextPaymentDueDate: next?.dueDate ?? null,
       nextPaymentAmount: next?.totalAmount ?? null,
       nextPaymentStatus: next?.status ?? null,
+      latestEditRequest: editRequest
+        ? {
+            id: editRequest._id,
+            status: editRequest.status,
+            requestedAt: editRequest.requestedAt,
+            reviewedAt: editRequest.reviewedAt,
+            reviewNotes: editRequest.reviewNotes ?? null,
+            changes: editRequest.changes ?? [],
+            documents: Array.isArray(editRequest.payload?.documents)
+              ? editRequest.payload.documents.map((doc) => ({
+                  name: doc.name,
+                  type: doc.type,
+                  size: doc.size,
+                  status: doc.status ?? "uploaded",
+                  url: doc.url ?? null,
+                }))
+              : [],
+          }
+        : null,
     };
   });
   return sendSuccess(res, {
@@ -1322,7 +1838,7 @@ export const getLoanApplication = catchAsync(async (req, res, next) => {
   if (!req.loanApplication)
     return next(new AppError("Missing loan context", 500));
 
-  const [guarantors, schedule] = await Promise.all([
+  const [guarantors, schedule, editRequests] = await Promise.all([
     LoanGuarantorModel.find({
       loanApplicationId: req.loanApplication._id,
     }).sort({ createdAt: -1 }),
@@ -1331,6 +1847,11 @@ export const getLoanApplication = catchAsync(async (req, res, next) => {
     }).sort({
       installmentNumber: 1,
     }),
+    LoanApplicationEditRequestModel.find({
+      loanApplicationId: req.loanApplication._id,
+    })
+      .sort({ requestedAt: -1 })
+      .lean(),
   ]);
 
   return sendSuccess(res, {
@@ -1339,6 +1860,23 @@ export const getLoanApplication = catchAsync(async (req, res, next) => {
       application: withRepaymentToDate(req.loanApplication),
       guarantors,
       schedule,
+      editRequests: editRequests.map((reqItem) => ({
+        id: reqItem._id,
+        status: reqItem.status,
+        requestedAt: reqItem.requestedAt,
+        reviewedAt: reqItem.reviewedAt,
+        reviewNotes: reqItem.reviewNotes ?? null,
+        changes: reqItem.changes ?? [],
+        documents: Array.isArray(reqItem.payload?.documents)
+          ? reqItem.payload.documents.map((doc) => ({
+              name: doc.name,
+              type: doc.type,
+              size: doc.size,
+              status: doc.status ?? "uploaded",
+              url: doc.url ?? null,
+            }))
+          : [],
+      })),
     },
   });
 });
@@ -2027,3 +2565,4 @@ export const recordLoanRepayment = catchAsync(async (req, res, next) => {
     },
   });
 });
+

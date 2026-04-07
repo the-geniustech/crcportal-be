@@ -15,6 +15,7 @@ import {
   isGeneralGroup,
 } from "../utils/groupMembershipPolicy.js";
 import { UserModel } from "../models/User.js";
+import { normalizeUserRoles, pickPrimaryRole } from "../utils/roles.js";
 
 function pick(obj, allowedKeys) {
   const out = {};
@@ -22,6 +23,44 @@ function pick(obj, allowedKeys) {
     if (Object.prototype.hasOwnProperty.call(obj, key)) out[key] = obj[key];
   }
   return out;
+}
+
+async function syncUserCoordinatorRole(profileId) {
+  if (!profileId) return;
+  const [user, hasCoordinatorMembership] = await Promise.all([
+    UserModel.findOne({ profileId }).select("roles role").lean(),
+    GroupMembershipModel.exists({
+      userId: profileId,
+      role: "coordinator",
+      status: "active",
+    }),
+  ]);
+
+  if (!user) return;
+
+  const currentRoles = normalizeUserRoles(user);
+  const nextRoles = new Set(currentRoles);
+
+  if (hasCoordinatorMembership) {
+    nextRoles.add("groupCoordinator");
+    nextRoles.add("member");
+  } else {
+    nextRoles.delete("groupCoordinator");
+    if (!nextRoles.has("member")) {
+      nextRoles.add("member");
+    }
+  }
+
+  const resolvedRoles = Array.from(nextRoles);
+  await UserModel.updateOne(
+    { profileId },
+    {
+      $set: {
+        roles: resolvedRoles,
+        role: pickPrimaryRole(resolvedRoles),
+      },
+    },
+  );
 }
 
 async function getNextGroupNumber() {
@@ -254,6 +293,7 @@ export const setCoordinator = catchAsync(async (req, res, next) => {
         { groupId: group._id, userId: group.coordinatorId },
         { $set: { role: "member" } },
       );
+      await syncUserCoordinatorRole(group.coordinatorId);
     }
 
     const updated = await GroupModel.findByIdAndUpdate(
@@ -298,6 +338,7 @@ export const setCoordinator = catchAsync(async (req, res, next) => {
       { groupId: group._id, userId: group.coordinatorId },
       { $set: { role: "member" } },
     );
+    await syncUserCoordinatorRole(group.coordinatorId);
   }
 
   const patch = {
@@ -316,16 +357,7 @@ export const setCoordinator = catchAsync(async (req, res, next) => {
     { groupId: group._id, userId: coordinatorProfile._id },
     { $set: { role: "coordinator", status: "active" } },
   );
-
-  const user = await UserModel.findOne({ profileId: coordinatorProfile._id })
-    .select("role")
-    .lean();
-  if (!user.role.includes("admin")) {
-    await UserModel.updateOne(
-      { profileId: coordinatorProfile._id },
-      { $addToSet: { role: "groupCoordinator" } },
-    );
-  }
+  await syncUserCoordinatorRole(coordinatorProfile._id);
 
   return sendSuccess(res, { statusCode: 200, data: { group: updated } });
 });
@@ -693,6 +725,10 @@ export const addGroupMembers = catchAsync(async (req, res, next) => {
     });
   }
 
+  if (eligibleIds.length > 0) {
+    await Promise.all(eligibleIds.map((id) => syncUserCoordinatorRole(id)));
+  }
+
   return sendSuccess(res, {
     statusCode: 200,
     data: {
@@ -757,6 +793,10 @@ export const updateGroupMember = catchAsync(async (req, res, next) => {
   );
 
   if (!membership) return next(new AppError("Group member not found", 404));
+
+  if (typeof updates.role !== "undefined" || typeof updates.status !== "undefined") {
+    await syncUserCoordinatorRole(membership.userId);
+  }
 
   if (membership.status === "active") {
     await assignGroupMemberSerial({ membership, group });

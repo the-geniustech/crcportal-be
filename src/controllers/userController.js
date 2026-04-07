@@ -11,6 +11,12 @@ import {
 import { sha256 } from "../utils/crypto.js";
 import { sendPhoneOtp } from "../services/sms/sendPhoneOtp.js";
 import { sendEmailOtp } from "../services/mail/sendEmailOtp.js";
+import {
+  UserRoles,
+  coerceUserRoles,
+  normalizeUserRoles,
+  pickPrimaryRole,
+} from "../utils/roles.js";
 
 function pick(obj, allowedKeys) {
   const out = {};
@@ -105,7 +111,8 @@ export const getMe = catchAsync(async (req, res, next) => {
         id: req.user._id,
         email: req.user.email,
         phone: req.user.phone,
-        role: req.user.role,
+        role: pickPrimaryRole(normalizeUserRoles(req.user)),
+        roles: normalizeUserRoles(req.user),
         profileId: req.user.profileId,
         createdAt: req.user.createdAt,
         updatedAt: req.user.updatedAt,
@@ -296,7 +303,8 @@ export const confirmEmailChange = catchAsync(async (req, res, next) => {
         id: user._id,
         email: user.email,
         phone: user.phone,
-        role: user.role,
+        role: pickPrimaryRole(normalizeUserRoles(user)),
+        roles: normalizeUserRoles(user),
       },
     },
   });
@@ -437,7 +445,8 @@ export const confirmPhoneChange = catchAsync(async (req, res, next) => {
         id: user._id,
         email: user.email,
         phone: user.phone,
-        role: user.role,
+        role: pickPrimaryRole(normalizeUserRoles(user)),
+        roles: normalizeUserRoles(user),
       },
     },
   });
@@ -573,7 +582,10 @@ export const updateMyContributionSettings = catchAsync(
 export const listUsers = catchAsync(async (req, res) => {
   const filter = {};
   if (req.query?.role) {
-    filter.role = req.query.role;
+    const normalized = coerceUserRoles(req.query.role);
+    if (normalized.length > 0) {
+      filter.$or = [{ role: normalized[0] }, { roles: normalized[0] }];
+    }
   }
 
   const users = await UserModel.find(filter).sort({ createdAt: -1 }).limit(200);
@@ -590,7 +602,8 @@ export const listUsers = catchAsync(async (req, res) => {
         id: u._id,
         email: u.email,
         phone: u.phone,
-        role: u.role,
+        role: pickPrimaryRole(normalizeUserRoles(u)),
+        roles: normalizeUserRoles(u),
         profileId: u.profileId,
         createdAt: u.createdAt,
         updatedAt: u.updatedAt,
@@ -602,19 +615,24 @@ export const listUsers = catchAsync(async (req, res) => {
 
 export const updateUserRole = catchAsync(async (req, res, next) => {
   const { id } = req.params;
-  const { role } = req.body || {};
-
-  const allowed = ["member", "groupCoordinator", "groupGuarantor", "admin"];
-  if (!allowed.includes(role)) {
+  const { role, roles } = req.body || {};
+  const hasRolesArray = Array.isArray(roles);
+  const rolesPayload = hasRolesArray ? roles : role;
+  const normalized = coerceUserRoles(rolesPayload);
+  if (normalized.length === 0) {
     return next(
-      new AppError(`Invalid role. Allowed: ${allowed.join(", ")}`, 400),
+      new AppError(`Invalid role(s). Allowed: ${UserRoles.join(", ")}`, 400),
     );
   }
 
   const user = await UserModel.findById(id);
   if (!user) return next(new AppError("User not found", 404));
 
-  user.role = role;
+  const finalRoles = hasRolesArray
+    ? Array.from(new Set(normalized))
+    : Array.from(new Set([...normalizeUserRoles(user), ...normalized]));
+  user.roles = finalRoles;
+  user.role = pickPrimaryRole(finalRoles);
   await user.save({ validateBeforeSave: false });
 
   return sendSuccess(res, {
@@ -624,7 +642,8 @@ export const updateUserRole = catchAsync(async (req, res, next) => {
         id: user._id,
         email: user.email,
         phone: user.phone,
-        role: user.role,
+        role: pickPrimaryRole(normalizeUserRoles(user)),
+        roles: normalizeUserRoles(user),
         profileId: user.profileId,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,

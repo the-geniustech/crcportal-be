@@ -2,6 +2,7 @@ import AppError from "../utils/AppError.js";
 import catchAsync from "../utils/catchAsync.js";
 import { LoanApplicationModel } from "../models/LoanApplication.js";
 import { LoanGuarantorModel } from "../models/LoanGuarantor.js";
+import { hasUserRole } from "../utils/roles.js";
 
 export const loadLoanApplication = catchAsync(async (req, res, next) => {
   const applicationId = req.params.applicationId || req.params.loanId || req.params.id;
@@ -19,7 +20,7 @@ export function requireLoanOwnerOrAdmin() {
     if (!req.user) return next(new AppError("Not authenticated", 401));
     if (!req.loanApplication) return next(new AppError("Missing loan context", 500));
 
-    if (req.user.role === "admin") return next();
+    if (hasUserRole(req.user, "admin")) return next();
 
     if (!req.user.profileId) {
       return next(new AppError("User profile not found", 400));
@@ -49,7 +50,7 @@ export function requireGuarantorOwnerOrAdmin() {
     if (!req.user) return next(new AppError("Not authenticated", 401));
     if (!req.loanGuarantor) return next(new AppError("Missing guarantor context", 500));
 
-    if (req.user.role === "admin") return next();
+    if (hasUserRole(req.user, "admin")) return next();
     if (!req.user.profileId) return next(new AppError("User profile not found", 400));
 
     if (String(req.loanGuarantor.guarantorUserId) !== String(req.user.profileId)) {
@@ -59,4 +60,3 @@ export function requireGuarantorOwnerOrAdmin() {
     return next();
   };
 }
-

@@ -1,6 +1,7 @@
+import { hasUserRole } from "./roles.js";
+
 export function canViewFullGroupData({ user, groupMembership }) {
-  const role = String(user?.role || "");
-  if (role === "admin" || role === "groupCoordinator" || role === "group_coordinator") {
+  if (hasUserRole(user, "admin", "groupCoordinator", "group_coordinator")) {
     return true;
   }
   const membershipRole = String(groupMembership?.role || "");

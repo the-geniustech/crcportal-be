@@ -8,6 +8,7 @@ import { GroupMembershipModel } from "../models/GroupMembership.js";
 import { MeetingModel } from "../models/Meeting.js";
 import { MeetingAgendaItemModel } from "../models/MeetingAgendaItem.js";
 import { MeetingRsvpModel, MeetingRsvpStatuses } from "../models/MeetingRsvp.js";
+import { hasUserRole } from "../utils/roles.js";
 
 function parseBool(val) {
   if (typeof val === "boolean") return val;
@@ -46,7 +47,7 @@ export const listMyCalendarMeetings = catchAsync(async (req, res, next) => {
 
   let groupIds = [];
 
-  if (req.user.role === "admin") {
+  if (hasUserRole(req.user, "admin")) {
     if (groupIdFilter) {
       groupIds = [groupIdFilter];
     } else {
@@ -185,7 +186,7 @@ export const upsertMyMeetingRsvp = catchAsync(async (req, res, next) => {
   const meeting = await MeetingModel.findById(meetingId, { groupId: 1 }).lean();
   if (!meeting) return next(new AppError("Meeting not found", 404));
 
-  if (req.user.role !== "admin") {
+  if (!hasUserRole(req.user, "admin")) {
     const membership = await GroupMembershipModel.findOne(
       { userId: req.user.profileId, groupId: meeting.groupId, status: "active" },
       { _id: 1 },
@@ -210,4 +211,3 @@ export const upsertMyMeetingRsvp = catchAsync(async (req, res, next) => {
     },
   });
 });
-

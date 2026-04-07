@@ -12,6 +12,7 @@ import {
   getContributionTypeMatch,
   normalizeContributionType,
 } from "../utils/contributionPolicy.js";
+import { hasUserRole } from "../utils/roles.js";
 
 function clamp(n, min, max) {
   return Math.min(max, Math.max(min, n));
@@ -48,9 +49,9 @@ async function getManageableGroupIds(req) {
   if (!req.user) throw new AppError("Not authenticated", 401);
   if (!req.user.profileId) throw new AppError("User profile not found", 400);
 
-  if (req.user.role === "admin") return null;
+  if (hasUserRole(req.user, "admin")) return null;
 
-  if (req.user.role !== "groupCoordinator") {
+  if (!hasUserRole(req.user, "groupCoordinator")) {
     throw new AppError("Insufficient permissions", 403);
   }
 

@@ -9,6 +9,7 @@ import { GroupModel } from "../models/Group.js";
 import { computeContributionBalances } from "../utils/finance.js";
 import { randomId } from "../utils/crypto.js";
 import { normalizeContributionType } from "../utils/contributionPolicy.js";
+import { hasUserRole } from "../utils/roles.js";
 import {
   createTransferRecipient,
   initiateTransfer,
@@ -32,9 +33,9 @@ async function getManageableGroupIds(req) {
   if (!req.user) throw new AppError("Not authenticated", 401);
   if (!req.user.profileId) throw new AppError("User profile not found", 400);
 
-  if (req.user.role === "admin") return null;
+  if (hasUserRole(req.user, "admin")) return null;
 
-  if (req.user.role !== "groupCoordinator") {
+  if (!hasUserRole(req.user, "groupCoordinator")) {
     throw new AppError("Insufficient permissions", 403);
   }
 

@@ -5,8 +5,11 @@ import {
   ensureAdminLoanAccess,
   downloadAdminLoanApplicationPdf,
   emailAdminLoanApplicationPdf,
+  exportAdminLoanApplications,
   listAdminLoanApplications,
+  reconcileAdminLoanApplication,
   reviewAdminLoanApplication,
+  reviewLoanEditRequest,
 } from "../controllers/adminLoanController.js";
 import {
   disburseLoan as disburseLoanController,
@@ -23,6 +26,7 @@ router.use(protect);
 router.use(restrictTo("admin", "groupCoordinator"));
 
 router.get("/applications", listAdminLoanApplications);
+router.get("/applications/export", exportAdminLoanApplications);
 router.get(
   "/applications/:applicationId/pdf",
   loadLoanApplication,
@@ -42,6 +46,18 @@ router.post(
   emailAdminLoanApplicationPdf,
 );
 router.patch("/applications/:applicationId/review", reviewAdminLoanApplication);
+router.patch(
+  "/applications/:applicationId/reconcile",
+  loadLoanApplication,
+  ensureAdminLoanAccess,
+  reconcileAdminLoanApplication,
+);
+router.patch(
+  "/applications/:applicationId/edit-requests/:requestId",
+  loadLoanApplication,
+  ensureAdminLoanAccess,
+  reviewLoanEditRequest,
+);
 router.post(
   "/applications/:applicationId/disburse",
   restrictTo("admin"),

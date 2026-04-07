@@ -1,13 +1,11 @@
 ﻿// backend/src/models/User.js
 import bcrypt from "bcryptjs";
 import { Schema, ObjectId, model } from "./_shared.js";
-
-export const UserRoles = [
-  "member",
-  "groupCoordinator",
-  "groupGuarantor",
-  "admin",
-];
+import {
+  UserRoles,
+  normalizeUserRoles,
+  pickPrimaryRole,
+} from "../utils/roles.js";
 
 export const UserSchema = new Schema(
   {
@@ -41,6 +39,12 @@ export const UserSchema = new Schema(
       type: String,
       enum: UserRoles,
       default: "member",
+      index: true,
+    },
+    roles: {
+      type: [String],
+      enum: UserRoles,
+      default: ["member"],
       index: true,
     },
     profileId: {
@@ -202,6 +206,11 @@ export const UserSchema = new Schema(
 );
 
 UserSchema.pre("validate", function (next) {
+  const roles = normalizeUserRoles(this);
+  this.roles = roles;
+  if (!this.role || !UserRoles.includes(this.role)) {
+    this.role = pickPrimaryRole(roles);
+  }
   if (!this.email && !this.phone) {
     return next(new Error("Either email or phone is required"));
   }

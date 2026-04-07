@@ -1,11 +1,18 @@
 ﻿import jwt from "jsonwebtoken";
+import { normalizeUserRoles, pickPrimaryRole } from "./roles.js";
 
-export function signAccessToken({ userId, role }) {
+export function signAccessToken({ userId, role, roles }) {
   const secret = process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET;
   if (!secret) throw new Error("Missing JWT_ACCESS_SECRET (or JWT_SECRET)");
 
+  const normalizedRoles = normalizeUserRoles({
+    role,
+    roles: Array.isArray(roles) ? roles : undefined,
+  });
+  const primaryRole = role || pickPrimaryRole(normalizedRoles);
+
   return jwt.sign(
-    { id: userId, role, type: "access" },
+    { id: userId, role: primaryRole, roles: normalizedRoles, type: "access" },
     secret,
     { expiresIn: process.env.JWT_ACCESS_EXPIRES_IN || "15m" },
   );

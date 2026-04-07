@@ -12,6 +12,11 @@ import { ContributionModel } from "../../../models/Contribution.js";
 import { ContributionSettingModel } from "../../../models/ContributionSetting.js";
 import { TransactionModel } from "../../../models/Transaction.js";
 import { formatGroupMemberSerial, ensureGroupMemberSequence } from "../../../utils/groupMemberSerial.js";
+import {
+  coerceUserRoles,
+  normalizeUserRoles,
+  pickPrimaryRole,
+} from "../../../utils/roles.js";
 
 dotenv.config();
 
@@ -97,6 +102,17 @@ const hashPasswordIfNeeded = async (password) => {
   if (!password) return password;
   if (isBcryptHash(password)) return password;
   return bcrypt.hash(String(password), 12);
+};
+
+const resolveSeedUserRoles = (seedUser, existingUser = null) => {
+  const rawRoles = Array.isArray(seedUser?.roles) ? seedUser.roles : seedUser?.role;
+  let roles = coerceUserRoles(rawRoles);
+  if (roles.length === 0 && existingUser) {
+    roles = normalizeUserRoles(existingUser);
+  }
+  if (roles.length === 0) roles = ["member"];
+  if (!roles.includes("member")) roles.push("member");
+  return Array.from(new Set(roles));
 };
 
 export async function loadSeedFiles({
@@ -384,12 +400,14 @@ export async function seedContributionData({
     if (existing) {
       stats.users.existing += 1;
       if (!existing.profileId && seedUser.profileId) {
+        const resolvedRoles = resolveSeedUserRoles(seedUser, existing);
         await UserModel.updateOne(
           { _id: existing._id },
           {
             $set: {
               profileId: seedUser.profileId,
-              role: seedUser.role ?? existing.role,
+              role: pickPrimaryRole(resolvedRoles),
+              roles: resolvedRoles,
               emailVerifiedAt:
                 seedUser.emailVerifiedAt ?? existing.emailVerifiedAt,
               phoneVerifiedAt:
@@ -414,10 +432,15 @@ export async function seedContributionData({
 
   if (newUsers.length) {
     const hashedUsers = await Promise.all(
-      newUsers.map(async (user) => ({
-        ...user,
-        password: await hashPasswordIfNeeded(user.password),
-      })),
+      newUsers.map(async (user) => {
+        const resolvedRoles = resolveSeedUserRoles(user);
+        return {
+          ...user,
+          role: pickPrimaryRole(resolvedRoles),
+          roles: resolvedRoles,
+          password: await hashPasswordIfNeeded(user.password),
+        };
+      }),
     );
     await UserModel.insertMany(hashedUsers, { ordered: false });
     stats.users.inserted = newUsers.length;
