@@ -88,7 +88,8 @@ const createUniquePhoneFactory = () => {
   return () => {
     let candidate = "";
     do {
-      const prefix = DEFAULT_PHONE_PREFIXES[counter % DEFAULT_PHONE_PREFIXES.length];
+      const prefix =
+        DEFAULT_PHONE_PREFIXES[counter % DEFAULT_PHONE_PREFIXES.length];
       const body = String(10000000 + counter).slice(-8);
       candidate = `${prefix}${body}`;
       counter += 1;
@@ -124,8 +125,12 @@ export function transformContributionSheet(parsed, options = {}) {
     options.defaultMonthlyContribution,
     5000,
   );
-  const contributionType = normalizeContributionType(options.contributionType) || "revolving";
-  const cycleDuration = ensureNumber(options.cycleDuration, parsed.meta.monthsDetected.length || 12);
+  const contributionType =
+    normalizeContributionType(options.contributionType) || "revolving";
+  const cycleDuration = ensureNumber(
+    options.cycleDuration,
+    parsed.meta.monthsDetected.length || 12,
+  );
   const membershipStatus = options.membershipStatus || "active";
   const groupStatus = options.groupStatus || "active";
   const joinedAt = options.joinedAt || "2024-01-01T00:00:00.000Z";
@@ -133,8 +138,13 @@ export function transformContributionSheet(parsed, options = {}) {
   const verifiedAt = options.verifiedAt || now.toISOString();
 
   const inferredGroup = parseGroupInfoFromFilename(parsed.meta.inputPath);
-  const groupNumber = ensureNumber(options.groupNumber, inferredGroup.groupNumber || 0);
-  const groupName = normalizeText(options.groupName || inferredGroup.groupName) || `Group ${groupNumber || ""}`.trim();
+  const groupNumber = ensureNumber(
+    options.groupNumber,
+    inferredGroup.groupNumber || 0,
+  );
+  const groupName =
+    normalizeText(options.groupName || inferredGroup.groupName) ||
+    `Group ${groupNumber || ""}`.trim();
 
   const groupSeedKey = `group-${String(groupNumber || 0).padStart(2, "0")}`;
   const groupId = makeObjectId("group", groupSeedKey);
@@ -212,17 +222,25 @@ export function transformContributionSheet(parsed, options = {}) {
     memberCounter += 1;
     const seedKey = `member-${String(memberCounter).padStart(4, "0")}`;
     const rawName = normalizeText(row.name);
-    const fullName = rawName || `Member ${String(memberCounter).padStart(3, "0")}`;
+    const fullName =
+      rawName || `Member ${String(memberCounter).padStart(3, "0")}`;
 
     const email = emailForName(fullName);
     const phone = phoneForMember();
 
     const profileId = makeObjectId("profile", seedKey);
     const userId = makeObjectId("user", seedKey);
-    const membershipId = makeObjectId("membership", `${seedKey}:${groupSeedKey}`);
-    const settingId = makeObjectId("contribution-setting", `${seedKey}:${groupSeedKey}`);
+    const membershipId = makeObjectId(
+      "membership",
+      `${seedKey}:${groupSeedKey}`,
+    );
+    const settingId = makeObjectId(
+      "contribution-setting",
+      `${seedKey}:${groupSeedKey}`,
+    );
 
-    let resolvedUnits = Number.isFinite(row.units) && row.units > 0 ? row.units : null;
+    let resolvedUnits =
+      Number.isFinite(row.units) && row.units > 0 ? row.units : null;
     if (!resolvedUnits && unitAmount) {
       const firstAmount = monthNumbers
         .map((month) => row.contributions[month])
@@ -272,7 +290,7 @@ export function transformContributionSheet(parsed, options = {}) {
       email: email.toLowerCase(),
       phone,
       password: defaultPassword,
-      role: "member",
+      role: ["member"],
       profileId,
       emailVerifiedAt: verifiedAt,
       phoneVerifiedAt: verifiedAt,
@@ -349,7 +367,8 @@ export function transformContributionSheet(parsed, options = {}) {
   contributions.forEach((contribution) => {
     const reference = `GC-${contribution._id}`;
     const transactionId = makeObjectId("transaction", reference);
-    const date = contribution.createdAt || contribution.verifiedAt || verifiedAt;
+    const date =
+      contribution.createdAt || contribution.verifiedAt || verifiedAt;
     transactions.push({
       seedKey: `transaction-${contribution.seedKey}`,
       _id: transactionId,

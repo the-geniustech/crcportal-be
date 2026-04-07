@@ -1,8 +1,4 @@
-export const UserRoles = [
-  "member",
-  "groupCoordinator",
-  "admin",
-];
+export const UserRoles = ["member", "groupCoordinator", "admin"];
 
 const ROLE_ALIASES = new Map([
   ["coordinator", "groupCoordinator"],
@@ -60,9 +56,7 @@ export function pickPrimaryRole(roles) {
 export function coerceUserRoles(input) {
   if (!input) return [];
   if (Array.isArray(input)) {
-    return input
-      .map((role) => normalizeRole(role))
-      .filter(Boolean);
+    return input.map((role) => normalizeRole(role)).filter(Boolean);
   }
   const normalized = normalizeRole(input);
   return normalized ? [normalized] : [];

@@ -194,6 +194,7 @@ export async function seedContributionData({
     groupsPath,
     groupMembersPath,
     contributionsPath,
+    transactionsPath,
     contributionSettingsPath,
   });
 
