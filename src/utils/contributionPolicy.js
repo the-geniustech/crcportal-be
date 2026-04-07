@@ -115,15 +115,15 @@ export function resolveExpectedContributionAmount({
   const unitAmount = Number(config?.unitAmount ?? ContributionUnitBase);
   const minAmount = Number(config?.minAmount ?? 0);
   const base = Number(groupMonthlyContribution ?? 0);
-  const baseline = Math.max(minAmount, Number.isFinite(base) ? base : 0);
+  const fallbackBaseline = Math.max(minAmount, Number.isFinite(base) ? base : 0);
 
   const plannedUnits = resolvePlannedContributionUnits(settings, year, type);
   if (plannedUnits && Number.isFinite(unitAmount) && unitAmount > 0) {
     const computed = plannedUnits * unitAmount;
-    return Math.max(computed, baseline);
+    return Math.max(computed, minAmount);
   }
 
-  return baseline > 0 ? baseline : 0;
+  return fallbackBaseline > 0 ? fallbackBaseline : 0;
 }
 
 export function isContributionWindowOpen(date = new Date()) {

@@ -19,7 +19,11 @@ import {
 } from "../controllers/adminAttendanceController.js";
 import adminLoanRoutes from "./adminLoanRoutes.js";
 import { createAdminAnnouncement } from "../controllers/adminAnnouncementController.js";
-import { getAdminSmsStats, listAdminSmsTemplates, sendAdminBulkSms } from "../controllers/adminSmsController.js";
+import {
+  getAdminSmsStats,
+  listAdminSmsTemplates,
+  sendAdminBulkSms,
+} from "../controllers/adminSmsController.js";
 import {
   getAdminContributionTracking,
   getAdminSpecialContributionSummary,
@@ -30,7 +34,11 @@ const router = express.Router();
 router.use(protect);
 router.use(restrictTo("admin", "groupCoordinator"));
 
-router.get("/member-approvals", restrictTo("groupCoordinator"), listMemberApprovals);
+router.get(
+  "/member-approvals",
+  restrictTo("groupCoordinator"),
+  listMemberApprovals,
+);
 router.patch(
   "/member-approvals/:membershipId/approve",
   restrictTo("groupCoordinator"),
@@ -76,8 +84,14 @@ router.get("/financial-reports", getAdminFinancialReports);
 
 router.get("/attendance/meetings", listAdminAttendanceMeetings);
 router.post("/attendance/meetings", createAdminAttendanceMeeting);
-router.get("/attendance/meetings/:meetingId/attendance", getAdminMeetingAttendanceRoster);
-router.put("/attendance/meetings/:meetingId/attendance", upsertAdminMeetingAttendance);
+router.get(
+  "/attendance/meetings/:meetingId/attendance",
+  getAdminMeetingAttendanceRoster,
+);
+router.put(
+  "/attendance/meetings/:meetingId/attendance",
+  upsertAdminMeetingAttendance,
+);
 
 router.post("/announcements", createAdminAnnouncement);
 

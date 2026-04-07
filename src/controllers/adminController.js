@@ -499,7 +499,7 @@ export const listContributionTracker = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
   if (!req.user.profileId) return next(new AppError("User profile not found", 400));
 
-  if (!hasUserRole(req.user, "admin", "groupCoordinator", "group_coordinator")) {
+  if (!hasUserRole(req.user, "admin", "groupCoordinator")) {
     return next(
       new AppError("Only admins and group coordinators can access contribution tracking", 403),
     );
@@ -647,7 +647,7 @@ export const sendContributionReminders = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
   if (!req.user.profileId) return next(new AppError("User profile not found", 400));
 
-  if (!hasUserRole(req.user, "groupCoordinator", "group_coordinator")) {
+  if (!hasUserRole(req.user, "groupCoordinator")) {
     return next(new AppError("Only group coordinators can send reminders", 403));
   }
 
@@ -885,7 +885,7 @@ export const markContributionPaid = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
   if (!req.user.profileId) return next(new AppError("User profile not found", 400));
 
-  if (!hasUserRole(req.user, "groupCoordinator", "group_coordinator")) {
+  if (!hasUserRole(req.user, "groupCoordinator")) {
     return next(new AppError("Only group coordinators can mark contributions as paid", 403));
   }
 

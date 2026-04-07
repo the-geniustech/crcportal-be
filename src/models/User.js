@@ -35,12 +35,12 @@ export const UserSchema = new Schema(
       minlength: 8,
       select: false,
     },
-    role: {
-      type: String,
-      enum: UserRoles,
-      default: "member",
-      index: true,
-    },
+    // role: {
+    //   type: String,
+    //   enum: UserRoles,
+    //   default: "member",
+    //   index: true,
+    // },
     roles: {
       type: [String],
       enum: UserRoles,
