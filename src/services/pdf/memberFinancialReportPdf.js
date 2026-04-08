@@ -1,4 +1,4 @@
-import PDFDocument from "pdfkit";
+﻿import PDFDocument from "pdfkit";
 
 function formatCurrency(amount) {
   const value = Number(amount || 0);
@@ -252,3 +252,4 @@ export async function generateMemberFinancialReportPdfBuffer({
 }
 
 export { formatCurrency, formatDate };
+

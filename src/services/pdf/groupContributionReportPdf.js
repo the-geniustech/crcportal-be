@@ -1,4 +1,4 @@
-import PDFDocument from "pdfkit";
+﻿import PDFDocument from "pdfkit";
 
 function formatCurrency(amount) {
   const value = Number(amount || 0);
@@ -215,10 +215,13 @@ export async function generateGroupContributionReportPdfBuffer({
       .font("Helvetica")
       .fontSize(9)
       .fillColor("#9CA3AF")
-      .text("CRC Cooperative Resource Center - Contribution Report", {
+      .text(
+        "CRC Cooperative Resource Center - Contribution Report",
+        {
         align: "center",
       });
 
     doc.end();
   });
 }
+

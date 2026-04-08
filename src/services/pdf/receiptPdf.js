@@ -1,4 +1,4 @@
-import PDFDocument from "pdfkit";
+﻿import PDFDocument from "pdfkit";
 
 function formatCurrency(amount) {
   const value = Number(amount || 0);
@@ -111,7 +111,11 @@ export async function generateReceiptPdfBuffer(payload) {
   const organization = payload.organization || {};
   const member = payload.member || {};
 
-  const doc = new PDFDocument({ size: "A4", margin: 42, info: { Title: "CRC Receipt" } });
+  const doc = new PDFDocument({
+    size: "A4",
+    margin: 42,
+    info: { Title: "CRC Receipt" },
+  });
   const rawWidth =
     doc.page.width - doc.page.margins.left - doc.page.margins.right;
   const contentWidth = Number.isFinite(rawWidth) ? rawWidth : 500;
@@ -241,3 +245,4 @@ export async function generateReceiptPdfBuffer(payload) {
     doc.end();
   });
 }
+

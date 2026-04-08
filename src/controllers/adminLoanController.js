@@ -1,4 +1,4 @@
-import AppError from "../utils/AppError.js";
+﻿import AppError from "../utils/AppError.js";
 import catchAsync from "../utils/catchAsync.js";
 import sendSuccess from "../utils/sendSuccess.js";
 
@@ -904,3 +904,4 @@ export const emailAdminLoanApplicationPdf = catchAsync(async (req, res, next) =>
     data: { ok: true, recipients: uniqueEmails },
   });
 });
+

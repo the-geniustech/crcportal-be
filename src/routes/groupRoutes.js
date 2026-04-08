@@ -20,6 +20,7 @@ import {
   createGroupContribution,
   downloadGroupContributionLedgerPdf,
   downloadGroupContributionReportPdf,
+  getGroupContributionInterestLedger,
   getGroupContributionTargets,
   listGroupContributions,
   updateContribution,
@@ -145,6 +146,13 @@ router.get(
   loadMyGroupMembership,
   requireGroupReadAccess(),
   downloadGroupContributionLedgerPdf,
+);
+router.get(
+  "/:groupId/contributions/interest-ledger",
+  loadGroup,
+  loadMyGroupMembership,
+  requireGroupReadAccess(),
+  getGroupContributionInterestLedger,
 );
 router.post(
   "/:groupId/contributions",

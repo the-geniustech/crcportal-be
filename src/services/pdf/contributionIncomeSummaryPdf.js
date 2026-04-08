@@ -20,64 +20,60 @@ function formatDate(value) {
   }).format(date);
 }
 
-function drawHeader(doc, { title, memberName, memberEmail, periodLabel }) {
+function drawHeader(doc, { year, contributionTypeLabel, generatedAt }) {
   const { left, right, top } = doc.page.margins;
   const width = doc.page.width - left - right;
-  const barHeight = 56;
+  const barHeight = 54;
 
   doc.save();
-  doc.rect(left, top, width, barHeight).fill("#10B981");
+  doc.rect(left, top, width, barHeight).fill("#0F766E");
   doc
     .fillColor("#ffffff")
     .font("Helvetica-Bold")
     .fontSize(18)
-    .text("CRC", left + 16, top + 18);
+    .text("Summary Of Income", left + 16, top + 16);
   doc
     .font("Helvetica")
-    .fontSize(11)
-    .text(title, left, top + 20, { width: width - 16, align: "right" });
+    .fontSize(10)
+    .text(`Year ${year}`, left, top + 16, {
+      width: width - 16,
+      align: "right",
+    });
+  doc
+    .font("Helvetica")
+    .fontSize(9)
+    .text(contributionTypeLabel, left, top + 32, {
+      width: width - 16,
+      align: "right",
+    });
   doc.restore();
 
-  doc.moveDown(2.2);
-  doc
-    .font("Helvetica-Bold")
-    .fontSize(14)
-    .fillColor("#111827")
-    .text(memberName || "Member");
-  if (memberEmail) {
-    doc
-      .font("Helvetica")
-      .fontSize(9.5)
-      .fillColor("#6B7280")
-      .text(memberEmail);
-  }
+  doc.moveDown(2.4);
   doc
     .font("Helvetica")
-    .fontSize(9.5)
+    .fontSize(9)
     .fillColor("#6B7280")
-    .text(`Period: ${periodLabel}`);
-  doc.moveDown(0.6);
+    .text(`Generated: ${formatDate(generatedAt)}`);
+  doc.moveDown(0.8);
 }
 
-function drawSummaryCards(doc, summary) {
+function drawSummaryCards(doc, totals) {
   const { left, right } = doc.page.margins;
   const width = doc.page.width - left - right;
   const cardGap = 10;
-  const cardWidth = (width - cardGap) / 2;
-  const cardHeight = 52;
+  const cardWidth = (width - cardGap * 2) / 3;
+  const cardHeight = 54;
   const startY = doc.y;
 
   const cards = [
-    { label: "Total Credits", value: formatCurrency(summary.totalCredits) },
-    { label: "Total Debits", value: formatCurrency(summary.totalDebits) },
-    { label: "Net Position", value: formatCurrency(summary.netPosition) },
-    { label: "Transactions", value: `${summary.transactionCount}` },
+    { label: "Total Contributions", value: formatCurrency(totals.contributions) },
+    { label: "Total Interest", value: formatCurrency(totals.interest) },
+    { label: "Cumulative Total", value: formatCurrency(totals.total) },
   ];
 
   cards.forEach((card, index) => {
-    const isRight = index % 2 === 1;
-    const x = isRight ? left + cardWidth + cardGap : left;
-    const y = startY + Math.floor(index / 2) * (cardHeight + cardGap);
+    const x = left + index * (cardWidth + cardGap);
+    const y = startY;
 
     doc.save();
     doc.roundedRect(x, y, cardWidth, cardHeight, 8).fill("#F9FAFB");
@@ -85,16 +81,16 @@ function drawSummaryCards(doc, summary) {
       .font("Helvetica")
       .fontSize(9)
       .fillColor("#6B7280")
-      .text(card.label, x + 12, y + 10, { width: cardWidth - 24 });
+      .text(card.label, x + 12, y + 12, { width: cardWidth - 24 });
     doc
       .font("Helvetica-Bold")
       .fontSize(12)
       .fillColor("#111827")
-      .text(card.value, x + 12, y + 26, { width: cardWidth - 24 });
+      .text(card.value, x + 12, y + 28, { width: cardWidth - 24 });
     doc.restore();
   });
 
-  doc.y = startY + cardHeight * 2 + cardGap + 4;
+  doc.y = startY + cardHeight + 12;
 }
 
 function drawTableHeader(doc, columns) {
@@ -118,7 +114,6 @@ function drawTableHeader(doc, columns) {
         width: col.width - 12,
         lineBreak: false,
         ellipsis: true,
-        align: col.align || "left",
         height: headerHeight - 10,
       });
     doc.x = prevX;
@@ -129,23 +124,24 @@ function drawTableHeader(doc, columns) {
   doc.y = startY + headerHeight;
 }
 
-function drawTableRow(doc, columns, row) {
+function drawTableRow(doc, columns, row, { bold = false } = {}) {
   const rowHeight = 24;
   let x = doc.page.margins.left;
   const startY = doc.y;
+  const font = bold ? "Helvetica-Bold" : "Helvetica";
+  const color = bold ? "#111827" : "#374151";
 
   columns.forEach((col) => {
     const prevX = doc.x;
     const prevY = doc.y;
     doc
-      .font("Helvetica")
+      .font(font)
       .fontSize(9)
-      .fillColor("#111827")
+      .fillColor(color)
       .text(String(row[col.key] ?? "-"), x + 8, startY + 7, {
         width: col.width - 12,
         lineBreak: false,
         ellipsis: true,
-        align: col.align || "left",
         height: rowHeight - 10,
       });
     doc.x = prevX;
@@ -163,18 +159,18 @@ function drawTableRow(doc, columns, row) {
   doc.y = startY + rowHeight;
 }
 
-export async function generateStatementPdfBuffer({
-  memberName,
-  memberEmail,
-  periodLabel,
+export async function generateContributionIncomeSummaryPdfBuffer({
+  year,
+  contributionTypeLabel,
   generatedAt,
-  summary,
-  rows,
+  totals,
+  schedule,
+  monthsComputed,
 }) {
   const doc = new PDFDocument({
     size: "A4",
     margin: 42,
-    info: { Title: "Account Statement" },
+    info: { Title: "Summary Of Income" },
   });
   const chunks = [];
 
@@ -183,56 +179,74 @@ export async function generateStatementPdfBuffer({
     doc.on("error", reject);
     doc.on("end", () => resolve(Buffer.concat(chunks)));
 
-    drawHeader(doc, {
-      title: "Account Statement",
-      memberName,
-      memberEmail,
-      periodLabel,
-    });
+    drawHeader(doc, { year, contributionTypeLabel, generatedAt });
+    drawSummaryCards(doc, totals);
 
-    drawSummaryCards(doc, summary);
-
-    doc.moveDown(0.4);
     doc
       .font("Helvetica-Bold")
       .fontSize(11)
       .fillColor("#111827")
-      .text("Transaction Details");
+      .text("Monthly Breakdown");
     doc.moveDown(0.4);
 
     const { left, right } = doc.page.margins;
     const width = doc.page.width - left - right;
     const columns = [
-      { key: "date", label: "Date", width: width * 0.14 },
-      { key: "type", label: "Type", width: width * 0.18 },
-      { key: "description", label: "Description", width: width * 0.26 },
-      { key: "reference", label: "Reference", width: width * 0.2 },
-      { key: "status", label: "Status", width: width * 0.1 },
-      { key: "amount", label: "Amount", width: width * 0.12, align: "right" },
+      { key: "month", label: "Month", width: width * 0.22 },
+      { key: "contributions", label: "Contributions", width: width * 0.2 },
+      { key: "interest", label: "Interest", width: width * 0.18 },
+      { key: "total", label: "Total", width: width * 0.2 },
+      { key: "cumulative", label: "Cumulative", width: width * 0.2 },
     ];
 
     drawTableHeader(doc, columns);
 
     const bottomY = doc.page.height - doc.page.margins.bottom;
 
-    rows.forEach((row) => {
+    schedule.forEach((row) => {
       if (doc.y + 28 > bottomY) {
         doc.addPage();
         drawTableHeader(doc, columns);
       }
-      drawTableRow(doc, columns, row);
+      drawTableRow(doc, columns, {
+        month: row.label,
+        contributions: formatCurrency(row.contributions),
+        interest: row.interest > 0 ? formatCurrency(row.interest) : "-",
+        total: formatCurrency(row.total),
+        cumulative: formatCurrency(row.cumulativeTotal),
+      });
     });
 
+    const lastCumulative =
+      schedule[Math.max(0, (monthsComputed || 0) - 1)]?.cumulativeTotal ??
+      schedule[schedule.length - 1]?.cumulativeTotal ??
+      0;
+
+    drawTableRow(
+      doc,
+      columns,
+      {
+        month: "Totals",
+        contributions: formatCurrency(totals.contributions),
+        interest: formatCurrency(totals.interest),
+        total: formatCurrency(totals.total),
+        cumulative: formatCurrency(lastCumulative),
+      },
+      { bold: true },
+    );
+
     doc
-      .moveDown(1.2)
+      .moveDown(1.4)
       .font("Helvetica")
       .fontSize(9)
       .fillColor("#9CA3AF")
-      .text(`Generated: ${formatDate(generatedAt)}`, { align: "center" });
+      .text(
+        "CRC Cooperative Resource Center - Summary Of Income",
+        {
+        align: "center",
+      });
 
     doc.end();
   });
 }
-
-export { formatCurrency, formatDate };
 

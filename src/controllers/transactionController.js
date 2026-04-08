@@ -1,4 +1,4 @@
-import AppError from "../utils/AppError.js";
+﻿import AppError from "../utils/AppError.js";
 import catchAsync from "../utils/catchAsync.js";
 import sendSuccess from "../utils/sendSuccess.js";
 import { TransactionModel, TransactionStatuses, TransactionTypes } from "../models/Transaction.js";
@@ -409,7 +409,7 @@ export const emailMyTransactionReceipt = catchAsync(async (req, res, next) => {
     text: buildReceiptEmailText(payload),
     attachments: [
       {
-        filename: `CRC-Receipt-${tx.reference}.pdf`,
+        filename: `Champions-Revolving-Contributions-Receipt-${tx.reference}.pdf`,
         content: pdfBuffer.toString("base64"),
         contentType: "application/pdf",
       },
@@ -438,7 +438,7 @@ export const downloadMyTransactionReceiptPdf = catchAsync(async (req, res, next)
   res.setHeader("Content-Type", "application/pdf");
   res.setHeader(
     "Content-Disposition",
-    `attachment; filename="CRC-Receipt-${tx.reference}.pdf"`,
+    `attachment; filename="Champions-Revolving-Contributions-Receipt-${tx.reference}.pdf"`,
   );
   res.status(200).send(pdfBuffer);
 });
@@ -478,3 +478,4 @@ export const listTransactions = catchAsync(async (req, res) => {
     data: { transactions },
   });
 });
+

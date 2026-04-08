@@ -16,7 +16,6 @@ import {
   isValidWebhookSignature,
 } from "../services/paystack.js";
 import {
-  calculateContributionInterestForType,
   calculateContributionUnits,
   getContributionTypeConfig,
   isContributionAmountValid,
@@ -58,10 +57,7 @@ function applyContributionMetrics(contribution, amount) {
   if (!contribution) return;
   const safeAmount = Number(amount ?? contribution.amount ?? 0);
   contribution.units = calculateContributionUnits(safeAmount);
-  contribution.interestAmount = calculateContributionInterestForType(
-    contribution.contributionType,
-    safeAmount,
-  );
+  contribution.interestAmount = 0;
 }
 
 async function updateRecurringPaymentStats({

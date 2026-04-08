@@ -1,4 +1,4 @@
-import AppError from "../utils/AppError.js";
+﻿import AppError from "../utils/AppError.js";
 import catchAsync from "../utils/catchAsync.js";
 import sendSuccess from "../utils/sendSuccess.js";
 
@@ -405,7 +405,8 @@ export const generateMyFinancialReport = catchAsync(async (req, res, next) => {
     generatedAt: new Date(),
     summaryItems,
     sections,
-    footerNote: "CRC Cooperative Resource Center - Member Financial Report",
+    footerNote:
+      "CRC Cooperative Resource Center - Member Financial Report",
   });
   const base64 = pdfBuffer.toString("base64");
   const safePeriod = periodLabel
@@ -423,3 +424,4 @@ export const generateMyFinancialReport = catchAsync(async (req, res, next) => {
     },
   });
 });
+

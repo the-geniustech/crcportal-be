@@ -324,3 +324,4 @@ export async function generateLoanApplicationPdfBuffer(payload) {
     doc.end();
   });
 }
+

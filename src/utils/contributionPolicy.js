@@ -184,9 +184,10 @@ export function calculateContributionUnits(amount) {
 }
 
 export function calculateContributionInterest(amount) {
-  const units = calculateContributionUnits(amount);
-  if (!units) return 0;
-  return Math.round(units * ContributionInterestPerUnit * 100) / 100;
+  // Interest on contribution is now computed on cumulative balances
+  // using monthly interest settings; keep legacy helper returning 0
+  // to avoid applying the old per-unit logic.
+  return 0;
 }
 
 export function isContributionInterestEligible(type) {
@@ -194,5 +195,5 @@ export function isContributionInterestEligible(type) {
 }
 
 export function calculateContributionInterestForType(type, amount) {
-  return calculateContributionInterest(amount);
+  return 0;
 }

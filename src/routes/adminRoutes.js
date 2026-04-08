@@ -28,6 +28,14 @@ import {
   getAdminContributionTracking,
   getAdminSpecialContributionSummary,
 } from "../controllers/adminContributionOverviewController.js";
+import {
+  getContributionIncomeSummary,
+  getContributionInterestSettings,
+  getContributionInterestSharing,
+  exportContributionIncomeSummary,
+  exportContributionInterestSharing,
+  updateContributionInterestSettings,
+} from "../controllers/adminContributionInterestController.js";
 
 const router = express.Router();
 
@@ -81,6 +89,37 @@ router.get(
 );
 
 router.get("/financial-reports", getAdminFinancialReports);
+
+router.get(
+  "/contributions/interest-settings",
+  restrictTo("admin"),
+  getContributionInterestSettings,
+);
+router.put(
+  "/contributions/interest-settings",
+  restrictTo("admin"),
+  updateContributionInterestSettings,
+);
+router.get(
+  "/contributions/summary-income",
+  restrictTo("admin"),
+  getContributionIncomeSummary,
+);
+router.get(
+  "/contributions/summary-income/export",
+  restrictTo("admin"),
+  exportContributionIncomeSummary,
+);
+router.get(
+  "/contributions/interest-sharing",
+  restrictTo("admin"),
+  getContributionInterestSharing,
+);
+router.get(
+  "/contributions/interest-sharing/export",
+  restrictTo("admin"),
+  exportContributionInterestSharing,
+);
 
 router.get("/attendance/meetings", listAdminAttendanceMeetings);
 router.post("/attendance/meetings", createAdminAttendanceMeeting);

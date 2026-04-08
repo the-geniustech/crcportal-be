@@ -1,4 +1,4 @@
-import AppError from "../utils/AppError.js";
+﻿import AppError from "../utils/AppError.js";
 import catchAsync from "../utils/catchAsync.js";
 import sendSuccess from "../utils/sendSuccess.js";
 
@@ -45,12 +45,12 @@ function buildAnnouncementEmail({ title, message, senderName }) {
   const safeSender = senderName?.trim() || "CRC Connect";
   const safeMessage = message?.trim() || "";
 
-  const text = `${safeTitle}\n\n${safeMessage}\n\n— ${safeSender}`;
+  const text = `${safeTitle}\n\n${safeMessage}\n\nâ€” ${safeSender}`;
   const html = `
     <div style="font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; line-height: 1.6; color: #111827;">
       <h2 style="margin: 0 0 12px; font-size: 18px;">${escapeHtml(safeTitle)}</h2>
       <div style="white-space: pre-wrap; font-size: 14px;">${escapeHtml(safeMessage)}</div>
-      <div style="margin-top: 20px; font-size: 12px; color: #6B7280;">— ${escapeHtml(safeSender)}</div>
+      <div style="margin-top: 20px; font-size: 12px; color: #6B7280;">â€” ${escapeHtml(safeSender)}</div>
     </div>
   `.trim();
 
@@ -277,3 +277,5 @@ export const createAdminAnnouncement = catchAsync(async (req, res, next) => {
     message: "Announcement dispatched",
   });
 });
+
+

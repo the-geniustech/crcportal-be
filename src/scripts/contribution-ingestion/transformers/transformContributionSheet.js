@@ -1,9 +1,11 @@
 import crypto from "crypto";
 import path from "path";
+import { normalizeContributionType } from "../../../utils/contributionPolicy.js";
 import {
-  calculateContributionInterestForType,
-  normalizeContributionType,
-} from "../../../utils/contributionPolicy.js";
+  buildDefaultMonthlyRates,
+  computeAggregateInterestSchedule,
+  resolveMonthsToCompute,
+} from "../../../utils/contributionInterest.js";
 
 const DEFAULT_PHONE_PREFIXES = ["080", "081", "070", "090", "091"];
 
@@ -340,11 +342,6 @@ export function transformContributionSheet(parsed, options = {}) {
         `${seedKey}:${groupSeedKey}:${year}:${month}`,
       );
       const paymentDate = resolvePaymentDate(year, month, paymentDay);
-      const interestAmount = calculateContributionInterestForType(
-        contributionType,
-        amount,
-      );
-
       contributions.push({
         seedKey: `contribution-${seedKey}-${year}-${String(month).padStart(2, "0")}`,
         _id: contributionId,
@@ -355,7 +352,7 @@ export function transformContributionSheet(parsed, options = {}) {
         amount,
         contributionType,
         units: resolvedUnits,
-        interestAmount,
+        interestAmount: 0,
         status: "verified",
         verifiedAt: paymentDate,
         createdAt: paymentDate,
@@ -393,6 +390,22 @@ export function transformContributionSheet(parsed, options = {}) {
     });
   });
 
+  const monthlyTotals = Array(12).fill(0);
+  contributions.forEach((contribution) => {
+    const month = Number(contribution.month);
+    if (!Number.isFinite(month) || month < 1 || month > 12) return;
+    if (!["verified", "completed"].includes(contribution.status)) return;
+    monthlyTotals[month - 1] += Number(contribution.amount ?? 0);
+  });
+
+  const monthsToCompute = resolveMonthsToCompute({ year, now });
+  const monthlyRates = buildDefaultMonthlyRates();
+  const interestSchedule = computeAggregateInterestSchedule({
+    monthlyContributions: monthlyTotals,
+    monthlyRates,
+    monthsToCompute,
+  });
+
   if (!groupNumber) {
     warnings.push("Group number not detected; defaulted to 0.");
   }
@@ -409,6 +422,11 @@ export function transformContributionSheet(parsed, options = {}) {
       unitAmount,
       groupMonthlyContribution,
       cycleDuration,
+      interestSummary: {
+        monthsComputed: interestSchedule.monthsComputed ?? monthsToCompute,
+        totals: interestSchedule.totals,
+        schedule: interestSchedule.schedule,
+      },
       warnings,
     },
     users,

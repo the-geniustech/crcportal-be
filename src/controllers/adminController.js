@@ -16,7 +16,6 @@ import { assignGroupMemberSerial } from "../utils/groupMemberSerial.js";
 import { hasUserRole } from "../utils/roles.js";
 import {
   ContributionTypeCanonical,
-  calculateContributionInterestForType,
   calculateContributionUnits,
   getContributionTypeMatch,
   isContributionAmountValid,
@@ -931,7 +930,7 @@ export const markContributionPaid = catchAsync(async (req, res, next) => {
     verifiedBy: req.user.profileId,
     verifiedAt: new Date(),
     units: calculateContributionUnits(amount),
-    interestAmount: calculateContributionInterestForType(normalizedType, amount),
+    interestAmount: 0,
   });
 
   await Promise.all([

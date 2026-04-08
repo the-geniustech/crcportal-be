@@ -1,4 +1,4 @@
-import PDFDocument from "pdfkit";
+﻿import PDFDocument from "pdfkit";
 
 const LAYOUT = {
   headerBarHeight: 38,
@@ -364,10 +364,13 @@ export async function generateGroupContributionLedgerPdfBuffer({
       .font("Helvetica")
       .fontSize(7)
       .fillColor("#94A3B8")
-      .text("CRC Cooperative Resource Center - Contribution Ledger", {
+      .text(
+        "CRC Cooperative Resource Center - Contribution Ledger",
+        {
         align: "center",
       });
 
     doc.end();
   });
 }
+

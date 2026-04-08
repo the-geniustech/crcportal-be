@@ -9,16 +9,19 @@ import { generateGroupContributionReportPdfBuffer } from "../services/pdf/groupC
 import { canViewFullGroupData, resolveScopedGroupUserId } from "../utils/groupAccess.js";
 import {
   ContributionTypeCanonical,
-  calculateContributionInterest,
-  calculateContributionInterestForType,
   calculateContributionUnits,
-  ContributionInterestPerUnit,
   ContributionUnitBase,
   getContributionTypeConfig,
   getContributionTypeMatch,
   isContributionAmountValid,
   normalizeContributionType,
 } from "../utils/contributionPolicy.js";
+import {
+  computeInterestAllocation,
+  getMonthlyInterestRates,
+  resolveMonthsToCompute,
+  roundMoney,
+} from "../utils/contributionInterest.js";
 import { generateGroupContributionLedgerPdfBuffer } from "../services/pdf/groupContributionLedgerPdf.js";
 
 const PaidContributionStatuses = new Set(["completed", "verified"]);
@@ -89,10 +92,7 @@ function applyContributionMetrics(contribution, amount, status) {
   }
   const safeAmount = Number(amount ?? contribution.amount ?? 0);
   contribution.units = calculateContributionUnits(safeAmount);
-  contribution.interestAmount = calculateContributionInterestForType(
-    contribution.contributionType,
-    safeAmount,
-  );
+  contribution.interestAmount = 0;
 }
 
 async function ensureGroupLeader(group) {
@@ -538,6 +538,142 @@ export const getGroupContributionTargets = catchAsync(async (req, res, next) => 
   });
 });
 
+export const getGroupContributionInterestLedger = catchAsync(
+  async (req, res, next) => {
+    const group = req.group;
+    if (!group) return next(new AppError("Group not found", 404));
+    const canViewAll = canViewFullGroupData(req);
+    const scopedUserId = resolveScopedGroupUserId(req);
+
+    if (!canViewAll && !scopedUserId) {
+      return next(new AppError("User profile not found", 400));
+    }
+
+    const now = new Date();
+    const year = Number.isFinite(Number(req.query?.year))
+      ? Number(req.query?.year)
+      : now.getFullYear();
+    const rawType =
+      req.query?.contributionType || req.query?.interestType || "revolving";
+    const normalizedType = normalizeContributionType(rawType);
+    if (!normalizedType) {
+      return next(new AppError("Invalid contributionType provided", 400));
+    }
+
+    const typeMatch = getContributionTypeMatch(normalizedType) || [
+      normalizedType,
+    ];
+    const contributionTypeFilter =
+      normalizedType === "revolving"
+        ? {
+            $or: [
+              { contributionType: { $in: typeMatch } },
+              { contributionType: { $exists: false } },
+              { contributionType: null },
+            ],
+          }
+        : { contributionType: { $in: typeMatch } };
+
+    const membershipFilter = {
+      groupId: group._id,
+      status: "active",
+      ...(canViewAll ? {} : { userId: scopedUserId }),
+    };
+    const contributionFilter = {
+      groupId: group._id,
+      year,
+      ...contributionTypeFilter,
+      ...(canViewAll ? {} : { userId: scopedUserId }),
+    };
+
+    const [memberships, contributions] = await Promise.all([
+      GroupMembershipModel.find(membershipFilter)
+        .populate("userId")
+        .lean(),
+      ContributionModel.find(contributionFilter)
+        .sort({ year: 1, month: 1 })
+        .populate("userId")
+        .lean(),
+    ]);
+
+    const memberRows = memberships.map((membership) => {
+      const profile =
+        membership.userId && typeof membership.userId === "object"
+          ? membership.userId
+          : null;
+      const memberId = profile?._id || membership.userId;
+      const name =
+        profile?.fullName ||
+        profile?.full_name ||
+        membership.fullName ||
+        membership.name ||
+        "Member";
+      const memberSerial =
+        typeof membership.memberSerial === "string"
+          ? membership.memberSerial
+          : null;
+      return { id: String(memberId), name, memberSerial };
+    });
+
+    const contributionsByMember = new Map();
+    memberRows.forEach((member) => {
+      contributionsByMember.set(member.id, Array(12).fill(0));
+    });
+
+    contributions.forEach((contribution) => {
+      if (!PaidContributionStatuses.has(contribution.status)) return;
+      const profile =
+        contribution.userId && typeof contribution.userId === "object"
+          ? contribution.userId
+          : null;
+      const memberId = String(profile?._id || contribution.userId || "");
+      if (!memberId) return;
+      const month = Number(contribution.month);
+      if (!Number.isFinite(month) || month < 1 || month > 12) return;
+      if (!contributionsByMember.has(memberId)) {
+        contributionsByMember.set(memberId, Array(12).fill(0));
+      }
+      const months = contributionsByMember.get(memberId);
+      months[month - 1] = Number(months[month - 1] ?? 0) + Number(contribution.amount ?? 0);
+      contributionsByMember.set(memberId, months);
+    });
+
+    const monthlyRates = await getMonthlyInterestRates(year);
+    const monthsToCompute = resolveMonthsToCompute({ year, now });
+    const { memberInterestByMonth } = computeInterestAllocation({
+      contributionsByMember,
+      monthlyRates,
+      monthsToCompute,
+    });
+
+    const entries = [];
+    memberRows.forEach((member) => {
+      const months = memberInterestByMonth.get(member.id) || [];
+      months.forEach((value, idx) => {
+        const interestAmount = Number(value ?? 0);
+        if (!Number.isFinite(interestAmount) || interestAmount <= 0) return;
+        entries.push({
+          memberId: member.id,
+          memberName: member.name,
+          memberSerial: member.memberSerial,
+          month: idx + 1,
+          year,
+          interestAmount: roundMoney(interestAmount),
+        });
+      });
+    });
+
+    return sendSuccess(res, {
+      statusCode: 200,
+      data: {
+        year,
+        contributionType: normalizedType,
+        entries,
+      },
+    });
+  },
+);
+
 export const downloadGroupContributionLedgerPdf = catchAsync(
   async (req, res, next) => {
     const group = req.group;
@@ -613,12 +749,8 @@ export const downloadGroupContributionLedgerPdf = catchAsync(
     const { monthlyTargets, unitAmounts } =
       resolveGroupContributionTargets(group);
     const expectedMonthlyBase = Number(monthlyTargets[normalizedType] ?? 0);
-    const expectedMonthly = isInterestView
-      ? calculateContributionInterest(expectedMonthlyBase)
-      : expectedMonthlyBase;
-    const expectedUnitAmount = isInterestView
-      ? ContributionInterestPerUnit
-      : unitAmounts[normalizedType] ?? ContributionUnitBase;
+    const expectedMonthly = expectedMonthlyBase;
+    const expectedUnitAmount = unitAmounts[normalizedType] ?? ContributionUnitBase;
 
     const currentMonth = now.getMonth() + 1;
     const monthsToDate = year === now.getFullYear() ? currentMonth : 12;
@@ -663,86 +795,161 @@ export const downloadGroupContributionLedgerPdf = catchAsync(
       return { id: String(memberId), name, profile, memberSerial };
     });
 
-    const contributionMap = new Map();
-    contributions.forEach((contribution) => {
-      const profile =
-        contribution.userId && typeof contribution.userId === "object"
-          ? contribution.userId
-          : null;
-      const memberId = String(profile?._id || contribution.userId || "");
-      if (!memberId) return;
-      if (!PaidContributionStatuses.has(contribution.status)) return;
+    let rows = [];
+    let monthTotals = Array.from({ length: 12 }).map(() => 0);
+    let ytdTotal = 0;
+    let expectedYtd = 0;
+    let arrears = 0;
+    let collectionRate = 0;
+    let unitsTotal = 0;
+    let averageExpectedMonthly = expectedMonthly;
+    let expectedUnitAmountResolved = expectedUnitAmount;
 
-      const month = Number(contribution.month);
-      if (!Number.isFinite(month) || month < 1 || month > 12) return;
-
-      const key = `${memberId}-${month}`;
-      const current = contributionMap.get(key) ?? 0;
-      let value = Number(contribution.amount ?? 0);
-      if (isInterestView) {
-        const recorded = Number(contribution.interestAmount ?? NaN);
-        const computed = calculateContributionInterestForType(
-          contribution.contributionType,
-          contribution.amount,
-        );
-        value =
-          Number.isFinite(recorded) && recorded > 0 ? recorded : computed;
-      }
-      contributionMap.set(key, current + value);
-    });
-
-    const rows = memberRows.map((member) => {
-      const months = Array.from({ length: 12 }).map((_, idx) => {
-        const month = idx + 1;
-        const key = `${member.id}-${month}`;
-        return Number(contributionMap.get(key) ?? 0);
+    if (isInterestView) {
+      const contributionsByMember = new Map();
+      memberRows.forEach((member) => {
+        contributionsByMember.set(member.id, Array(12).fill(0));
       });
 
-      const units = resolveMemberUnits(member.profile);
-      const expectedMonthlyForMember =
-        units && expectedUnitAmount
-          ? Number(units) * Number(expectedUnitAmount)
-          : expectedMonthly;
+      contributions.forEach((contribution) => {
+        if (!PaidContributionStatuses.has(contribution.status)) return;
+        const profile =
+          contribution.userId && typeof contribution.userId === "object"
+            ? contribution.userId
+            : null;
+        const memberId = String(profile?._id || contribution.userId || "");
+        if (!memberId) return;
+        const month = Number(contribution.month);
+        if (!Number.isFinite(month) || month < 1 || month > 12) return;
+        if (!contributionsByMember.has(memberId)) {
+          contributionsByMember.set(memberId, Array(12).fill(0));
+        }
+        const months = contributionsByMember.get(memberId);
+        months[month - 1] = Number(months[month - 1] ?? 0) + Number(contribution.amount ?? 0);
+        contributionsByMember.set(memberId, months);
+      });
 
-      const ytdTotal = months
+      const monthlyRates = await getMonthlyInterestRates(year);
+      const monthsToCompute = resolveMonthsToCompute({ year, now });
+      const { memberInterestByMonth } = computeInterestAllocation({
+        contributionsByMember,
+        monthlyRates,
+        monthsToCompute,
+      });
+
+      rows = memberRows.map((member) => {
+        const months = Array.from({ length: 12 }).map((_v, idx) => {
+          const values = memberInterestByMonth.get(member.id) || [];
+          return Number(values[idx] ?? 0);
+        });
+        const units = resolveMemberUnits(member.profile);
+        const memberYtdTotal = months
+          .slice(0, monthsToDate)
+          .reduce((sum, value) => sum + value, 0);
+
+        return {
+          memberName: member.name,
+          memberSerial: member.memberSerial,
+          units,
+          months,
+          ytdTotal: memberYtdTotal,
+          expectedYtd: memberYtdTotal,
+          arrears: 0,
+          status: "ON TRACK",
+        };
+      });
+
+      monthTotals = Array.from({ length: 12 }).map((_, idx) =>
+        rows.reduce((sum, row) => sum + (row.months[idx] ?? 0), 0),
+      );
+      ytdTotal = monthTotals
         .slice(0, monthsToDate)
         .reduce((sum, value) => sum + value, 0);
-      const expectedYtd = expectedMonthlyForMember * monthsToDate;
-      const arrears = Math.max(expectedYtd - ytdTotal, 0);
+      expectedYtd = ytdTotal;
+      arrears = 0;
+      collectionRate = expectedYtd > 0 ? 100 : 0;
+      unitsTotal = rows.reduce(
+        (sum, row) => sum + (Number(row.units ?? 0) || 0),
+        0,
+      );
+      averageExpectedMonthly =
+        memberRows.length && monthsToDate
+          ? roundMoney(ytdTotal / (memberRows.length * monthsToDate))
+          : 0;
+      expectedUnitAmountResolved = null;
+    } else {
+      const contributionMap = new Map();
+      contributions.forEach((contribution) => {
+        const profile =
+          contribution.userId && typeof contribution.userId === "object"
+            ? contribution.userId
+            : null;
+        const memberId = String(profile?._id || contribution.userId || "");
+        if (!memberId) return;
+        if (!PaidContributionStatuses.has(contribution.status)) return;
 
-      return {
-        memberName: member.name,
-        memberSerial: member.memberSerial,
-        units,
-        months,
-        ytdTotal,
-        expectedYtd,
-        arrears,
-        status: arrears > 0 ? "ARREARS" : "ON TRACK",
-      };
-    });
+        const month = Number(contribution.month);
+        if (!Number.isFinite(month) || month < 1 || month > 12) return;
 
-    const monthTotals = Array.from({ length: 12 }).map((_, idx) =>
-      rows.reduce((sum, row) => sum + (row.months[idx] ?? 0), 0),
-    );
-    const ytdTotal = monthTotals
-      .slice(0, monthsToDate)
-      .reduce((sum, value) => sum + value, 0);
-    const expectedYtd = rows.reduce(
-      (sum, row) => sum + Number(row.expectedYtd ?? 0),
-      0,
-    );
-    const arrears = Math.max(expectedYtd - ytdTotal, 0);
-    const collectionRate =
-      expectedYtd > 0 ? Math.round((ytdTotal / expectedYtd) * 100) : 0;
-    const unitsTotal = rows.reduce(
-      (sum, row) => sum + (Number(row.units ?? 0) || 0),
-      0,
-    );
-    const averageExpectedMonthly =
-      memberRows.length && monthsToDate
-        ? expectedYtd / (memberRows.length * monthsToDate)
-        : expectedMonthly;
+        const key = `${memberId}-${month}`;
+        const current = contributionMap.get(key) ?? 0;
+        const value = Number(contribution.amount ?? 0);
+        contributionMap.set(key, current + value);
+      });
+
+      rows = memberRows.map((member) => {
+        const months = Array.from({ length: 12 }).map((_, idx) => {
+          const month = idx + 1;
+          const key = `${member.id}-${month}`;
+          return Number(contributionMap.get(key) ?? 0);
+        });
+
+        const units = resolveMemberUnits(member.profile);
+        const expectedMonthlyForMember =
+          units && expectedUnitAmount
+            ? Number(units) * Number(expectedUnitAmount)
+            : expectedMonthly;
+
+        const memberYtdTotal = months
+          .slice(0, monthsToDate)
+          .reduce((sum, value) => sum + value, 0);
+        const memberExpectedYtd = expectedMonthlyForMember * monthsToDate;
+        const memberArrears = Math.max(memberExpectedYtd - memberYtdTotal, 0);
+
+        return {
+          memberName: member.name,
+          memberSerial: member.memberSerial,
+          units,
+          months,
+          ytdTotal: memberYtdTotal,
+          expectedYtd: memberExpectedYtd,
+          arrears: memberArrears,
+          status: memberArrears > 0 ? "ARREARS" : "ON TRACK",
+        };
+      });
+
+      monthTotals = Array.from({ length: 12 }).map((_, idx) =>
+        rows.reduce((sum, row) => sum + (row.months[idx] ?? 0), 0),
+      );
+      ytdTotal = monthTotals
+        .slice(0, monthsToDate)
+        .reduce((sum, value) => sum + value, 0);
+      expectedYtd = rows.reduce(
+        (sum, row) => sum + Number(row.expectedYtd ?? 0),
+        0,
+      );
+      arrears = Math.max(expectedYtd - ytdTotal, 0);
+      collectionRate =
+        expectedYtd > 0 ? Math.round((ytdTotal / expectedYtd) * 100) : 0;
+      unitsTotal = rows.reduce(
+        (sum, row) => sum + (Number(row.units ?? 0) || 0),
+        0,
+      );
+      averageExpectedMonthly =
+        memberRows.length && monthsToDate
+          ? expectedYtd / (memberRows.length * monthsToDate)
+          : expectedMonthly;
+    }
 
     const contributionTypeConfig = getContributionTypeConfig(normalizedType);
     const interestLabel = contributionTypeConfig?.label || "Contribution";
@@ -757,7 +964,7 @@ export const downloadGroupContributionLedgerPdf = catchAsync(
       year,
       generatedAt: now,
       expectedMonthly: averageExpectedMonthly,
-      expectedUnitAmount,
+      expectedUnitAmount: expectedUnitAmountResolved,
       monthsToDate,
       rows,
       totals: {

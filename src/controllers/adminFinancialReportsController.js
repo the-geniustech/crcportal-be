@@ -15,6 +15,11 @@ import {
   resolveExpectedContributionAmount,
 } from "../utils/contributionPolicy.js";
 import { hasUserRole } from "../utils/roles.js";
+import {
+  computeAggregateInterestSchedule,
+  getMonthlyInterestRates,
+  resolveMonthsToCompute,
+} from "../utils/contributionInterest.js";
 
 function clamp(n, min, max) {
   return Math.min(max, Math.max(min, n));
@@ -101,9 +106,33 @@ function buildPeriodMonthFilters(months) {
   }));
 }
 
+async function getContributionTotalsByMonth({ year, groupObjectIds }) {
+  const match = {
+    year,
+    status: { $in: PaidContributionStatuses },
+    groupId: { $ne: null },
+    ...(groupObjectIds ? { groupId: { $in: groupObjectIds } } : {}),
+  };
+
+  const rows = await ContributionModel.aggregate([
+    { $match: match },
+    { $group: { _id: "$month", total: { $sum: "$amount" } } },
+  ]);
+
+  const totals = Array(12).fill(0);
+  rows.forEach((row) => {
+    const month = Number(row._id);
+    if (!Number.isFinite(month) || month < 1 || month > 12) return;
+    totals[month - 1] = Number(row.total || 0);
+  });
+
+  return totals;
+}
+
 export const getAdminFinancialReports = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
 
+  const now = new Date();
   const end = parseEndMonthYear(req);
   if (end.error) return next(new AppError(end.error, 400));
 
@@ -169,7 +198,6 @@ export const getAdminFinancialReports = catchAsync(async (req, res, next) => {
         $group: {
           _id: { y: { $year: "$effectiveDate" }, m: { $month: "$effectiveDate" } },
           contributions: { $sum: "$amount" },
-          interest: { $sum: "$interestAmount" },
         },
       },
     ]),
@@ -209,18 +237,38 @@ export const getAdminFinancialReports = catchAsync(async (req, res, next) => {
     loanMonthly.map((r) => [`${r._id.y}-${r._id.m}`, r]),
   );
 
+  const yearsInPeriod = Array.from(new Set(months.map((m) => m.year)));
+  const interestByYm = new Map();
+  for (const yr of yearsInPeriod) {
+    const monthlyTotals = await getContributionTotalsByMonth({
+      year: yr,
+      groupObjectIds,
+    });
+    const monthlyRates = await getMonthlyInterestRates(yr);
+    const monthsToCompute = resolveMonthsToCompute({ year: yr, now });
+    const { schedule } = computeAggregateInterestSchedule({
+      monthlyContributions: monthlyTotals,
+      monthlyRates,
+      monthsToCompute,
+    });
+    schedule.forEach((row) => {
+      interestByYm.set(`${yr}-${row.month}`, Number(row.interest || 0));
+    });
+  }
+
   const monthlyData = months.map((m) => {
     const k = `${m.year}-${m.month}`;
     const contrib = contributionByYm.get(k);
     const repayment = repaymentByYm.get(k);
     const loans = loanByYm.get(k);
+    const interest = interestByYm.get(k);
 
     return {
       month: monthShort(m.month),
       contributions: Number(contrib?.contributions || 0),
       loans: Number(loans?.loans || 0),
       repayments: Number(repayment?.repayments || 0),
-      interest: Number(contrib?.interest || 0),
+      interest: Number(interest || 0),
     };
   });
 
