@@ -2,7 +2,10 @@
 import catchAsync from "../utils/catchAsync.js";
 import sendSuccess from "../utils/sendSuccess.js";
 
-import { LoanApplicationModel, LoanApplicationStatuses } from "../models/LoanApplication.js";
+import {
+  LoanApplicationModel,
+  LoanApplicationStatuses,
+} from "../models/LoanApplication.js";
 import { LoanApplicationEditRequestModel } from "../models/LoanApplicationEditRequest.js";
 import { LoanGuarantorModel } from "../models/LoanGuarantor.js";
 import { GuarantorNotificationModel } from "../models/GuarantorNotification.js";
@@ -53,7 +56,9 @@ async function getManageableGroupIds(req) {
 }
 
 function normalizeEmail(value) {
-  return String(value || "").trim().toLowerCase();
+  return String(value || "")
+    .trim()
+    .toLowerCase();
 }
 
 function isValidEmail(value) {
@@ -129,7 +134,11 @@ function buildLoanEmailHtml({ loan, applicant, recipientsLabel }) {
           <p style="margin: 0 0 6px;"><strong>Applicant:</strong> ${applicant?.fullName || "Member"}</p>
           <p style="margin: 0 0 6px;"><strong>Group:</strong> ${loan.groupName || "-"}</p>
           <p style="margin: 0 0 6px;"><strong>Amount:</strong> NGN ${Number(loan.loanAmount || 0).toLocaleString("en-NG")}</p>
-          <p style="margin: 0;"><strong>Status:</strong> ${String(loan.status || "pending").replace(/_/g, " ").toUpperCase()}</p>
+          <p style="margin: 0;"><strong>Status:</strong> ${String(
+            loan.status || "pending",
+          )
+            .replace(/_/g, " ")
+            .toUpperCase()}</p>
         </div>
         <p style="margin-top: 16px; color: #6b7280; font-size: 12px;">If you have any questions, please reply to this email.</p>
       </div>
@@ -144,7 +153,9 @@ function buildLoanEmailText({ loan, applicant }) {
     `Applicant: ${applicant?.fullName || "Member"}`,
     `Group: ${loan.groupName || "-"}`,
     `Amount: NGN ${Number(loan.loanAmount || 0).toLocaleString("en-NG")}`,
-    `Status: ${String(loan.status || "pending").replace(/_/g, " ").toUpperCase()}`,
+    `Status: ${String(loan.status || "pending")
+      .replace(/_/g, " ")
+      .toUpperCase()}`,
     "",
     "The loan application PDF summary is attached.",
   ].join("\n");
@@ -165,7 +176,10 @@ export const ensureAdminLoanAccess = catchAsync(async (req, res, next) => {
   }
 
   const manageableGroupIds = await getManageableGroupIds(req);
-  if (!manageableGroupIds || !manageableGroupIds.includes(String(loan.groupId))) {
+  if (
+    !manageableGroupIds ||
+    !manageableGroupIds.includes(String(loan.groupId))
+  ) {
     return next(new AppError("You cannot manage loans for this group", 403));
   }
 
@@ -202,8 +216,7 @@ export const listAdminLoanApplications = catchAsync(async (req, res, next) => {
       : null;
   if (year || month) {
     const now = new Date();
-    const safeYear =
-      Number.isFinite(year) && year ? year : now.getFullYear();
+    const safeYear = Number.isFinite(year) && year ? year : now.getFullYear();
     const safeMonth =
       Number.isFinite(month) && month ? Math.min(12, Math.max(1, month)) : null;
     const start = safeMonth
@@ -248,7 +261,10 @@ export const listAdminLoanApplications = catchAsync(async (req, res, next) => {
   }
 
   const page = Math.max(1, parseInt(String(req.query?.page ?? "1"), 10) || 1);
-  const limit = Math.min(200, Math.max(1, parseInt(String(req.query?.limit ?? "50"), 10) || 50));
+  const limit = Math.min(
+    200,
+    Math.max(1, parseInt(String(req.query?.limit ?? "50"), 10) || 50),
+  );
   const skip = (page - 1) * limit;
 
   const [applications, total, summaryAgg] = await Promise.all([
@@ -262,8 +278,7 @@ export const listAdminLoanApplications = catchAsync(async (req, res, next) => {
       {
         $match: {
           ...filterBase,
-          status:
-            req.query?.status === "draft" ? "draft" : { $ne: "draft" },
+          status: req.query?.status === "draft" ? "draft" : { $ne: "draft" },
         },
       },
       {
@@ -364,22 +379,28 @@ export const listAdminLoanApplications = catchAsync(async (req, res, next) => {
 
 export const reviewAdminLoanApplication = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
-  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
 
   const { applicationId } = req.params;
   const app = await LoanApplicationModel.findById(applicationId);
   if (!app) return next(new AppError("Loan application not found", 404));
 
   if (!hasUserRole(req.user, "admin")) {
-    if (!app.groupId) return next(new AppError("Only admins can review this loan", 403));
+    if (!app.groupId)
+      return next(new AppError("Only admins can review this loan", 403));
 
     const manageableGroupIds = await getManageableGroupIds(req);
-    if (!manageableGroupIds || !manageableGroupIds.includes(String(app.groupId))) {
+    if (
+      !manageableGroupIds ||
+      !manageableGroupIds.includes(String(app.groupId))
+    ) {
       return next(new AppError("You cannot review loans for this group", 403));
     }
   }
 
-  const { status, reviewNotes, approvedAmount, approvedInterestRate } = req.body || {};
+  const { status, reviewNotes, approvedAmount, approvedInterestRate } =
+    req.body || {};
 
   const allowedStatuses = new Set(["under_review", "approved", "rejected"]);
   if (!status || !allowedStatuses.has(String(status))) {
@@ -395,9 +416,22 @@ export const reviewAdminLoanApplication = catchAsync(async (req, res, next) => {
     if (typeof approvedAmount !== "undefined" && approvedAmount !== null) {
       app.approvedAmount = Number(approvedAmount);
     }
-    if (typeof approvedInterestRate !== "undefined" && approvedInterestRate !== null) {
-      if (!isInterestRateAllowed(app.loanType || "revolving", approvedInterestRate)) {
-        return next(new AppError("approvedInterestRate is not allowed for this loan type", 400));
+    if (
+      typeof approvedInterestRate !== "undefined" &&
+      approvedInterestRate !== null
+    ) {
+      if (
+        !isInterestRateAllowed(
+          app.loanType || "revolving",
+          approvedInterestRate,
+        )
+      ) {
+        return next(
+          new AppError(
+            "approvedInterestRate is not allowed for this loan type",
+            400,
+          ),
+        );
       }
       app.approvedInterestRate = Number(approvedInterestRate);
     }
@@ -413,36 +447,42 @@ export const reviewAdminLoanApplication = catchAsync(async (req, res, next) => {
   return sendSuccess(res, { statusCode: 200, data: { application: app } });
 });
 
-export const reconcileAdminLoanApplication = catchAsync(async (req, res, next) => {
-  if (!req.user) return next(new AppError("Not authenticated", 401));
-  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
-  if (!req.loanApplication) return next(new AppError("Missing loan context", 500));
+export const reconcileAdminLoanApplication = catchAsync(
+  async (req, res, next) => {
+    if (!req.user) return next(new AppError("Not authenticated", 401));
+    if (!req.user.profileId)
+      return next(new AppError("User profile not found", 400));
+    if (!req.loanApplication)
+      return next(new AppError("Missing loan context", 500));
 
-  const loan = req.loanApplication;
-  if (loan.status !== "rejected") {
-    return next(new AppError("Only rejected loans can be reconciled", 400));
-  }
+    const loan = req.loanApplication;
+    if (loan.status !== "rejected") {
+      return next(new AppError("Only rejected loans can be reconciled", 400));
+    }
 
-  resetLoanForResubmission(loan, {
-    notes:
-      typeof req.body?.notes === "string" && req.body.notes.trim()
-        ? req.body.notes.trim()
-        : null,
-  });
+    resetLoanForResubmission(loan, {
+      notes:
+        typeof req.body?.notes === "string" && req.body.notes.trim()
+          ? req.body.notes.trim()
+          : null,
+    });
 
-  await loan.save();
+    await loan.save();
 
-  return sendSuccess(res, {
-    statusCode: 200,
-    message: "Loan reconciled and returned to pending review",
-    data: { application: loan },
-  });
-});
+    return sendSuccess(res, {
+      statusCode: 200,
+      message: "Loan reconciled and returned to pending review",
+      data: { application: loan },
+    });
+  },
+);
 
 export const reviewLoanEditRequest = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
-  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
-  if (!req.loanApplication) return next(new AppError("Missing loan context", 500));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
+  if (!req.loanApplication)
+    return next(new AppError("Missing loan context", 500));
 
   const { requestId } = req.params;
   const decision = String(req.body?.status || "").trim();
@@ -471,10 +511,14 @@ export const reviewLoanEditRequest = catchAsync(async (req, res, next) => {
         return next(new AppError("loanAmount must be greater than 0", 400));
       }
     }
-    if (Object.prototype.hasOwnProperty.call(updatePayload, "repaymentPeriod")) {
+    if (
+      Object.prototype.hasOwnProperty.call(updatePayload, "repaymentPeriod")
+    ) {
       const period = Number(updatePayload.repaymentPeriod);
       if (!period || period <= 0) {
-        return next(new AppError("repaymentPeriod must be greater than 0", 400));
+        return next(
+          new AppError("repaymentPeriod must be greater than 0", 400),
+        );
       }
     }
 
@@ -629,279 +673,295 @@ export const reviewLoanEditRequest = catchAsync(async (req, res, next) => {
   });
 });
 
-export const exportAdminLoanApplications = catchAsync(async (req, res, next) => {
-  if (!req.user) return next(new AppError("Not authenticated", 401));
+export const exportAdminLoanApplications = catchAsync(
+  async (req, res, next) => {
+    if (!req.user) return next(new AppError("Not authenticated", 401));
 
-  const manageableGroupIds = await getManageableGroupIds(req);
-  const filterBase = {};
+    const manageableGroupIds = await getManageableGroupIds(req);
+    const filterBase = {};
 
-  if (manageableGroupIds) {
-    filterBase.groupId = { $in: manageableGroupIds };
-  }
-
-  const groupId =
-    typeof req.query?.groupId === "string" ? req.query.groupId.trim() : "";
-  if (groupId) {
-    if (manageableGroupIds && !manageableGroupIds.includes(groupId)) {
-      return next(new AppError("You cannot manage loans for this group", 403));
+    if (manageableGroupIds) {
+      filterBase.groupId = { $in: manageableGroupIds };
     }
-    filterBase.groupId = groupId;
-  }
 
-  const year =
-    typeof req.query?.year === "string" && req.query.year.trim()
-      ? Number(req.query.year)
-      : null;
-  const month =
-    typeof req.query?.month === "string" && req.query.month.trim()
-      ? Number(req.query.month)
-      : null;
-  if (year || month) {
-    const now = new Date();
-    const safeYear =
-      Number.isFinite(year) && year ? year : now.getFullYear();
-    const safeMonth =
-      Number.isFinite(month) && month ? Math.min(12, Math.max(1, month)) : null;
-    const start = safeMonth
-      ? new Date(Date.UTC(safeYear, safeMonth - 1, 1))
-      : new Date(Date.UTC(safeYear, 0, 1));
-    const end = safeMonth
-      ? new Date(Date.UTC(safeYear, safeMonth, 1))
-      : new Date(Date.UTC(safeYear + 1, 0, 1));
-    filterBase.createdAt = { $gte: start, $lt: end };
-  }
+    const groupId =
+      typeof req.query?.groupId === "string" ? req.query.groupId.trim() : "";
+    if (groupId) {
+      if (manageableGroupIds && !manageableGroupIds.includes(groupId)) {
+        return next(
+          new AppError("You cannot manage loans for this group", 403),
+        );
+      }
+      filterBase.groupId = groupId;
+    }
 
-  const search =
-    typeof req.query?.search === "string" ? req.query.search.trim() : "";
-  if (search) {
-    const regex = new RegExp(search, "i");
-    const profileMatches = await ProfileModel.find(
-      {
-        $or: [{ fullName: regex }, { email: regex }, { phone: regex }],
-      },
-      { _id: 1 },
+    const year =
+      typeof req.query?.year === "string" && req.query.year.trim()
+        ? Number(req.query.year)
+        : null;
+    const month =
+      typeof req.query?.month === "string" && req.query.month.trim()
+        ? Number(req.query.month)
+        : null;
+    if (year || month) {
+      const now = new Date();
+      const safeYear = Number.isFinite(year) && year ? year : now.getFullYear();
+      const safeMonth =
+        Number.isFinite(month) && month
+          ? Math.min(12, Math.max(1, month))
+          : null;
+      const start = safeMonth
+        ? new Date(Date.UTC(safeYear, safeMonth - 1, 1))
+        : new Date(Date.UTC(safeYear, 0, 1));
+      const end = safeMonth
+        ? new Date(Date.UTC(safeYear, safeMonth, 1))
+        : new Date(Date.UTC(safeYear + 1, 0, 1));
+      filterBase.createdAt = { $gte: start, $lt: end };
+    }
+
+    const search =
+      typeof req.query?.search === "string" ? req.query.search.trim() : "";
+    if (search) {
+      const regex = new RegExp(search, "i");
+      const profileMatches = await ProfileModel.find(
+        {
+          $or: [{ fullName: regex }, { email: regex }, { phone: regex }],
+        },
+        { _id: 1 },
+      ).lean();
+      const profileIds = profileMatches.map((profile) => profile._id);
+
+      filterBase.$or = [
+        { loanCode: { $regex: regex } },
+        { groupName: { $regex: regex } },
+        { loanPurpose: { $regex: regex } },
+      ];
+      if (profileIds.length > 0) {
+        filterBase.$or.push({ userId: { $in: profileIds } });
+      }
+    }
+
+    const filter = { ...filterBase };
+    if (typeof req.query?.status === "string" && req.query.status.trim()) {
+      const status = String(req.query.status).trim();
+      if (LoanApplicationStatuses.includes(status)) filter.status = status;
+    }
+    if (!filter.status) {
+      filter.status = { $ne: "draft" };
+    }
+
+    const applications = await LoanApplicationModel.find(filter)
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const profileIds = applications.map((a) => a.userId).filter(Boolean);
+    const profiles = await ProfileModel.find(
+      { _id: { $in: profileIds } },
+      { fullName: 1, email: 1, phone: 1 },
     ).lean();
-    const profileIds = profileMatches.map((profile) => profile._id);
+    const profileById = new Map(profiles.map((p) => [String(p._id), p]));
 
-    filterBase.$or = [
-      { loanCode: { $regex: regex } },
-      { groupName: { $regex: regex } },
-      { loanPurpose: { $regex: regex } },
+    const headers = [
+      "Loan Code",
+      "Status",
+      "Applicant",
+      "Applicant Email",
+      "Applicant Phone",
+      "Group",
+      "Loan Type",
+      "Amount",
+      "Repayment Term (Months)",
+      "Interest Rate",
+      "Created At",
+      "Approved At",
+      "Disbursed At",
     ];
-    if (profileIds.length > 0) {
-      filterBase.$or.push({ userId: { $in: profileIds } });
-    }
-  }
 
-  const filter = { ...filterBase };
-  if (typeof req.query?.status === "string" && req.query.status.trim()) {
-    const status = String(req.query.status).trim();
-    if (LoanApplicationStatuses.includes(status)) filter.status = status;
-  }
-  if (!filter.status) {
-    filter.status = { $ne: "draft" };
-  }
+    const formatDate = (value) => {
+      if (!value) return "";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "";
+      return date.toISOString().slice(0, 10);
+    };
+    const csvEscape = (value) => {
+      const raw = String(value ?? "");
+      if (/[",\n]/.test(raw)) {
+        return `"${raw.replace(/"/g, '""')}"`;
+      }
+      return raw;
+    };
 
-  const applications = await LoanApplicationModel.find(filter)
-    .sort({ createdAt: -1 })
-    .lean();
-
-  const profileIds = applications.map((a) => a.userId).filter(Boolean);
-  const profiles = await ProfileModel.find(
-    { _id: { $in: profileIds } },
-    { fullName: 1, email: 1, phone: 1 },
-  ).lean();
-  const profileById = new Map(profiles.map((p) => [String(p._id), p]));
-
-  const headers = [
-    "Loan Code",
-    "Status",
-    "Applicant",
-    "Applicant Email",
-    "Applicant Phone",
-    "Group",
-    "Loan Type",
-    "Amount",
-    "Repayment Term (Months)",
-    "Interest Rate",
-    "Created At",
-    "Approved At",
-    "Disbursed At",
-  ];
-
-  const formatDate = (value) => {
-    if (!value) return "";
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "";
-    return date.toISOString().slice(0, 10);
-  };
-  const csvEscape = (value) => {
-    const raw = String(value ?? "");
-    if (/[",\n]/.test(raw)) {
-      return `"${raw.replace(/"/g, '""')}"`;
-    }
-    return raw;
-  };
-
-  const rows = applications.map((loan) => {
-    const applicant = profileById.get(String(loan.userId));
-    return [
-      loan.loanCode || loan.loanNumber || loan._id || "",
-      String(loan.status || "").replace(/_/g, " "),
-      applicant?.fullName || "",
-      applicant?.email || "",
-      applicant?.phone || "",
-      loan.groupName || "",
-      loan.loanType || "",
-      Number(loan.loanAmount || 0),
-      Number(loan.repaymentPeriod || 0),
-      loan.interestRate != null ? Number(loan.interestRate) : "",
-      formatDate(loan.createdAt),
-      formatDate(loan.approvedAt),
-      formatDate(loan.disbursedAt),
-    ];
-  });
-
-  const csvBody = [headers, ...rows]
-    .map((row) => row.map((value) => csvEscape(value)).join(","))
-    .join("\n");
-  const csv = `\uFEFF${csvBody}`;
-
-  const label = new Date().toISOString().slice(0, 10);
-  res.setHeader("Content-Type", "text/csv; charset=utf-8");
-  res.setHeader(
-    "Content-Disposition",
-    `attachment; filename=\"loan-applications-${label}.csv\"`,
-  );
-  res.status(200).send(csv);
-});
-
-export const downloadAdminLoanApplicationPdf = catchAsync(async (req, res, next) => {
-  if (!req.user) return next(new AppError("Not authenticated", 401));
-  if (!req.loanApplication) {
-    return next(new AppError("Missing loan context", 500));
-  }
-
-  const loanDoc = req.loanApplication;
-  const applicant = loanDoc.userId
-    ? await ProfileModel.findById(loanDoc.userId, {
-        fullName: 1,
-        email: 1,
-        phone: 1,
-      }).lean()
-    : null;
-
-  const loan = typeof loanDoc.toObject === "function" ? loanDoc.toObject() : loanDoc;
-  const pdfBuffer = await generateLoanApplicationPdfBuffer({
-    loan,
-    applicant,
-    organization: {
-      name: "Cooperative Resource Center",
-      subtitle: "Loan Processing Desk",
-    },
-  });
-
-  const reference = loan.loanCode || loan.loanNumber || loan._id || "loan";
-  const safeRef = String(reference).toLowerCase().replace(/[^a-z0-9]+/g, "-");
-
-  res.setHeader("Content-Type", "application/pdf");
-  res.setHeader(
-    "Content-Disposition",
-    `attachment; filename=\"loan-application-${safeRef}.pdf\"`,
-  );
-  res.status(200).send(pdfBuffer);
-});
-
-export const emailAdminLoanApplicationPdf = catchAsync(async (req, res, next) => {
-  if (!req.user) return next(new AppError("Not authenticated", 401));
-  if (!req.loanApplication) {
-    return next(new AppError("Missing loan context", 500));
-  }
-
-  const sendApplicant =
-    typeof req.body?.sendApplicant === "boolean"
-      ? req.body.sendApplicant
-      : true;
-  const sendGuarantors =
-    typeof req.body?.sendGuarantors === "boolean"
-      ? req.body.sendGuarantors
-      : true;
-  const extraEmails = parseEmailList(req.body?.extraEmails || req.body?.emails);
-
-  const loanDoc = req.loanApplication;
-  const applicant = loanDoc.userId
-    ? await ProfileModel.findById(loanDoc.userId, {
-        fullName: 1,
-        email: 1,
-        phone: 1,
-      }).lean()
-    : null;
-
-  const recipients = [];
-
-  if (sendApplicant && applicant?.email) {
-    recipients.push(applicant.email);
-  }
-
-  if (sendGuarantors && Array.isArray(loanDoc.guarantors)) {
-    loanDoc.guarantors.forEach((g) => {
-      if (g?.email) recipients.push(g.email);
+    const rows = applications.map((loan) => {
+      const applicant = profileById.get(String(loan.userId));
+      return [
+        loan.loanCode || loan.loanNumber || loan._id || "",
+        String(loan.status || "").replace(/_/g, " "),
+        applicant?.fullName || "",
+        applicant?.email || "",
+        applicant?.phone || "",
+        loan.groupName || "",
+        loan.loanType || "",
+        Number(loan.loanAmount || 0),
+        Number(loan.repaymentPeriod || 0),
+        loan.interestRate != null ? Number(loan.interestRate) : "",
+        formatDate(loan.createdAt),
+        formatDate(loan.approvedAt),
+        formatDate(loan.disbursedAt),
+      ];
     });
-  }
 
-  recipients.push(...extraEmails);
+    const csvBody = [headers, ...rows]
+      .map((row) => row.map((value) => csvEscape(value)).join(","))
+      .join("\n");
+    const csv = `\uFEFF${csvBody}`;
 
-  const uniqueEmails = Array.from(
-    new Set(
-      recipients
-        .map((value) => normalizeEmail(value))
-        .filter((value) => value && isValidEmail(value)),
-    ),
-  );
+    const label = new Date().toISOString().slice(0, 10);
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=\"loan-applications-${label}.csv\"`,
+    );
+    res.status(200).send(csv);
+  },
+);
 
-  if (uniqueEmails.length === 0) {
-    return next(new AppError("No valid email recipients found", 400));
-  }
+export const downloadAdminLoanApplicationPdf = catchAsync(
+  async (req, res, next) => {
+    if (!req.user) return next(new AppError("Not authenticated", 401));
+    if (!req.loanApplication) {
+      return next(new AppError("Missing loan context", 500));
+    }
 
-  if (uniqueEmails.length > 10) {
-    return next(new AppError("Too many email recipients. Maximum is 10.", 400));
-  }
+    const loanDoc = req.loanApplication;
+    const applicant = loanDoc.userId
+      ? await ProfileModel.findById(loanDoc.userId, {
+          fullName: 1,
+          email: 1,
+          phone: 1,
+        }).lean()
+      : null;
 
-  const loan = typeof loanDoc.toObject === "function" ? loanDoc.toObject() : loanDoc;
-  const pdfBuffer = await generateLoanApplicationPdfBuffer({
-    loan,
-    applicant,
-    organization: {
-      name: "Cooperative Resource Center",
-      subtitle: "Loan Processing Desk",
-    },
-  });
-
-  const reference = loan.loanCode || loan.loanNumber || loan._id || "loan";
-  const subject = `Loan Application Summary - ${reference}`;
-
-  await sendEmail({
-    to: uniqueEmails,
-    subject,
-    html: buildLoanEmailHtml({
+    const loan =
+      typeof loanDoc.toObject === "function" ? loanDoc.toObject() : loanDoc;
+    const pdfBuffer = await generateLoanApplicationPdfBuffer({
       loan,
       applicant,
-      recipientsLabel: "",
-    }),
-    text: buildLoanEmailText({ loan, applicant }),
-    attachments: [
-      {
-        filename: `loan-application-${String(reference).toLowerCase()}.pdf`,
-        content: pdfBuffer.toString("base64"),
-        contentType: "application/pdf",
+      organization: {
+        name: "Champions Revolving Contributions",
+        subtitle: "Loan Processing Desk",
       },
-    ],
-  });
+    });
 
-  return sendSuccess(res, {
-    statusCode: 200,
-    message: "Loan summary email queued",
-    data: { ok: true, recipients: uniqueEmails },
-  });
-});
+    const reference = loan.loanCode || loan.loanNumber || loan._id || "loan";
+    const safeRef = String(reference)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-");
 
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=\"loan-application-${safeRef}.pdf\"`,
+    );
+    res.status(200).send(pdfBuffer);
+  },
+);
+
+export const emailAdminLoanApplicationPdf = catchAsync(
+  async (req, res, next) => {
+    if (!req.user) return next(new AppError("Not authenticated", 401));
+    if (!req.loanApplication) {
+      return next(new AppError("Missing loan context", 500));
+    }
+
+    const sendApplicant =
+      typeof req.body?.sendApplicant === "boolean"
+        ? req.body.sendApplicant
+        : true;
+    const sendGuarantors =
+      typeof req.body?.sendGuarantors === "boolean"
+        ? req.body.sendGuarantors
+        : true;
+    const extraEmails = parseEmailList(
+      req.body?.extraEmails || req.body?.emails,
+    );
+
+    const loanDoc = req.loanApplication;
+    const applicant = loanDoc.userId
+      ? await ProfileModel.findById(loanDoc.userId, {
+          fullName: 1,
+          email: 1,
+          phone: 1,
+        }).lean()
+      : null;
+
+    const recipients = [];
+
+    if (sendApplicant && applicant?.email) {
+      recipients.push(applicant.email);
+    }
+
+    if (sendGuarantors && Array.isArray(loanDoc.guarantors)) {
+      loanDoc.guarantors.forEach((g) => {
+        if (g?.email) recipients.push(g.email);
+      });
+    }
+
+    recipients.push(...extraEmails);
+
+    const uniqueEmails = Array.from(
+      new Set(
+        recipients
+          .map((value) => normalizeEmail(value))
+          .filter((value) => value && isValidEmail(value)),
+      ),
+    );
+
+    if (uniqueEmails.length === 0) {
+      return next(new AppError("No valid email recipients found", 400));
+    }
+
+    if (uniqueEmails.length > 10) {
+      return next(
+        new AppError("Too many email recipients. Maximum is 10.", 400),
+      );
+    }
+
+    const loan =
+      typeof loanDoc.toObject === "function" ? loanDoc.toObject() : loanDoc;
+    const pdfBuffer = await generateLoanApplicationPdfBuffer({
+      loan,
+      applicant,
+      organization: {
+        name: "Champions Revolving Contributions",
+        subtitle: "Loan Processing Desk",
+      },
+    });
+
+    const reference = loan.loanCode || loan.loanNumber || loan._id || "loan";
+    const subject = `Loan Application Summary - ${reference}`;
+
+    await sendEmail({
+      to: uniqueEmails,
+      subject,
+      html: buildLoanEmailHtml({
+        loan,
+        applicant,
+        recipientsLabel: "",
+      }),
+      text: buildLoanEmailText({ loan, applicant }),
+      attachments: [
+        {
+          filename: `loan-application-${String(reference).toLowerCase()}.pdf`,
+          content: pdfBuffer.toString("base64"),
+          contentType: "application/pdf",
+        },
+      ],
+    });
+
+    return sendSuccess(res, {
+      statusCode: 200,
+      message: "Loan summary email queued",
+      data: { ok: true, recipients: uniqueEmails },
+    });
+  },
+);

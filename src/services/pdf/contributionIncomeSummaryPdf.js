@@ -66,7 +66,10 @@ function drawSummaryCards(doc, totals) {
   const startY = doc.y;
 
   const cards = [
-    { label: "Total Contributions", value: formatCurrency(totals.contributions) },
+    {
+      label: "Total Contributions",
+      value: formatCurrency(totals.contributions),
+    },
     { label: "Total Interest", value: formatCurrency(totals.interest) },
     { label: "Cumulative Total", value: formatCurrency(totals.total) },
   ];
@@ -240,13 +243,10 @@ export async function generateContributionIncomeSummaryPdfBuffer({
       .font("Helvetica")
       .fontSize(9)
       .fillColor("#9CA3AF")
-      .text(
-        "CRC Cooperative Resource Center - Summary Of Income",
-        {
+      .text("CRC Champions Revolving Contributions - Summary Of Income", {
         align: "center",
       });
 
     doc.end();
   });
 }
-

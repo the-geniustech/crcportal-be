@@ -15,7 +15,7 @@ const seedGroups = [
     groupNumber: 1,
     groupName: "Lagos Professionals Circle",
     description:
-      "A cooperative savings group for professionals in Lagos. We meet monthly to discuss financial goals and support each other in building wealth through collective savings.",
+      "A Contributions savings group for professionals in Lagos. We meet monthly to discuss financial goals and support each other in building wealth through collective savings.",
     location: "Lagos",
     category: "Professionals",
     meetingFrequency: "monthly",
@@ -111,7 +111,7 @@ const seedGroups = [
     groupNumber: 6,
     groupName: "Faith Community Savings",
     description:
-      "A faith-based cooperative for members of our religious community. Save together, pray together, grow together.",
+      "A faith-based Contributions for members of our religious community. Save together, pray together, grow together.",
     location: "Enugu",
     category: "Religious",
     meetingFrequency: "monthly",
@@ -145,7 +145,7 @@ const seedGroups = [
   },
   {
     groupNumber: 8,
-    groupName: "Healthcare Workers Cooperative",
+    groupName: "Healthcare Workers Contributions",
     description:
       "Doctors, nurses, and healthcare professionals saving together. Special loan programs for medical emergencies and professional development.",
     location: "Kaduna",

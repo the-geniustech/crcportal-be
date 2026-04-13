@@ -42,7 +42,10 @@ function formatDate(value) {
   }).format(date);
 }
 
-function drawHeader(doc, { groupName, contributionTypeLabel, year, generatedAt }) {
+function drawHeader(
+  doc,
+  { groupName, contributionTypeLabel, year, generatedAt },
+) {
   const { left, right, top } = doc.page.margins;
   const width = doc.page.width - left - right;
   const barHeight = LAYOUT.headerBarHeight;
@@ -303,15 +306,12 @@ export async function generateGroupContributionLedgerPdfBuffer({
       align: "right",
     }));
 
-    const columns = [
-      ...baseColumns,
-      ...monthColumns,
-      ...trailingColumns,
-    ];
+    const columns = [...baseColumns, ...monthColumns, ...trailingColumns];
 
     drawTableHeader(doc, columns);
 
-    const bottomY = doc.page.height - doc.page.margins.bottom - LAYOUT.footerGap;
+    const bottomY =
+      doc.page.height - doc.page.margins.bottom - LAYOUT.footerGap;
 
     rows.forEach((row, index) => {
       if (doc.y + LAYOUT.tableRowHeight > bottomY) {
@@ -364,13 +364,10 @@ export async function generateGroupContributionLedgerPdfBuffer({
       .font("Helvetica")
       .fontSize(7)
       .fillColor("#94A3B8")
-      .text(
-        "CRC Cooperative Resource Center - Contribution Ledger",
-        {
+      .text("CRC Champions Revolving Contributions - Contribution Ledger", {
         align: "center",
       });
 
     doc.end();
   });
 }
-

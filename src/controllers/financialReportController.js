@@ -8,7 +8,11 @@ import { TransactionModel } from "../models/Transaction.js";
 import { GroupMembershipModel } from "../models/GroupMembership.js";
 import { MeetingAttendanceModel } from "../models/MeetingAttendance.js";
 import { buildCreditScoreData } from "./creditScoreController.js";
-import { generateMemberFinancialReportPdfBuffer, formatCurrency as formatCurrencyPdf, formatDate as formatDatePdf } from "../services/pdf/memberFinancialReportPdf.js";
+import {
+  generateMemberFinancialReportPdfBuffer,
+  formatCurrency as formatCurrencyPdf,
+  formatDate as formatDatePdf,
+} from "../services/pdf/memberFinancialReportPdf.js";
 
 function formatNaira(amount) {
   return formatCurrencyPdf(amount);
@@ -83,9 +87,16 @@ function resolvePeriod(period) {
       };
     }
     if (type === "custom") {
-      const start = period?.startDate ? new Date(String(period.startDate)) : null;
+      const start = period?.startDate
+        ? new Date(String(period.startDate))
+        : null;
       const end = period?.endDate ? new Date(String(period.endDate)) : null;
-      if (!start || !end || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      if (
+        !start ||
+        !end ||
+        Number.isNaN(start.getTime()) ||
+        Number.isNaN(end.getTime())
+      ) {
         return null;
       }
       if (start.getTime() > end.getTime()) return null;
@@ -102,7 +113,8 @@ function resolvePeriod(period) {
 
 export const generateMyFinancialReport = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
-  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
 
   const type = String(req.body?.type || "").trim();
   const period = req.body?.period;
@@ -115,14 +127,20 @@ export const generateMyFinancialReport = catchAsync(async (req, res, next) => {
     "annual_summary",
   ];
   if (!allowed.includes(type)) {
-    return next(new AppError(`Invalid report type. Allowed: ${allowed.join(", ")}`, 400));
+    return next(
+      new AppError(`Invalid report type. Allowed: ${allowed.join(", ")}`, 400),
+    );
   }
 
   const resolved = resolvePeriod(period);
   if (!resolved) {
     return next(new AppError("Invalid period selection", 400));
   }
-  const periodLabel = buildPeriodLabel(resolved.start, resolved.end, resolved.label);
+  const periodLabel = buildPeriodLabel(
+    resolved.start,
+    resolved.end,
+    resolved.label,
+  );
 
   let reportTitle = "Financial Report";
   let summaryItems = [];
@@ -296,7 +314,9 @@ export const generateMyFinancialReport = catchAsync(async (req, res, next) => {
     Object.entries(creditScore.factors || {}).forEach(([key, factor]) => {
       const detail = (factor.details || [])[0];
       if (detail) {
-        const label = key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+        const label = key
+          .replace(/_/g, " ")
+          .replace(/\b\w/g, (c) => c.toUpperCase());
         insightItems.push(`${label}: ${detail.name} (${detail.value})`);
       }
     });
@@ -315,7 +335,10 @@ export const generateMyFinancialReport = catchAsync(async (req, res, next) => {
       {
         type: "list",
         title: "Key Drivers",
-        items: insightItems.length > 0 ? insightItems : ["No additional insights available."],
+        items:
+          insightItems.length > 0
+            ? insightItems
+            : ["No additional insights available."],
       },
     ];
   }
@@ -337,24 +360,25 @@ export const generateMyFinancialReport = catchAsync(async (req, res, next) => {
       loanFilter.createdAt = { $gte: resolved.start, $lte: resolved.end };
     }
 
-    const [contribs, repayments, memberships, attendance, loansTaken] = await Promise.all([
-      TransactionModel.find({
-        ...txFilter,
-        type: "group_contribution",
-        status: "success",
-      }).lean(),
-      TransactionModel.find({
-        ...txFilter,
-        type: "loan_repayment",
-        status: "success",
-      }).lean(),
-      GroupMembershipModel.find({
-        userId: req.user.profileId,
-        status: "active",
-      }).lean(),
-      MeetingAttendanceModel.find(attendanceFilter).lean(),
-      LoanApplicationModel.countDocuments(loanFilter),
-    ]);
+    const [contribs, repayments, memberships, attendance, loansTaken] =
+      await Promise.all([
+        TransactionModel.find({
+          ...txFilter,
+          type: "group_contribution",
+          status: "success",
+        }).lean(),
+        TransactionModel.find({
+          ...txFilter,
+          type: "loan_repayment",
+          status: "success",
+        }).lean(),
+        GroupMembershipModel.find({
+          userId: req.user.profileId,
+          status: "active",
+        }).lean(),
+        MeetingAttendanceModel.find(attendanceFilter).lean(),
+        LoanApplicationModel.countDocuments(loanFilter),
+      ]);
 
     const summary = {
       totalContributions: contribs.reduce(
@@ -373,8 +397,14 @@ export const generateMyFinancialReport = catchAsync(async (req, res, next) => {
     };
 
     summaryItems = [
-      { label: "Total Contributions", value: formatNaira(summary.totalContributions) },
-      { label: "Total Loan Repayments", value: formatNaira(summary.totalLoanRepayments) },
+      {
+        label: "Total Contributions",
+        value: formatNaira(summary.totalContributions),
+      },
+      {
+        label: "Total Loan Repayments",
+        value: formatNaira(summary.totalLoanRepayments),
+      },
       { label: "Loans Taken", value: `${summary.loansTaken}` },
       { label: "Active Groups", value: `${summary.activeGroups}` },
     ];
@@ -388,8 +418,14 @@ export const generateMyFinancialReport = catchAsync(async (req, res, next) => {
           { key: "value", label: "Value", width: 0.4, align: "right" },
         ],
         rows: [
-          { metric: "Total Contributions", value: formatNaira(summary.totalContributions) },
-          { metric: "Total Loan Repayments", value: formatNaira(summary.totalLoanRepayments) },
+          {
+            metric: "Total Contributions",
+            value: formatNaira(summary.totalContributions),
+          },
+          {
+            metric: "Total Loan Repayments",
+            value: formatNaira(summary.totalLoanRepayments),
+          },
           { metric: "Loans Taken", value: summary.loansTaken },
           { metric: "Active Groups", value: summary.activeGroups },
           { metric: "Meetings Attended", value: summary.meetingsAttended },
@@ -406,7 +442,7 @@ export const generateMyFinancialReport = catchAsync(async (req, res, next) => {
     summaryItems,
     sections,
     footerNote:
-      "CRC Cooperative Resource Center - Member Financial Report",
+      "CRC Champions Revolving Contributions - Member Financial Report",
   });
   const base64 = pdfBuffer.toString("base64");
   const safePeriod = periodLabel
@@ -424,4 +460,3 @@ export const generateMyFinancialReport = catchAsync(async (req, res, next) => {
     },
   });
 });
-

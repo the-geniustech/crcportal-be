@@ -220,13 +220,10 @@ export async function generateContributionInterestSharingPdfBuffer({
       .font("Helvetica")
       .fontSize(9)
       .fillColor("#9CA3AF")
-      .text(
-        "CRC Cooperative Resource Center - Interest Sharing",
-        {
+      .text("CRC Champions Revolving Contributions - Interest Sharing", {
         align: "center",
       });
 
     doc.end();
   });
 }
-

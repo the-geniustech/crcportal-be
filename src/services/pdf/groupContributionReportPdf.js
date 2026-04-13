@@ -39,11 +39,7 @@ function drawHeader(doc, { groupName, periodLabel, generatedAt }) {
   doc.restore();
 
   doc.moveDown(2.4);
-  doc
-    .font("Helvetica-Bold")
-    .fontSize(12)
-    .fillColor("#111827")
-    .text(groupName);
+  doc.font("Helvetica-Bold").fontSize(12).fillColor("#111827").text(groupName);
   doc
     .font("Helvetica")
     .fontSize(10)
@@ -185,7 +181,11 @@ export async function generateGroupContributionReportPdfBuffer({
     drawSummaryCards(doc, summary);
 
     doc.moveDown(0.6);
-    doc.font("Helvetica-Bold").fontSize(11).fillColor("#111827").text("Member Details");
+    doc
+      .font("Helvetica-Bold")
+      .fontSize(11)
+      .fillColor("#111827")
+      .text("Member Details");
     doc.moveDown(0.4);
 
     const { left, right } = doc.page.margins;
@@ -215,13 +215,10 @@ export async function generateGroupContributionReportPdfBuffer({
       .font("Helvetica")
       .fontSize(9)
       .fillColor("#9CA3AF")
-      .text(
-        "CRC Cooperative Resource Center - Contribution Report",
-        {
+      .text("CRC Champions Revolving Contributions - Contribution Report", {
         align: "center",
       });
 
     doc.end();
   });
 }
-

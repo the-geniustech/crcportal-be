@@ -1,11 +1,19 @@
 ﻿import AppError from "../utils/AppError.js";
 import catchAsync from "../utils/catchAsync.js";
 import sendSuccess from "../utils/sendSuccess.js";
-import { TransactionModel, TransactionStatuses, TransactionTypes } from "../models/Transaction.js";
+import {
+  TransactionModel,
+  TransactionStatuses,
+  TransactionTypes,
+} from "../models/Transaction.js";
 import { ProfileModel } from "../models/Profile.js";
 import { sendEmail } from "../services/mail/resendClient.js";
 import { generateReceiptPdfBuffer } from "../services/pdf/receiptPdf.js";
-import { generateStatementPdfBuffer, formatCurrency, formatDate } from "../services/pdf/statementPdf.js";
+import {
+  generateStatementPdfBuffer,
+  formatCurrency,
+  formatDate,
+} from "../services/pdf/statementPdf.js";
 
 const typeLabels = {
   deposit: "Savings Deposit",
@@ -16,7 +24,7 @@ const typeLabels = {
 };
 
 const organizationInfo = {
-  name: "Cooperative Resource Center",
+  name: "Champions Revolving Contributions",
   subtitle: "Ogun Baptist Conference Secretariat",
   addressLine1: "Olabisi Onabanjo Way, Idi Aba",
   addressLine2: "Abeokuta, Ogun State",
@@ -178,7 +186,8 @@ function buildReceiptEmailHtml(payload) {
 
 export const listMyTransactions = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
-  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
 
   const filter = { userId: req.user.profileId };
 
@@ -193,7 +202,10 @@ export const listMyTransactions = catchAsync(async (req, res, next) => {
   }
 
   const page = Math.max(1, parseInt(String(req.query?.page ?? "1"), 10) || 1);
-  const limit = Math.min(200, Math.max(1, parseInt(String(req.query?.limit ?? "50"), 10) || 50));
+  const limit = Math.min(
+    200,
+    Math.max(1, parseInt(String(req.query?.limit ?? "50"), 10) || 50),
+  );
   const skip = (page - 1) * limit;
 
   const [transactions, total] = await Promise.all([
@@ -237,7 +249,13 @@ function toCsvValue(value) {
   return text;
 }
 
-function buildStatementCsv({ memberName, periodLabel, generatedAt, summary, rows }) {
+function buildStatementCsv({
+  memberName,
+  periodLabel,
+  generatedAt,
+  summary,
+  rows,
+}) {
   const lines = [];
   lines.push(`Member,${toCsvValue(memberName)}`);
   lines.push(`Generated,${toCsvValue(formatStatementDate(generatedAt))}`);
@@ -257,16 +275,23 @@ function buildStatementCsv({ memberName, periodLabel, generatedAt, summary, rows
     );
   });
   lines.push("");
-  lines.push(`Total Credits,${toCsvValue(formatStatementAmount(summary.totalCredits))}`);
-  lines.push(`Total Debits,${toCsvValue(formatStatementAmount(summary.totalDebits))}`);
-  lines.push(`Net Position,${toCsvValue(formatStatementAmount(summary.netPosition))}`);
+  lines.push(
+    `Total Credits,${toCsvValue(formatStatementAmount(summary.totalCredits))}`,
+  );
+  lines.push(
+    `Total Debits,${toCsvValue(formatStatementAmount(summary.totalDebits))}`,
+  );
+  lines.push(
+    `Net Position,${toCsvValue(formatStatementAmount(summary.netPosition))}`,
+  );
   lines.push(`Transactions,${toCsvValue(summary.transactionCount)}`);
   return lines.join("\n");
 }
 
 export const downloadMyStatement = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
-  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
 
   const format = String(req.query?.format || "pdf").toLowerCase();
   if (!["pdf", "csv"].includes(format)) {
@@ -274,15 +299,20 @@ export const downloadMyStatement = catchAsync(async (req, res, next) => {
   }
 
   const filter = { userId: req.user.profileId };
-  const rawType = typeof req.query?.type === "string" ? req.query.type.trim() : "";
+  const rawType =
+    typeof req.query?.type === "string" ? req.query.type.trim() : "";
   const normalizedType =
     rawType === "contribution" ? "group_contribution" : rawType;
   if (normalizedType && Object.keys(typeLabels).includes(normalizedType)) {
     filter.type = normalizedType;
   }
 
-  const startDate = req.query?.startDate ? new Date(String(req.query.startDate)) : null;
-  const endDate = req.query?.endDate ? new Date(String(req.query.endDate)) : null;
+  const startDate = req.query?.startDate
+    ? new Date(String(req.query.startDate))
+    : null;
+  const endDate = req.query?.endDate
+    ? new Date(String(req.query.endDate))
+    : null;
   if (startDate && Number.isNaN(startDate.getTime())) {
     return next(new AppError("Invalid start date", 400));
   }
@@ -299,7 +329,9 @@ export const downloadMyStatement = catchAsync(async (req, res, next) => {
     filter.date = { $gte: start, $lte: end };
   }
 
-  const transactions = await TransactionModel.find(filter).sort({ date: -1 }).lean();
+  const transactions = await TransactionModel.find(filter)
+    .sort({ date: -1 })
+    .lean();
 
   const creditTypes = new Set(["deposit", "group_contribution", "interest"]);
   const debitTypes = new Set(["withdrawal", "loan_repayment"]);
@@ -334,7 +366,9 @@ export const downloadMyStatement = catchAsync(async (req, res, next) => {
   const memberName = profile?.fullName || "Member";
   const memberEmail = profile?.email || null;
 
-  const safeLabel = periodLabel.replace(/\s+/g, "-").replace(/[^a-zA-Z0-9\-]/g, "");
+  const safeLabel = periodLabel
+    .replace(/\s+/g, "-")
+    .replace(/[^a-zA-Z0-9\-]/g, "");
   const filename = `statement-${safeLabel || "all-time"}.${format}`;
 
   if (format === "csv") {
@@ -366,10 +400,14 @@ export const downloadMyStatement = catchAsync(async (req, res, next) => {
 
 export const getMyTransaction = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
-  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
 
   const id = req.params.id;
-  const transaction = await TransactionModel.findOne({ _id: id, userId: req.user.profileId });
+  const transaction = await TransactionModel.findOne({
+    _id: id,
+    userId: req.user.profileId,
+  });
   if (!transaction) return next(new AppError("Transaction not found", 404));
 
   return sendSuccess(res, { statusCode: 200, data: { transaction } });
@@ -377,13 +415,15 @@ export const getMyTransaction = catchAsync(async (req, res, next) => {
 
 export const emailMyTransactionReceipt = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
-  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
 
   const id = req.params.id;
   const emails = parseEmailList(req.body?.emails || req.body?.email)
     .map((value) => value.toLowerCase())
     .filter(Boolean);
-  if (emails.length === 0) return next(new AppError("Valid email is required", 400));
+  if (emails.length === 0)
+    return next(new AppError("Valid email is required", 400));
 
   const invalid = emails.filter((value) => !isValidEmail(value));
   if (invalid.length > 0) {
@@ -395,7 +435,10 @@ export const emailMyTransactionReceipt = catchAsync(async (req, res, next) => {
     return next(new AppError("Too many email recipients. Maximum is 10.", 400));
   }
 
-  const tx = await TransactionModel.findOne({ _id: id, userId: req.user.profileId });
+  const tx = await TransactionModel.findOne({
+    _id: id,
+    userId: req.user.profileId,
+  });
   if (!tx) return next(new AppError("Transaction not found", 404));
 
   const profile = await ProfileModel.findById(req.user.profileId).lean();
@@ -423,25 +466,31 @@ export const emailMyTransactionReceipt = catchAsync(async (req, res, next) => {
   });
 });
 
-export const downloadMyTransactionReceiptPdf = catchAsync(async (req, res, next) => {
-  if (!req.user) return next(new AppError("Not authenticated", 401));
-  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+export const downloadMyTransactionReceiptPdf = catchAsync(
+  async (req, res, next) => {
+    if (!req.user) return next(new AppError("Not authenticated", 401));
+    if (!req.user.profileId)
+      return next(new AppError("User profile not found", 400));
 
-  const id = req.params.id;
-  const tx = await TransactionModel.findOne({ _id: id, userId: req.user.profileId });
-  if (!tx) return next(new AppError("Transaction not found", 404));
+    const id = req.params.id;
+    const tx = await TransactionModel.findOne({
+      _id: id,
+      userId: req.user.profileId,
+    });
+    if (!tx) return next(new AppError("Transaction not found", 404));
 
-  const profile = await ProfileModel.findById(req.user.profileId).lean();
-  const payload = buildReceiptPayload({ tx, profile });
-  const pdfBuffer = await generateReceiptPdfBuffer(payload);
+    const profile = await ProfileModel.findById(req.user.profileId).lean();
+    const payload = buildReceiptPayload({ tx, profile });
+    const pdfBuffer = await generateReceiptPdfBuffer(payload);
 
-  res.setHeader("Content-Type", "application/pdf");
-  res.setHeader(
-    "Content-Disposition",
-    `attachment; filename="Champions-Revolving-Contributions-Receipt-${tx.reference}.pdf"`,
-  );
-  res.status(200).send(pdfBuffer);
-});
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="Champions-Revolving-Contributions-Receipt-${tx.reference}.pdf"`,
+    );
+    res.status(200).send(pdfBuffer);
+  },
+);
 
 export const listTransactions = catchAsync(async (req, res) => {
   const filter = {};
@@ -461,7 +510,10 @@ export const listTransactions = catchAsync(async (req, res) => {
   }
 
   const page = Math.max(1, parseInt(String(req.query?.page ?? "1"), 10) || 1);
-  const limit = Math.min(200, Math.max(1, parseInt(String(req.query?.limit ?? "50"), 10) || 50));
+  const limit = Math.min(
+    200,
+    Math.max(1, parseInt(String(req.query?.limit ?? "50"), 10) || 50),
+  );
   const skip = (page - 1) * limit;
 
   const [transactions, total] = await Promise.all([
@@ -478,4 +530,3 @@ export const listTransactions = catchAsync(async (req, res) => {
     data: { transactions },
   });
 });
-

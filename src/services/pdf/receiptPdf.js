@@ -58,11 +58,7 @@ function drawPill(doc, text, color, contentWidth) {
 }
 
 function drawSectionTitle(doc, label) {
-  doc
-    .font("Helvetica-Bold")
-    .fontSize(12)
-    .fillColor("#111827")
-    .text(label);
+  doc.font("Helvetica-Bold").fontSize(12).fillColor("#111827").text(label);
 }
 
 function drawLabelValueTable(doc, rows, contentWidth) {
@@ -132,7 +128,7 @@ export async function generateReceiptPdfBuffer(payload) {
       .font("Helvetica-Bold")
       .fontSize(12)
       .fillColor("#111827")
-      .text(organization.name || "Cooperative Resource Center");
+      .text(organization.name || "Champions Revolving Contributions");
     doc
       .font("Helvetica")
       .fontSize(10)
@@ -145,8 +141,8 @@ export async function generateReceiptPdfBuffer(payload) {
       receipt.status === "success"
         ? "#10B981"
         : receipt.status === "failed"
-        ? "#EF4444"
-        : "#F59E0B",
+          ? "#EF4444"
+          : "#F59E0B",
       contentWidth,
     );
 
@@ -165,7 +161,10 @@ export async function generateReceiptPdfBuffer(payload) {
 
     const detailRows = [
       { label: "Reference", value: receipt.reference || "-" },
-      { label: "Date & Time", value: receipt.dateLabel || formatDate(receipt.date) || "-" },
+      {
+        label: "Date & Time",
+        value: receipt.dateLabel || formatDate(receipt.date) || "-",
+      },
       { label: "Payment Type", value: receipt.typeLabel || "-" },
       { label: "Status", value: String(receipt.status || "-").toUpperCase() },
     ];
@@ -198,11 +197,15 @@ export async function generateReceiptPdfBuffer(payload) {
     doc.moveDown(1.0);
     drawSectionTitle(doc, "Member Details");
 
-    drawLabelValueTable(doc, [
-      { label: "Full Name", value: member.name || "Member" },
-      { label: "Email", value: member.email || "-" },
-      { label: "Phone", value: member.phone || "-" },
-    ], contentWidth);
+    drawLabelValueTable(
+      doc,
+      [
+        { label: "Full Name", value: member.name || "Member" },
+        { label: "Email", value: member.email || "-" },
+        { label: "Phone", value: member.phone || "-" },
+      ],
+      contentWidth,
+    );
 
     doc
       .font("Helvetica-Bold")
@@ -227,9 +230,12 @@ export async function generateReceiptPdfBuffer(payload) {
       .font("Helvetica")
       .fontSize(9.5)
       .fillColor("#6B7280")
-      .text(`${organization.phone || "Phone: 08060707575"} | ${organization.email || "Email: olayoyinoyeniyi@gmail.com"}`, {
-        align: "center",
-      });
+      .text(
+        `${organization.phone || "Phone: 08060707575"} | ${organization.email || "Email: olayoyinoyeniyi@gmail.com"}`,
+        {
+          align: "center",
+        },
+      );
 
     if (receipt.issuedAt || receipt.issuedAtLabel) {
       doc
@@ -237,12 +243,14 @@ export async function generateReceiptPdfBuffer(payload) {
         .font("Helvetica-Oblique")
         .fontSize(8.5)
         .fillColor("#9CA3AF")
-        .text(`Issued: ${receipt.issuedAtLabel || formatDate(receipt.issuedAt)}`, {
-          align: "center",
-        });
+        .text(
+          `Issued: ${receipt.issuedAtLabel || formatDate(receipt.issuedAt)}`,
+          {
+            align: "center",
+          },
+        );
     }
 
     doc.end();
   });
 }
-

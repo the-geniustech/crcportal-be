@@ -70,17 +70,17 @@ function drawHeader(doc, { title, status, reference }) {
     .font("Helvetica")
     .fontSize(10)
     .fillColor("#6B7280")
-    .text(`Status: ${String(status || "pending").replace(/_/g, " ").toUpperCase()}`);
+    .text(
+      `Status: ${String(status || "pending")
+        .replace(/_/g, " ")
+        .toUpperCase()}`,
+    );
   doc.moveDown(0.8);
 }
 
 function drawSectionTitle(doc, label) {
   ensureSpace(doc, 60);
-  doc
-    .font("Helvetica-Bold")
-    .fontSize(11.5)
-    .fillColor("#111827")
-    .text(label);
+  doc.font("Helvetica-Bold").fontSize(11.5).fillColor("#111827").text(label);
   doc.moveDown(0.4);
 }
 
@@ -157,7 +157,7 @@ export async function generateLoanApplicationPdfBuffer(payload) {
       .font("Helvetica-Bold")
       .fontSize(12)
       .fillColor("#111827")
-      .text(organization.name || "Cooperative Resource Center");
+      .text(organization.name || "Champions Revolving Contributions");
     doc
       .font("Helvetica")
       .fontSize(9.5)
@@ -170,7 +170,10 @@ export async function generateLoanApplicationPdfBuffer(payload) {
     drawLabelValueTable(
       doc,
       [
-        { label: "Applicant", value: applicant.fullName || applicant.name || "-" },
+        {
+          label: "Applicant",
+          value: applicant.fullName || applicant.name || "-",
+        },
         { label: "Email", value: applicant.email || "-" },
         { label: "Phone", value: applicant.phone || "-" },
         { label: "Group", value: loan.groupName || "-" },
@@ -185,16 +188,50 @@ export async function generateLoanApplicationPdfBuffer(payload) {
       [
         {
           label: "Loan Code",
-          value: loan.loanCode || (loan.loanNumber ? `LN-${loan.loanNumber}` : "-"),
+          value:
+            loan.loanCode || (loan.loanNumber ? `LN-${loan.loanNumber}` : "-"),
         },
         { label: "Loan Purpose", value: loan.loanPurpose || "-" },
         { label: "Requested Amount", value: formatCurrency(loan.loanAmount) },
-        { label: "Approved Amount", value: loan.approvedAmount != null ? formatCurrency(loan.approvedAmount) : "-" },
-        { label: "Interest Rate", value: formatRate(loan.approvedInterestRate ?? loan.interestRate, loan.interestRateType) },
-        { label: "Repayment Period", value: loan.repaymentPeriod ? `${loan.repaymentPeriod} months` : "-" },
-        { label: "Monthly Payment", value: loan.monthlyPayment != null ? formatCurrency(loan.monthlyPayment) : "-" },
-        { label: "Total Repayable", value: loan.totalRepayable != null ? formatCurrency(loan.totalRepayable) : "-" },
-        { label: "Remaining Balance", value: loan.remainingBalance != null ? formatCurrency(loan.remainingBalance) : "-" },
+        {
+          label: "Approved Amount",
+          value:
+            loan.approvedAmount != null
+              ? formatCurrency(loan.approvedAmount)
+              : "-",
+        },
+        {
+          label: "Interest Rate",
+          value: formatRate(
+            loan.approvedInterestRate ?? loan.interestRate,
+            loan.interestRateType,
+          ),
+        },
+        {
+          label: "Repayment Period",
+          value: loan.repaymentPeriod ? `${loan.repaymentPeriod} months` : "-",
+        },
+        {
+          label: "Monthly Payment",
+          value:
+            loan.monthlyPayment != null
+              ? formatCurrency(loan.monthlyPayment)
+              : "-",
+        },
+        {
+          label: "Total Repayable",
+          value:
+            loan.totalRepayable != null
+              ? formatCurrency(loan.totalRepayable)
+              : "-",
+        },
+        {
+          label: "Remaining Balance",
+          value:
+            loan.remainingBalance != null
+              ? formatCurrency(loan.remainingBalance)
+              : "-",
+        },
       ],
       contentWidth,
     );
@@ -218,7 +255,10 @@ export async function generateLoanApplicationPdfBuffer(payload) {
     drawLabelValueTable(
       doc,
       [
-        { label: "Monthly Income", value: monthlyIncome ? formatCurrency(monthlyIncome) : "-" },
+        {
+          label: "Monthly Income",
+          value: monthlyIncome ? formatCurrency(monthlyIncome) : "-",
+        },
         { label: "Debt-to-Income", value: dti },
       ],
       contentWidth,
@@ -231,7 +271,10 @@ export async function generateLoanApplicationPdfBuffer(payload) {
         { label: "Submitted", value: formatDate(loan.createdAt) },
         { label: "Approved", value: formatDate(loan.approvedAt) },
         { label: "Disbursed", value: formatDate(loan.disbursedAt) },
-        { label: "Repayment Start", value: formatDate(loan.repaymentStartDate) },
+        {
+          label: "Repayment Start",
+          value: formatDate(loan.repaymentStartDate),
+        },
       ],
       contentWidth,
     );
@@ -276,7 +319,9 @@ export async function generateLoanApplicationPdfBuffer(payload) {
           .font("Helvetica")
           .fontSize(9)
           .fillColor("#6B7280")
-          .text(`Liability: ${g.liabilityPercentage != null ? `${g.liabilityPercentage}%` : "-"}`);
+          .text(
+            `Liability: ${g.liabilityPercentage != null ? `${g.liabilityPercentage}%` : "-"}`,
+          );
         doc.moveDown(0.6);
       });
     }
@@ -302,7 +347,9 @@ export async function generateLoanApplicationPdfBuffer(payload) {
           .font("Helvetica")
           .fontSize(9)
           .fillColor("#6B7280")
-          .text(`Type: ${docItem.type || "-"} | Size: ${formatFileSize(docItem.size)} | Status: ${docItem.status || "-"}`);
+          .text(
+            `Type: ${docItem.type || "-"} | Size: ${formatFileSize(docItem.size)} | Status: ${docItem.status || "-"}`,
+          );
         if (docItem.url) {
           doc
             .font("Helvetica")
@@ -324,4 +371,3 @@ export async function generateLoanApplicationPdfBuffer(payload) {
     doc.end();
   });
 }
-

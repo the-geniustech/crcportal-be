@@ -142,7 +142,7 @@ def build_receipt(payload, output_path):
     story.append(header)
     story.append(Spacer(1, 8))
 
-    org_name = org.get("name") or "Cooperative Resource Center"
+    org_name = org.get("name") or "Champions Revolving Contributions"
     org_subtitle = org.get("subtitle") or "Ogun Baptist Conference Secretariat"
     story.append(Paragraph(org_name, styles["SectionTitle"]))
     story.append(Paragraph(org_subtitle, styles["Muted"]))
@@ -268,4 +268,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
