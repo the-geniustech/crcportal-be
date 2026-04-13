@@ -1,0 +1,19 @@
+[
+  {
+    "seedKey": "group-14",
+    "_id": "aa92a9d867f075b5065af283",
+    "groupNumber": 14,
+    "groupName": "Able God Champions",
+    "description": "Contribution group for Able God Champions.",
+    "monthlyContribution": 30000,
+    "maxMembers": 19,
+    "memberCount": 19,
+    "totalSavings": 0,
+    "status": "active",
+    "isOpen": true,
+    "type": "revolving",
+    "cycleDuration": 12,
+    "createdAt": "2026-04-10T23:24:52.920Z",
+    "updatedAt": "2026-04-10T23:24:52.920Z"
+  }
+]

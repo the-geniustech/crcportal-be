@@ -1,0 +1,19 @@
+[
+  {
+    "seedKey": "group-06",
+    "_id": "ea200386d2a2185f26c4b45c",
+    "groupNumber": 6,
+    "groupName": "Classic Champions",
+    "description": "Contribution group for Classic Champions.",
+    "monthlyContribution": 40000,
+    "maxMembers": 17,
+    "memberCount": 17,
+    "totalSavings": 0,
+    "status": "active",
+    "isOpen": true,
+    "type": "revolving",
+    "cycleDuration": 12,
+    "createdAt": "2026-04-10T18:53:04.579Z",
+    "updatedAt": "2026-04-10T18:53:04.579Z"
+  }
+]

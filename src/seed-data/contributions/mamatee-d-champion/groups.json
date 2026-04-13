@@ -1,0 +1,19 @@
+[
+  {
+    "seedKey": "group-10",
+    "_id": "964d3d213a30badc53e290af",
+    "groupNumber": 10,
+    "groupName": "MamaTee D Champion",
+    "description": "Contribution group for MamaTee D Champion.",
+    "monthlyContribution": 45000,
+    "maxMembers": 39,
+    "memberCount": 39,
+    "totalSavings": 0,
+    "status": "active",
+    "isOpen": true,
+    "type": "revolving",
+    "cycleDuration": 12,
+    "createdAt": "2026-04-11T18:05:32.847Z",
+    "updatedAt": "2026-04-11T18:05:32.847Z"
+  }
+]

@@ -1,0 +1,19 @@
+[
+  {
+    "seedKey": "group-04",
+    "_id": "ef96a2caeb56c7cb6afaa184",
+    "groupNumber": 4,
+    "groupName": "Victorious Champions",
+    "description": "Contribution group for Victorious Champions.",
+    "monthlyContribution": 60000,
+    "maxMembers": 13,
+    "memberCount": 13,
+    "totalSavings": 0,
+    "status": "active",
+    "isOpen": true,
+    "type": "revolving",
+    "cycleDuration": 12,
+    "createdAt": "2026-04-10T18:46:10.430Z",
+    "updatedAt": "2026-04-10T18:46:10.430Z"
+  }
+]

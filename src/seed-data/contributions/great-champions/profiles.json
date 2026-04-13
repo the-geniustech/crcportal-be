@@ -1,0 +1,197 @@
+[
+  {
+    "seedKey": "member-group-05-0001",
+    "_id": "bb342a369428a26782e49260",
+    "fullName": "Ajayi Olawoyin",
+    "email": "ajayi.olawoyin.g5@crc.local",
+    "phone": "08000500000",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 10,
+      "updatedAt": "2026-04-10T18:50:57.244Z"
+    },
+    "createdAt": "2026-04-10T18:50:57.244Z",
+    "updatedAt": "2026-04-10T18:50:57.244Z"
+  },
+  {
+    "seedKey": "member-group-05-0002",
+    "_id": "c2b4b39e9ae974dfbc1f3055",
+    "fullName": "Akintonde Rebecca",
+    "email": "akintonde.rebecca.g5@crc.local",
+    "phone": "08100500001",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 10,
+      "updatedAt": "2026-04-10T18:50:57.244Z"
+    },
+    "createdAt": "2026-04-10T18:50:57.244Z",
+    "updatedAt": "2026-04-10T18:50:57.244Z"
+  },
+  {
+    "seedKey": "member-group-05-0003",
+    "_id": "ad968583e029407ff8084c70",
+    "fullName": "Akintonde Jacob",
+    "email": "akintonde.jacob.g5@crc.local",
+    "phone": "07000500002",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 10,
+      "updatedAt": "2026-04-10T18:50:57.244Z"
+    },
+    "createdAt": "2026-04-10T18:50:57.244Z",
+    "updatedAt": "2026-04-10T18:50:57.244Z"
+  },
+  {
+    "seedKey": "member-group-05-0004",
+    "_id": "800b12f2bed7a72af81eb2ae",
+    "fullName": "Oladejo Sarah N",
+    "email": "oladejo.sarah.n.g5@crc.local",
+    "phone": "09000500003",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 10,
+      "updatedAt": "2026-04-10T18:50:57.244Z"
+    },
+    "createdAt": "2026-04-10T18:50:57.244Z",
+    "updatedAt": "2026-04-10T18:50:57.244Z"
+  },
+  {
+    "seedKey": "member-group-05-0005",
+    "_id": "2d0c249d53eeb549a4484acb",
+    "fullName": "Soyemi Sakirat",
+    "email": "soyemi.sakirat.g5@crc.local",
+    "phone": "09100500004",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 10,
+      "updatedAt": "2026-04-10T18:50:57.244Z"
+    },
+    "createdAt": "2026-04-10T18:50:57.244Z",
+    "updatedAt": "2026-04-10T18:50:57.244Z"
+  },
+  {
+    "seedKey": "member-group-05-0006",
+    "_id": "0b70d6f1965bbb858668d77c",
+    "fullName": "Ogunsola Monsurat",
+    "email": "ogunsola.monsurat.g5@crc.local",
+    "phone": "08000500005",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 15,
+      "updatedAt": "2026-04-10T18:50:57.244Z"
+    },
+    "createdAt": "2026-04-10T18:50:57.244Z",
+    "updatedAt": "2026-04-10T18:50:57.244Z"
+  },
+  {
+    "seedKey": "member-group-05-0007",
+    "_id": "60117bb5581a51d990d60759",
+    "fullName": "Adesope Elizabeth",
+    "email": "adesope.elizabeth.g5@crc.local",
+    "phone": "08100500006",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 20,
+      "updatedAt": "2026-04-10T18:50:57.244Z"
+    },
+    "createdAt": "2026-04-10T18:50:57.244Z",
+    "updatedAt": "2026-04-10T18:50:57.244Z"
+  },
+  {
+    "seedKey": "member-group-05-0008",
+    "_id": "50bd978ffd19d5194047f617",
+    "fullName": "Adegbola Sunday",
+    "email": "adegbola.sunday.g5@crc.local",
+    "phone": "07000500007",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 25,
+      "updatedAt": "2026-04-10T18:50:57.244Z"
+    },
+    "createdAt": "2026-04-10T18:50:57.244Z",
+    "updatedAt": "2026-04-10T18:50:57.244Z"
+  },
+  {
+    "seedKey": "member-group-05-0009",
+    "_id": "a87c8192e73f55ba07d47fa7",
+    "fullName": "Olaniyi Mojisola",
+    "email": "olaniyi.mojisola.g5@crc.local",
+    "phone": "09000500008",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 30,
+      "updatedAt": "2026-04-10T18:50:57.244Z"
+    },
+    "createdAt": "2026-04-10T18:50:57.244Z",
+    "updatedAt": "2026-04-10T18:50:57.244Z"
+  },
+  {
+    "seedKey": "member-group-05-0010",
+    "_id": "4f445df876ae534dbefdad69",
+    "fullName": "Adeogoyemi Rebecca",
+    "email": "adeogoyemi.rebecca.g5@crc.local",
+    "phone": "09100500009",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 40,
+      "updatedAt": "2026-04-10T18:50:57.244Z"
+    },
+    "createdAt": "2026-04-10T18:50:57.244Z",
+    "updatedAt": "2026-04-10T18:50:57.244Z"
+  },
+  {
+    "seedKey": "member-group-05-0011",
+    "_id": "53292595fd7ca086f671d1c6",
+    "fullName": "Joseph Jephta N",
+    "email": "joseph.jephta.n.g5@crc.local",
+    "phone": "08000500010",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 50,
+      "updatedAt": "2026-04-10T18:50:57.244Z"
+    },
+    "createdAt": "2026-04-10T18:50:57.244Z",
+    "updatedAt": "2026-04-10T18:50:57.244Z"
+  },
+  {
+    "seedKey": "member-group-05-0012",
+    "_id": "d1257521a669ed0c8f1674d3",
+    "fullName": "Obisesan Remilekun N",
+    "email": "obisesan.remilekun.n.g5@crc.local",
+    "phone": "08100500011",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 50,
+      "updatedAt": "2026-04-10T18:50:57.244Z"
+    },
+    "createdAt": "2026-04-10T18:50:57.244Z",
+    "updatedAt": "2026-04-10T18:50:57.244Z"
+  },
+  {
+    "seedKey": "member-group-05-0013",
+    "_id": "beec10f4a818a38f7a5a6028",
+    "fullName": "Adewale Julianah",
+    "email": "adewale.julianah.g5@crc.local",
+    "phone": "07000500012",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 120,
+      "updatedAt": "2026-04-10T18:50:57.244Z"
+    },
+    "createdAt": "2026-04-10T18:50:57.244Z",
+    "updatedAt": "2026-04-10T18:50:57.244Z"
+  }
+]

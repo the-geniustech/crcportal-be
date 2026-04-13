@@ -1,0 +1,17 @@
+[
+  {
+    "seedKey": "settings-group-17-0001",
+    "_id": "d8696efca730c42461d001bb",
+    "userId": "889e65b3bc740da721161113",
+    "groupId": "f6c87206a9219384df938118",
+    "year": 2026,
+    "contributionType": "revolving",
+    "expectedMonthlyAmount": 5000,
+    "totalExpected": 5000,
+    "totalActual": 0,
+    "outstandingBalance": 5000,
+    "units": 1,
+    "createdAt": "2026-04-10T23:27:38.907Z",
+    "updatedAt": "2026-04-10T23:27:38.907Z"
+  }
+]

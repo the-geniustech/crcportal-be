@@ -1,0 +1,19 @@
+[
+  {
+    "seedKey": "group-24",
+    "_id": "cae40b81c9d5f88d66456bfb",
+    "groupNumber": 24,
+    "groupName": "Glorious Champions",
+    "description": "Contribution group for Glorious Champions.",
+    "monthlyContribution": 15000,
+    "maxMembers": 24,
+    "memberCount": 24,
+    "totalSavings": 0,
+    "status": "active",
+    "isOpen": true,
+    "type": "revolving",
+    "cycleDuration": 12,
+    "createdAt": "2026-04-11T15:19:53.220Z",
+    "updatedAt": "2026-04-11T15:19:53.220Z"
+  }
+]

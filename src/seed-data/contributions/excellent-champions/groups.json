@@ -1,0 +1,19 @@
+[
+  {
+    "seedKey": "group-12",
+    "_id": "4e40f742d959783c0b659609",
+    "groupNumber": 12,
+    "groupName": "Excellent Champions",
+    "description": "Contribution group for Excellent Champions.",
+    "monthlyContribution": 31250,
+    "maxMembers": 20,
+    "memberCount": 20,
+    "totalSavings": 0,
+    "status": "active",
+    "isOpen": true,
+    "type": "revolving",
+    "cycleDuration": 12,
+    "createdAt": "2026-04-10T23:22:35.741Z",
+    "updatedAt": "2026-04-10T23:22:35.741Z"
+  }
+]

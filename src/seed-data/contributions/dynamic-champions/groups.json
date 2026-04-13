@@ -1,0 +1,19 @@
+[
+  {
+    "seedKey": "group-11",
+    "_id": "97bb1fde9f730a3d0fde7e67",
+    "groupNumber": 11,
+    "groupName": "Dynamic Champions",
+    "description": "Contribution group for Dynamic Champions.",
+    "monthlyContribution": 27500,
+    "maxMembers": 50,
+    "memberCount": 50,
+    "totalSavings": 0,
+    "status": "active",
+    "isOpen": true,
+    "type": "revolving",
+    "cycleDuration": 12,
+    "createdAt": "2026-04-10T23:22:05.700Z",
+    "updatedAt": "2026-04-10T23:22:05.700Z"
+  }
+]

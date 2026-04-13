@@ -1,0 +1,19 @@
+[
+  {
+    "seedKey": "group-26",
+    "_id": "8dda935c8d5a48100b69a809",
+    "groupNumber": 26,
+    "groupName": "Ultimate Champions",
+    "description": "Contribution group for Ultimate Champions.",
+    "monthlyContribution": 55000,
+    "maxMembers": 30,
+    "memberCount": 30,
+    "totalSavings": 0,
+    "status": "active",
+    "isOpen": true,
+    "type": "revolving",
+    "cycleDuration": 12,
+    "createdAt": "2026-04-11T15:20:56.354Z",
+    "updatedAt": "2026-04-11T15:20:56.354Z"
+  }
+]

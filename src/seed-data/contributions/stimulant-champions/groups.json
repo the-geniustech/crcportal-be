@@ -1,0 +1,19 @@
+[
+  {
+    "seedKey": "group-19",
+    "_id": "1dbb14abc408f0a030d3de71",
+    "groupNumber": 19,
+    "groupName": "Stimulant Champions",
+    "description": "Contribution group for Stimulant Champions.",
+    "monthlyContribution": 75000,
+    "maxMembers": 20,
+    "memberCount": 20,
+    "totalSavings": 0,
+    "status": "active",
+    "isOpen": true,
+    "type": "revolving",
+    "cycleDuration": 12,
+    "createdAt": "2026-04-11T15:05:31.903Z",
+    "updatedAt": "2026-04-11T15:05:31.903Z"
+  }
+]

@@ -1,0 +1,212 @@
+[
+  {
+    "seedKey": "member-group-16-0001",
+    "_id": "b255c2986b5e91968604a212",
+    "fullName": "Akinpelu Oyewole (N)",
+    "email": "akinpelu.oyewole.n.g16@crc.local",
+    "phone": "08001600000",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 5,
+      "updatedAt": "2026-04-11T18:06:48.042Z"
+    },
+    "createdAt": "2026-04-11T18:06:48.042Z",
+    "updatedAt": "2026-04-11T18:06:48.042Z"
+  },
+  {
+    "seedKey": "member-group-16-0002",
+    "_id": "b853eef5af2382fe577af41f",
+    "fullName": "Omidiji Muyideen",
+    "email": "omidiji.muyideen.g16@crc.local",
+    "phone": "08101600001",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 5,
+      "updatedAt": "2026-04-11T18:06:48.042Z"
+    },
+    "createdAt": "2026-04-11T18:06:48.042Z",
+    "updatedAt": "2026-04-11T18:06:48.042Z"
+  },
+  {
+    "seedKey": "member-group-16-0003",
+    "_id": "c4a1d999a4eb89c1f3d108b8",
+    "fullName": "Sotayo Busayo",
+    "email": "sotayo.busayo.g16@crc.local",
+    "phone": "07001600002",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 5,
+      "updatedAt": "2026-04-11T18:06:48.042Z"
+    },
+    "createdAt": "2026-04-11T18:06:48.042Z",
+    "updatedAt": "2026-04-11T18:06:48.042Z"
+  },
+  {
+    "seedKey": "member-group-16-0004",
+    "_id": "0d8dba80106c8ff0a04b559c",
+    "fullName": "Musoludeen",
+    "email": "musoludeen.g16@crc.local",
+    "phone": "09001600003",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 5,
+      "updatedAt": "2026-04-11T18:06:48.042Z"
+    },
+    "createdAt": "2026-04-11T18:06:48.042Z",
+    "updatedAt": "2026-04-11T18:06:48.042Z"
+  },
+  {
+    "seedKey": "member-group-16-0005",
+    "_id": "39f558eda0f7da0a193102bd",
+    "fullName": "Alimi",
+    "email": "alimi.g16@crc.local",
+    "phone": "09101600004",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 10,
+      "updatedAt": "2026-04-11T18:06:48.042Z"
+    },
+    "createdAt": "2026-04-11T18:06:48.042Z",
+    "updatedAt": "2026-04-11T18:06:48.042Z"
+  },
+  {
+    "seedKey": "member-group-16-0006",
+    "_id": "abea06a515ccd5b59ecfcb17",
+    "fullName": "Oridota Sade (N)",
+    "email": "oridota.sade.n.g16@crc.local",
+    "phone": "08001600005",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 10,
+      "updatedAt": "2026-04-11T18:06:48.042Z"
+    },
+    "createdAt": "2026-04-11T18:06:48.042Z",
+    "updatedAt": "2026-04-11T18:06:48.042Z"
+  },
+  {
+    "seedKey": "member-group-16-0007",
+    "_id": "e1d2322181d1b46cbf0c70b7",
+    "fullName": "Ajayi Deborah (N)",
+    "email": "ajayi.deborah.n.g16@crc.local",
+    "phone": "08101600006",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 15,
+      "updatedAt": "2026-04-11T18:06:48.042Z"
+    },
+    "createdAt": "2026-04-11T18:06:48.042Z",
+    "updatedAt": "2026-04-11T18:06:48.042Z"
+  },
+  {
+    "seedKey": "member-group-16-0008",
+    "_id": "2dce13e5cdc8bf23beb14f6e",
+    "fullName": "Adio Alice",
+    "email": "adio.alice.g16@crc.local",
+    "phone": "07001600007",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 20,
+      "updatedAt": "2026-04-11T18:06:48.042Z"
+    },
+    "createdAt": "2026-04-11T18:06:48.042Z",
+    "updatedAt": "2026-04-11T18:06:48.042Z"
+  },
+  {
+    "seedKey": "member-group-16-0009",
+    "_id": "6622db0b1815eb48d81f8b7a",
+    "fullName": "Fatunbi Elizabeth",
+    "email": "fatunbi.elizabeth.g16@crc.local",
+    "phone": "09001600008",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 20,
+      "updatedAt": "2026-04-11T18:06:48.042Z"
+    },
+    "createdAt": "2026-04-11T18:06:48.042Z",
+    "updatedAt": "2026-04-11T18:06:48.042Z"
+  },
+  {
+    "seedKey": "member-group-16-0010",
+    "_id": "463d55728f642e47ffbc620a",
+    "fullName": "Ojeyinka",
+    "email": "ojeyinka.g16@crc.local",
+    "phone": "09101600009",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 20,
+      "updatedAt": "2026-04-11T18:06:48.042Z"
+    },
+    "createdAt": "2026-04-11T18:06:48.042Z",
+    "updatedAt": "2026-04-11T18:06:48.042Z"
+  },
+  {
+    "seedKey": "member-group-16-0011",
+    "_id": "5bb4d81b9fab8e6fd74f6623",
+    "fullName": "Adelaka Mary",
+    "email": "adelaka.mary.g16@crc.local",
+    "phone": "08001600010",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 25,
+      "updatedAt": "2026-04-11T18:06:48.042Z"
+    },
+    "createdAt": "2026-04-11T18:06:48.042Z",
+    "updatedAt": "2026-04-11T18:06:48.042Z"
+  },
+  {
+    "seedKey": "member-group-16-0012",
+    "_id": "7da829c6ec487f2befddc6d0",
+    "fullName": "Sotunbo Temitope",
+    "email": "sotunbo.temitope.g16@crc.local",
+    "phone": "08101600011",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 30,
+      "updatedAt": "2026-04-11T18:06:48.042Z"
+    },
+    "createdAt": "2026-04-11T18:06:48.042Z",
+    "updatedAt": "2026-04-11T18:06:48.042Z"
+  },
+  {
+    "seedKey": "member-group-16-0013",
+    "_id": "d17a01e4ba51965034b65eb8",
+    "fullName": "Oladele Oluwaseun",
+    "email": "oladele.oluwaseun.g16@crc.local",
+    "phone": "07001600012",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 30,
+      "updatedAt": "2026-04-11T18:06:48.042Z"
+    },
+    "createdAt": "2026-04-11T18:06:48.042Z",
+    "updatedAt": "2026-04-11T18:06:48.042Z"
+  },
+  {
+    "seedKey": "member-group-16-0014",
+    "_id": "5b04e4004846beea2de413a4",
+    "fullName": "Ogundusi Olusola",
+    "email": "ogundusi.olusola.g16@crc.local",
+    "phone": "09001600013",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 50,
+      "updatedAt": "2026-04-11T18:06:48.042Z"
+    },
+    "createdAt": "2026-04-11T18:06:48.042Z",
+    "updatedAt": "2026-04-11T18:06:48.042Z"
+  }
+]

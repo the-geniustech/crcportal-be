@@ -1,0 +1,152 @@
+[
+  {
+    "seedKey": "member-group-01-0001",
+    "_id": "9a66df7768f3cf59003259a4",
+    "fullName": "Solomon Niniola",
+    "email": "solomon.niniola.g1@crc.local",
+    "phone": "08000100000",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 5,
+      "updatedAt": "2026-04-10T18:38:28.501Z"
+    },
+    "createdAt": "2026-04-10T18:38:28.501Z",
+    "updatedAt": "2026-04-10T18:38:28.501Z"
+  },
+  {
+    "seedKey": "member-group-01-0002",
+    "_id": "b89032b8e935c7c3c64807a2",
+    "fullName": "Olatunji Fausat",
+    "email": "olatunji.fausat.g1@crc.local",
+    "phone": "08100100001",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 10,
+      "updatedAt": "2026-04-10T18:38:28.501Z"
+    },
+    "createdAt": "2026-04-10T18:38:28.501Z",
+    "updatedAt": "2026-04-10T18:38:28.501Z"
+  },
+  {
+    "seedKey": "member-group-01-0003",
+    "_id": "2d87f6072bab16762f34597e",
+    "fullName": "Arise Timothy",
+    "email": "arise.timothy.g1@crc.local",
+    "phone": "07000100002",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 20,
+      "updatedAt": "2026-04-10T18:38:28.501Z"
+    },
+    "createdAt": "2026-04-10T18:38:28.501Z",
+    "updatedAt": "2026-04-10T18:38:28.501Z"
+  },
+  {
+    "seedKey": "member-group-01-0004",
+    "_id": "b2e279b247857b89dae814de",
+    "fullName": "Bello Bukola",
+    "email": "bello.bukola.g1@crc.local",
+    "phone": "09000100003",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 20,
+      "updatedAt": "2026-04-10T18:38:28.501Z"
+    },
+    "createdAt": "2026-04-10T18:38:28.501Z",
+    "updatedAt": "2026-04-10T18:38:28.501Z"
+  },
+  {
+    "seedKey": "member-group-01-0005",
+    "_id": "b2c973c0eaad905cb8a06be7",
+    "fullName": "Taiwo Tope",
+    "email": "taiwo.tope.g1@crc.local",
+    "phone": "09100100004",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 25,
+      "updatedAt": "2026-04-10T18:38:28.501Z"
+    },
+    "createdAt": "2026-04-10T18:38:28.501Z",
+    "updatedAt": "2026-04-10T18:38:28.501Z"
+  },
+  {
+    "seedKey": "member-group-01-0006",
+    "_id": "10040bcabcdb7153b925f8f5",
+    "fullName": "Adedeji Ruth",
+    "email": "adedeji.ruth.g1@crc.local",
+    "phone": "08000100005",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 40,
+      "updatedAt": "2026-04-10T18:38:28.501Z"
+    },
+    "createdAt": "2026-04-10T18:38:28.501Z",
+    "updatedAt": "2026-04-10T18:38:28.501Z"
+  },
+  {
+    "seedKey": "member-group-01-0007",
+    "_id": "427c24dde3438f594519a9da",
+    "fullName": "Bodunde Memunat",
+    "email": "bodunde.memunat.g1@crc.local",
+    "phone": "08100100006",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 50,
+      "updatedAt": "2026-04-10T18:38:28.501Z"
+    },
+    "createdAt": "2026-04-10T18:38:28.501Z",
+    "updatedAt": "2026-04-10T18:38:28.501Z"
+  },
+  {
+    "seedKey": "member-group-01-0008",
+    "_id": "049760ece892ab7a874768af",
+    "fullName": "Iraboh Joy",
+    "email": "iraboh.joy.g1@crc.local",
+    "phone": "07000100007",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 50,
+      "updatedAt": "2026-04-10T18:38:28.501Z"
+    },
+    "createdAt": "2026-04-10T18:38:28.501Z",
+    "updatedAt": "2026-04-10T18:38:28.501Z"
+  },
+  {
+    "seedKey": "member-group-01-0009",
+    "_id": "0cb6157affe0c8fb4cc8ce21",
+    "fullName": "Iraboh Liza",
+    "email": "iraboh.liza.g1@crc.local",
+    "phone": "09000100008",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 50,
+      "updatedAt": "2026-04-10T18:38:28.501Z"
+    },
+    "createdAt": "2026-04-10T18:38:28.501Z",
+    "updatedAt": "2026-04-10T18:38:28.501Z"
+  },
+  {
+    "seedKey": "member-group-01-0010",
+    "_id": "1300e1c09f129f691226a7d6",
+    "fullName": "Femi Adeoye",
+    "email": "femi.adeoye.g1@crc.local",
+    "phone": "09100100009",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 80,
+      "updatedAt": "2026-04-10T18:38:28.501Z"
+    },
+    "createdAt": "2026-04-10T18:38:28.501Z",
+    "updatedAt": "2026-04-10T18:38:28.501Z"
+  }
+]

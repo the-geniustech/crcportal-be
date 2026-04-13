@@ -1,0 +1,19 @@
+[
+  {
+    "seedKey": "group-03",
+    "_id": "77828f8ff0e18c9d363d6f5f",
+    "groupNumber": 3,
+    "groupName": "Amazing Grace Champions",
+    "description": "Contribution group for Amazing Grace Champions.",
+    "monthlyContribution": 30000,
+    "maxMembers": 33,
+    "memberCount": 33,
+    "totalSavings": 0,
+    "status": "active",
+    "isOpen": true,
+    "type": "revolving",
+    "cycleDuration": 12,
+    "createdAt": "2026-04-11T15:07:32.402Z",
+    "updatedAt": "2026-04-11T15:07:32.402Z"
+  }
+]

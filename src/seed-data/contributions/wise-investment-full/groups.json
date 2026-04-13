@@ -1,0 +1,19 @@
+[
+  {
+    "seedKey": "group-17",
+    "_id": "f6c87206a9219384df938118",
+    "groupNumber": 17,
+    "groupName": "Wise Investment Full",
+    "description": "Contribution group for Wise Investment Full.",
+    "monthlyContribution": 5000,
+    "maxMembers": 1,
+    "memberCount": 1,
+    "totalSavings": 0,
+    "status": "active",
+    "isOpen": true,
+    "type": "revolving",
+    "cycleDuration": 1,
+    "createdAt": "2026-04-10T23:27:38.907Z",
+    "updatedAt": "2026-04-10T23:27:38.907Z"
+  }
+]

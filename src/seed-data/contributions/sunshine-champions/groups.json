@@ -1,0 +1,19 @@
+[
+  {
+    "seedKey": "group-01",
+    "_id": "68e37bd49b1e9ee4a491baeb",
+    "groupNumber": 1,
+    "groupName": "Sunshine Champions",
+    "description": "Contribution group for Sunshine Champions.",
+    "monthlyContribution": 48750,
+    "maxMembers": 10,
+    "memberCount": 10,
+    "totalSavings": 0,
+    "status": "active",
+    "isOpen": true,
+    "type": "revolving",
+    "cycleDuration": 12,
+    "createdAt": "2026-04-10T18:38:28.501Z",
+    "updatedAt": "2026-04-10T18:38:28.501Z"
+  }
+]

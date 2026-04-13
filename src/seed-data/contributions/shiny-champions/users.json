@@ -1,0 +1,137 @@
+[
+  {
+    "seedKey": "member-group-20-0001",
+    "_id": "e7b30f38e5df32d188cca938",
+    "email": "aremu.tomisin.g20@crc.local",
+    "phone": "08002000000",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "597293f84d332e204d4d1748",
+    "emailVerifiedAt": "2026-04-11T15:02:37.712Z",
+    "phoneVerifiedAt": "2026-04-11T15:02:37.712Z",
+    "createdAt": "2026-04-11T15:02:37.712Z",
+    "updatedAt": "2026-04-11T15:02:37.712Z"
+  },
+  {
+    "seedKey": "member-group-20-0002",
+    "_id": "d62edf0701906cd6426341bc",
+    "email": "adegboye.gloria.g20@crc.local",
+    "phone": "08102000001",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "952cbf9b203a12b4b09c2189",
+    "emailVerifiedAt": "2026-04-11T15:02:37.712Z",
+    "phoneVerifiedAt": "2026-04-11T15:02:37.712Z",
+    "createdAt": "2026-04-11T15:02:37.712Z",
+    "updatedAt": "2026-04-11T15:02:37.712Z"
+  },
+  {
+    "seedKey": "member-group-20-0003",
+    "_id": "08549b42220e8bac2e910903",
+    "email": "adeleke.oyewunmi.g20@crc.local",
+    "phone": "07002000002",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "7d98e22c89a6751a55cb936c",
+    "emailVerifiedAt": "2026-04-11T15:02:37.712Z",
+    "phoneVerifiedAt": "2026-04-11T15:02:37.712Z",
+    "createdAt": "2026-04-11T15:02:37.712Z",
+    "updatedAt": "2026-04-11T15:02:37.712Z"
+  },
+  {
+    "seedKey": "member-group-20-0004",
+    "_id": "dd259ea83e5875c4dd01d446",
+    "email": "alayemi.emmanuel.g20@crc.local",
+    "phone": "09002000003",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "d282c572db272344cc677cc6",
+    "emailVerifiedAt": "2026-04-11T15:02:37.712Z",
+    "phoneVerifiedAt": "2026-04-11T15:02:37.712Z",
+    "createdAt": "2026-04-11T15:02:37.712Z",
+    "updatedAt": "2026-04-11T15:02:37.712Z"
+  },
+  {
+    "seedKey": "member-group-20-0005",
+    "_id": "08dc8165fe2571a7530477c8",
+    "email": "oyeniyi.oyebola.g20@crc.local",
+    "phone": "09102000004",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "b918ac673887200e696391b0",
+    "emailVerifiedAt": "2026-04-11T15:02:37.712Z",
+    "phoneVerifiedAt": "2026-04-11T15:02:37.712Z",
+    "createdAt": "2026-04-11T15:02:37.712Z",
+    "updatedAt": "2026-04-11T15:02:37.712Z"
+  },
+  {
+    "seedKey": "member-group-20-0006",
+    "_id": "66cff48c130cede9155c9bf9",
+    "email": "oyeniyi.oyebisi.g20@crc.local",
+    "phone": "08002000005",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "22f7148ee138b18454841622",
+    "emailVerifiedAt": "2026-04-11T15:02:37.712Z",
+    "phoneVerifiedAt": "2026-04-11T15:02:37.712Z",
+    "createdAt": "2026-04-11T15:02:37.712Z",
+    "updatedAt": "2026-04-11T15:02:37.712Z"
+  },
+  {
+    "seedKey": "member-group-20-0007",
+    "_id": "61ec8934b64c89b8e90bb857",
+    "email": "oyeniyi.oyeyemi.g20@crc.local",
+    "phone": "08102000006",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "cf7b058acdceab8197683962",
+    "emailVerifiedAt": "2026-04-11T15:02:37.712Z",
+    "phoneVerifiedAt": "2026-04-11T15:02:37.712Z",
+    "createdAt": "2026-04-11T15:02:37.712Z",
+    "updatedAt": "2026-04-11T15:02:37.712Z"
+  },
+  {
+    "seedKey": "member-group-20-0008",
+    "_id": "88f41b1453ad08df6d8d0c91",
+    "email": "oyarinu.tomisin.n.g20@crc.local",
+    "phone": "07002000007",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "9091989fdc2ef2a379419869",
+    "emailVerifiedAt": "2026-04-11T15:02:37.712Z",
+    "phoneVerifiedAt": "2026-04-11T15:02:37.712Z",
+    "createdAt": "2026-04-11T15:02:37.712Z",
+    "updatedAt": "2026-04-11T15:02:37.712Z"
+  },
+  {
+    "seedKey": "member-group-20-0009",
+    "_id": "4eae069a58f773e80b5b2d9b",
+    "email": "adegboye.omotola.n.g20@crc.local",
+    "phone": "09002000008",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "0f6c374532dd1baa97311436",
+    "emailVerifiedAt": "2026-04-11T15:02:37.712Z",
+    "phoneVerifiedAt": "2026-04-11T15:02:37.712Z",
+    "createdAt": "2026-04-11T15:02:37.712Z",
+    "updatedAt": "2026-04-11T15:02:37.712Z"
+  }
+]

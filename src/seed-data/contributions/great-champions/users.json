@@ -1,0 +1,197 @@
+[
+  {
+    "seedKey": "member-group-05-0001",
+    "_id": "9c5703af86c5a9d17895137e",
+    "email": "ajayi.olawoyin.g5@crc.local",
+    "phone": "08000500000",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "bb342a369428a26782e49260",
+    "emailVerifiedAt": "2026-04-10T18:50:57.244Z",
+    "phoneVerifiedAt": "2026-04-10T18:50:57.244Z",
+    "createdAt": "2026-04-10T18:50:57.244Z",
+    "updatedAt": "2026-04-10T18:50:57.244Z"
+  },
+  {
+    "seedKey": "member-group-05-0002",
+    "_id": "71118c1865a74a81584eac02",
+    "email": "akintonde.rebecca.g5@crc.local",
+    "phone": "08100500001",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "c2b4b39e9ae974dfbc1f3055",
+    "emailVerifiedAt": "2026-04-10T18:50:57.244Z",
+    "phoneVerifiedAt": "2026-04-10T18:50:57.244Z",
+    "createdAt": "2026-04-10T18:50:57.244Z",
+    "updatedAt": "2026-04-10T18:50:57.244Z"
+  },
+  {
+    "seedKey": "member-group-05-0003",
+    "_id": "2d04162baada1d488a909d9b",
+    "email": "akintonde.jacob.g5@crc.local",
+    "phone": "07000500002",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "ad968583e029407ff8084c70",
+    "emailVerifiedAt": "2026-04-10T18:50:57.244Z",
+    "phoneVerifiedAt": "2026-04-10T18:50:57.244Z",
+    "createdAt": "2026-04-10T18:50:57.244Z",
+    "updatedAt": "2026-04-10T18:50:57.244Z"
+  },
+  {
+    "seedKey": "member-group-05-0004",
+    "_id": "e304aea930a91326e24f96ae",
+    "email": "oladejo.sarah.n.g5@crc.local",
+    "phone": "09000500003",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "800b12f2bed7a72af81eb2ae",
+    "emailVerifiedAt": "2026-04-10T18:50:57.244Z",
+    "phoneVerifiedAt": "2026-04-10T18:50:57.244Z",
+    "createdAt": "2026-04-10T18:50:57.244Z",
+    "updatedAt": "2026-04-10T18:50:57.244Z"
+  },
+  {
+    "seedKey": "member-group-05-0005",
+    "_id": "00a79c9ba60f9410319b8761",
+    "email": "soyemi.sakirat.g5@crc.local",
+    "phone": "09100500004",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "2d0c249d53eeb549a4484acb",
+    "emailVerifiedAt": "2026-04-10T18:50:57.244Z",
+    "phoneVerifiedAt": "2026-04-10T18:50:57.244Z",
+    "createdAt": "2026-04-10T18:50:57.244Z",
+    "updatedAt": "2026-04-10T18:50:57.244Z"
+  },
+  {
+    "seedKey": "member-group-05-0006",
+    "_id": "34846b7ce83ef3e2c21ed3c8",
+    "email": "ogunsola.monsurat.g5@crc.local",
+    "phone": "08000500005",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "0b70d6f1965bbb858668d77c",
+    "emailVerifiedAt": "2026-04-10T18:50:57.244Z",
+    "phoneVerifiedAt": "2026-04-10T18:50:57.244Z",
+    "createdAt": "2026-04-10T18:50:57.244Z",
+    "updatedAt": "2026-04-10T18:50:57.244Z"
+  },
+  {
+    "seedKey": "member-group-05-0007",
+    "_id": "4a4f13f59594abf65ab9a1db",
+    "email": "adesope.elizabeth.g5@crc.local",
+    "phone": "08100500006",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "60117bb5581a51d990d60759",
+    "emailVerifiedAt": "2026-04-10T18:50:57.244Z",
+    "phoneVerifiedAt": "2026-04-10T18:50:57.244Z",
+    "createdAt": "2026-04-10T18:50:57.244Z",
+    "updatedAt": "2026-04-10T18:50:57.244Z"
+  },
+  {
+    "seedKey": "member-group-05-0008",
+    "_id": "b63753054ea96b7572a850a8",
+    "email": "adegbola.sunday.g5@crc.local",
+    "phone": "07000500007",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "50bd978ffd19d5194047f617",
+    "emailVerifiedAt": "2026-04-10T18:50:57.244Z",
+    "phoneVerifiedAt": "2026-04-10T18:50:57.244Z",
+    "createdAt": "2026-04-10T18:50:57.244Z",
+    "updatedAt": "2026-04-10T18:50:57.244Z"
+  },
+  {
+    "seedKey": "member-group-05-0009",
+    "_id": "dac01eae48e71a0cc53682cb",
+    "email": "olaniyi.mojisola.g5@crc.local",
+    "phone": "09000500008",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "a87c8192e73f55ba07d47fa7",
+    "emailVerifiedAt": "2026-04-10T18:50:57.244Z",
+    "phoneVerifiedAt": "2026-04-10T18:50:57.244Z",
+    "createdAt": "2026-04-10T18:50:57.244Z",
+    "updatedAt": "2026-04-10T18:50:57.244Z"
+  },
+  {
+    "seedKey": "member-group-05-0010",
+    "_id": "c997d06043bcded06b7e1502",
+    "email": "adeogoyemi.rebecca.g5@crc.local",
+    "phone": "09100500009",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "4f445df876ae534dbefdad69",
+    "emailVerifiedAt": "2026-04-10T18:50:57.244Z",
+    "phoneVerifiedAt": "2026-04-10T18:50:57.244Z",
+    "createdAt": "2026-04-10T18:50:57.244Z",
+    "updatedAt": "2026-04-10T18:50:57.244Z"
+  },
+  {
+    "seedKey": "member-group-05-0011",
+    "_id": "01a6d569c63e900f8c1a3435",
+    "email": "joseph.jephta.n.g5@crc.local",
+    "phone": "08000500010",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "53292595fd7ca086f671d1c6",
+    "emailVerifiedAt": "2026-04-10T18:50:57.244Z",
+    "phoneVerifiedAt": "2026-04-10T18:50:57.244Z",
+    "createdAt": "2026-04-10T18:50:57.244Z",
+    "updatedAt": "2026-04-10T18:50:57.244Z"
+  },
+  {
+    "seedKey": "member-group-05-0012",
+    "_id": "fe9335eb6c11aba9cae19f70",
+    "email": "obisesan.remilekun.n.g5@crc.local",
+    "phone": "08100500011",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "d1257521a669ed0c8f1674d3",
+    "emailVerifiedAt": "2026-04-10T18:50:57.244Z",
+    "phoneVerifiedAt": "2026-04-10T18:50:57.244Z",
+    "createdAt": "2026-04-10T18:50:57.244Z",
+    "updatedAt": "2026-04-10T18:50:57.244Z"
+  },
+  {
+    "seedKey": "member-group-05-0013",
+    "_id": "1e142acc0468dfa7f6710b38",
+    "email": "adewale.julianah.g5@crc.local",
+    "phone": "07000500012",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "beec10f4a818a38f7a5a6028",
+    "emailVerifiedAt": "2026-04-10T18:50:57.244Z",
+    "phoneVerifiedAt": "2026-04-10T18:50:57.244Z",
+    "createdAt": "2026-04-10T18:50:57.244Z",
+    "updatedAt": "2026-04-10T18:50:57.244Z"
+  }
+]

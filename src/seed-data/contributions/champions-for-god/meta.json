@@ -1,0 +1,168 @@
+{
+  "inputPath": "C:\\Users\\user\\Desktop\\crs\\backend\\src\\scripts\\crc_revolving_contributions\\Group_7_Champions_for_God.xlsx",
+  "sheetName": "Group7 Champions for God",
+  "groupSeedKey": "group-07",
+  "groupName": "Champions for God",
+  "groupNumber": 7,
+  "year": 2026,
+  "monthsDetected": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+  ],
+  "unitAmount": 2000,
+  "groupMonthlyContribution": 26250,
+  "cycleDuration": 12,
+  "interestSummary": {
+    "monthsComputed": 4,
+    "totals": {
+      "contributions": 3910000,
+      "interest": 372596.87,
+      "total": 4282596.87
+    },
+    "schedule": [
+      {
+        "month": 1,
+        "label": "January",
+        "shortLabel": "Jan",
+        "ratePerThousand": 35,
+        "ratePct": 3.5,
+        "contributions": 2510000,
+        "interest": 0,
+        "total": 2510000,
+        "cumulativeTotal": 2510000
+      },
+      {
+        "month": 2,
+        "label": "February",
+        "shortLabel": "Feb",
+        "ratePerThousand": 35,
+        "ratePct": 3.5,
+        "contributions": 1400000,
+        "interest": 87850,
+        "total": 1487850,
+        "cumulativeTotal": 3997850
+      },
+      {
+        "month": 3,
+        "label": "March",
+        "shortLabel": "Mar",
+        "ratePerThousand": 35,
+        "ratePct": 3.5,
+        "contributions": 0,
+        "interest": 139924.75,
+        "total": 139924.75,
+        "cumulativeTotal": 4137774.75
+      },
+      {
+        "month": 4,
+        "label": "April",
+        "shortLabel": "Apr",
+        "ratePerThousand": 35,
+        "ratePct": 3.5,
+        "contributions": 0,
+        "interest": 144822.12,
+        "total": 144822.12,
+        "cumulativeTotal": 4282596.87
+      },
+      {
+        "month": 5,
+        "label": "May",
+        "shortLabel": "May",
+        "ratePerThousand": 35,
+        "ratePct": 3.5,
+        "contributions": 0,
+        "interest": 0,
+        "total": 0,
+        "cumulativeTotal": 4282596.87
+      },
+      {
+        "month": 6,
+        "label": "June",
+        "shortLabel": "Jun",
+        "ratePerThousand": 35,
+        "ratePct": 3.5,
+        "contributions": 0,
+        "interest": 0,
+        "total": 0,
+        "cumulativeTotal": 4282596.87
+      },
+      {
+        "month": 7,
+        "label": "July",
+        "shortLabel": "Jul",
+        "ratePerThousand": 35,
+        "ratePct": 3.5,
+        "contributions": 0,
+        "interest": 0,
+        "total": 0,
+        "cumulativeTotal": 4282596.87
+      },
+      {
+        "month": 8,
+        "label": "August",
+        "shortLabel": "Aug",
+        "ratePerThousand": 35,
+        "ratePct": 3.5,
+        "contributions": 0,
+        "interest": 0,
+        "total": 0,
+        "cumulativeTotal": 4282596.87
+      },
+      {
+        "month": 9,
+        "label": "September",
+        "shortLabel": "Sep",
+        "ratePerThousand": 35,
+        "ratePct": 3.5,
+        "contributions": 0,
+        "interest": 0,
+        "total": 0,
+        "cumulativeTotal": 4282596.87
+      },
+      {
+        "month": 10,
+        "label": "October",
+        "shortLabel": "Oct",
+        "ratePerThousand": 35,
+        "ratePct": 3.5,
+        "contributions": 0,
+        "interest": 0,
+        "total": 0,
+        "cumulativeTotal": 4282596.87
+      },
+      {
+        "month": 11,
+        "label": "November",
+        "shortLabel": "Nov",
+        "ratePerThousand": 35,
+        "ratePct": 3.5,
+        "contributions": 0,
+        "interest": 0,
+        "total": 0,
+        "cumulativeTotal": 4282596.87
+      },
+      {
+        "month": 12,
+        "label": "December",
+        "shortLabel": "Dec",
+        "ratePerThousand": 35,
+        "ratePct": 3.5,
+        "contributions": 0,
+        "interest": 0,
+        "total": 0,
+        "cumulativeTotal": 4282596.87
+      }
+    ]
+  },
+  "warnings": []
+}

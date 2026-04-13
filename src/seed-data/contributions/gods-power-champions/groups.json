@@ -1,0 +1,19 @@
+[
+  {
+    "seedKey": "group-25",
+    "_id": "8581ebc0f89e5da2cea1fc23",
+    "groupNumber": 25,
+    "groupName": "Gods Power Champions",
+    "description": "Contribution group for Gods Power Champions.",
+    "monthlyContribution": 60000,
+    "maxMembers": 18,
+    "memberCount": 18,
+    "totalSavings": 0,
+    "status": "active",
+    "isOpen": true,
+    "type": "revolving",
+    "cycleDuration": 12,
+    "createdAt": "2026-04-11T15:20:26.465Z",
+    "updatedAt": "2026-04-11T15:20:26.465Z"
+  }
+]

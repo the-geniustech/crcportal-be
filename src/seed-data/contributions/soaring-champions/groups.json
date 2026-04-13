@@ -1,0 +1,19 @@
+[
+  {
+    "seedKey": "group-22",
+    "_id": "3dbaf654ffad635f979116cb",
+    "groupNumber": 22,
+    "groupName": "Soaring Champions",
+    "description": "Contribution group for Soaring Champions.",
+    "monthlyContribution": 30000,
+    "maxMembers": 46,
+    "memberCount": 46,
+    "totalSavings": 0,
+    "status": "active",
+    "isOpen": true,
+    "type": "revolving",
+    "cycleDuration": 12,
+    "createdAt": "2026-04-11T15:18:50.807Z",
+    "updatedAt": "2026-04-11T15:18:50.807Z"
+  }
+]

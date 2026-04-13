@@ -69,22 +69,23 @@ const parseGroupInfoFromFilename = (inputPath) => {
   return { groupNumber: null, groupName: clean || null };
 };
 
-const createUniqueEmailFactory = () => {
+const createUniqueEmailFactory = (groupSlug) => {
+  const groupSuffix = groupSlug ? `.${groupSlug}` : "";
   const used = new Set();
   return (fullName) => {
     const base = slugifyName(fullName) || "member";
     let suffix = 0;
-    let candidate = `${base}@crc.local`;
+    let candidate = `${base}${groupSuffix}@crc.local`;
     while (used.has(candidate)) {
       suffix += 1;
-      candidate = `${base}.${suffix}@crc.local`;
+      candidate = `${base}${groupSuffix}.${suffix}@crc.local`;
     }
     used.add(candidate);
     return candidate;
   };
 };
 
-const createUniquePhoneFactory = () => {
+const createUniquePhoneFactory = (groupCode) => {
   const used = new Set();
   let counter = 0;
   return () => {
@@ -92,7 +93,7 @@ const createUniquePhoneFactory = () => {
     do {
       const prefix =
         DEFAULT_PHONE_PREFIXES[counter % DEFAULT_PHONE_PREFIXES.length];
-      const body = String(10000000 + counter).slice(-8);
+      const body = `${groupCode}${String(counter).padStart(5, "0")}`;
       candidate = `${prefix}${body}`;
       counter += 1;
     } while (used.has(candidate));
@@ -148,11 +149,34 @@ export function transformContributionSheet(parsed, options = {}) {
     normalizeText(options.groupName || inferredGroup.groupName) ||
     `Group ${groupNumber || ""}`.trim();
 
-  const groupSeedKey = `group-${String(groupNumber || 0).padStart(2, "0")}`;
+  const groupSeedSuffix = groupNumber
+    ? String(groupNumber).padStart(2, "0")
+    : `x${crypto
+        .createHash("md5")
+        .update(parsed.meta.inputPath || groupName)
+        .digest("hex")
+        .slice(0, 6)}`;
+  const groupSeedKey = `group-${groupSeedSuffix}`;
   const groupId = makeObjectId("group", groupSeedKey);
 
-  const emailForName = createUniqueEmailFactory();
-  const phoneForMember = createUniquePhoneFactory();
+  const groupCode = groupNumber
+    ? String(Math.max(0, Math.min(999, Number(groupNumber)))).padStart(3, "0")
+    : String(
+        parseInt(
+          crypto
+            .createHash("md5")
+            .update(groupSeedKey)
+            .digest("hex")
+            .slice(0, 6),
+          16,
+        ) % 1000,
+      ).padStart(3, "0");
+
+  const groupSlugRaw = groupNumber ? `g${groupNumber}` : `g${groupCode}`;
+  const groupSlug = groupSlugRaw.slice(0, 24);
+
+  const emailForName = createUniqueEmailFactory(groupSlug);
+  const phoneForMember = createUniquePhoneFactory(groupCode);
 
   const monthNumbers = parsed.meta.monthsDetected.length
     ? parsed.meta.monthsDetected
@@ -222,7 +246,7 @@ export function transformContributionSheet(parsed, options = {}) {
 
   parsed.rows.forEach((row) => {
     memberCounter += 1;
-    const seedKey = `member-${String(memberCounter).padStart(4, "0")}`;
+    const seedKey = `member-${groupSeedKey}-${String(memberCounter).padStart(4, "0")}`;
     const rawName = normalizeText(row.name);
     const fullName =
       rawName || `Member ${String(memberCounter).padStart(3, "0")}`;
@@ -301,7 +325,7 @@ export function transformContributionSheet(parsed, options = {}) {
     });
 
     groupMembers.push({
-      seedKey: `membership-${String(memberCounter).padStart(4, "0")}`,
+      seedKey: `membership-${groupSeedKey}-${String(memberCounter).padStart(4, "0")}`,
       _id: membershipId,
       userId: profileId,
       groupId,
@@ -309,17 +333,14 @@ export function transformContributionSheet(parsed, options = {}) {
       status: "active",
       joinedAt,
       totalContributed: totalActual,
-      memberNumber: memberCounter,
-      memberSerial: formatGroupMemberSerial({
-        groupNumber,
-        memberNumber: memberCounter,
-      }),
+      memberNumber: null,
+      memberSerial: null,
       createdAt: verifiedAt,
       updatedAt: verifiedAt,
     });
 
     contributionSettings.push({
-      seedKey: `settings-${String(memberCounter).padStart(4, "0")}`,
+      seedKey: `settings-${groupSeedKey}-${String(memberCounter).padStart(4, "0")}`,
       _id: settingId,
       userId: profileId,
       groupId,

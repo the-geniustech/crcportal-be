@@ -1,0 +1,19 @@
+[
+  {
+    "seedKey": "group-05",
+    "_id": "94b4cccc63ed160cab174347",
+    "groupNumber": 5,
+    "groupName": "Great Champions",
+    "description": "Contribution group for Great Champions.",
+    "monthlyContribution": 30000,
+    "maxMembers": 13,
+    "memberCount": 13,
+    "totalSavings": 0,
+    "status": "active",
+    "isOpen": true,
+    "type": "revolving",
+    "cycleDuration": 12,
+    "createdAt": "2026-04-10T18:50:57.244Z",
+    "updatedAt": "2026-04-10T18:50:57.244Z"
+  }
+]

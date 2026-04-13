@@ -1,0 +1,152 @@
+[
+  {
+    "seedKey": "member-group-01-0001",
+    "_id": "95409edd691dd7e488bbc5e1",
+    "email": "solomon.niniola.g1@crc.local",
+    "phone": "08000100000",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "9a66df7768f3cf59003259a4",
+    "emailVerifiedAt": "2026-04-10T18:38:28.501Z",
+    "phoneVerifiedAt": "2026-04-10T18:38:28.501Z",
+    "createdAt": "2026-04-10T18:38:28.501Z",
+    "updatedAt": "2026-04-10T18:38:28.501Z"
+  },
+  {
+    "seedKey": "member-group-01-0002",
+    "_id": "c84577e78b0e42974133955a",
+    "email": "olatunji.fausat.g1@crc.local",
+    "phone": "08100100001",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "b89032b8e935c7c3c64807a2",
+    "emailVerifiedAt": "2026-04-10T18:38:28.501Z",
+    "phoneVerifiedAt": "2026-04-10T18:38:28.501Z",
+    "createdAt": "2026-04-10T18:38:28.501Z",
+    "updatedAt": "2026-04-10T18:38:28.501Z"
+  },
+  {
+    "seedKey": "member-group-01-0003",
+    "_id": "565cf45384149cf8452e60fa",
+    "email": "arise.timothy.g1@crc.local",
+    "phone": "07000100002",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "2d87f6072bab16762f34597e",
+    "emailVerifiedAt": "2026-04-10T18:38:28.501Z",
+    "phoneVerifiedAt": "2026-04-10T18:38:28.501Z",
+    "createdAt": "2026-04-10T18:38:28.501Z",
+    "updatedAt": "2026-04-10T18:38:28.501Z"
+  },
+  {
+    "seedKey": "member-group-01-0004",
+    "_id": "5e0cf88a577476dc05b2c677",
+    "email": "bello.bukola.g1@crc.local",
+    "phone": "09000100003",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "b2e279b247857b89dae814de",
+    "emailVerifiedAt": "2026-04-10T18:38:28.501Z",
+    "phoneVerifiedAt": "2026-04-10T18:38:28.501Z",
+    "createdAt": "2026-04-10T18:38:28.501Z",
+    "updatedAt": "2026-04-10T18:38:28.501Z"
+  },
+  {
+    "seedKey": "member-group-01-0005",
+    "_id": "64efa4fc499952ba6b9d5290",
+    "email": "taiwo.tope.g1@crc.local",
+    "phone": "09100100004",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "b2c973c0eaad905cb8a06be7",
+    "emailVerifiedAt": "2026-04-10T18:38:28.501Z",
+    "phoneVerifiedAt": "2026-04-10T18:38:28.501Z",
+    "createdAt": "2026-04-10T18:38:28.501Z",
+    "updatedAt": "2026-04-10T18:38:28.501Z"
+  },
+  {
+    "seedKey": "member-group-01-0006",
+    "_id": "da31e47c9e62670003ba7c1d",
+    "email": "adedeji.ruth.g1@crc.local",
+    "phone": "08000100005",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "10040bcabcdb7153b925f8f5",
+    "emailVerifiedAt": "2026-04-10T18:38:28.501Z",
+    "phoneVerifiedAt": "2026-04-10T18:38:28.501Z",
+    "createdAt": "2026-04-10T18:38:28.501Z",
+    "updatedAt": "2026-04-10T18:38:28.501Z"
+  },
+  {
+    "seedKey": "member-group-01-0007",
+    "_id": "d0aacb2d077aba38b0558734",
+    "email": "bodunde.memunat.g1@crc.local",
+    "phone": "08100100006",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "427c24dde3438f594519a9da",
+    "emailVerifiedAt": "2026-04-10T18:38:28.501Z",
+    "phoneVerifiedAt": "2026-04-10T18:38:28.501Z",
+    "createdAt": "2026-04-10T18:38:28.501Z",
+    "updatedAt": "2026-04-10T18:38:28.501Z"
+  },
+  {
+    "seedKey": "member-group-01-0008",
+    "_id": "f37841f3864c9ec8f21ce702",
+    "email": "iraboh.joy.g1@crc.local",
+    "phone": "07000100007",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "049760ece892ab7a874768af",
+    "emailVerifiedAt": "2026-04-10T18:38:28.501Z",
+    "phoneVerifiedAt": "2026-04-10T18:38:28.501Z",
+    "createdAt": "2026-04-10T18:38:28.501Z",
+    "updatedAt": "2026-04-10T18:38:28.501Z"
+  },
+  {
+    "seedKey": "member-group-01-0009",
+    "_id": "81a489ae560436f7e03a5219",
+    "email": "iraboh.liza.g1@crc.local",
+    "phone": "09000100008",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "0cb6157affe0c8fb4cc8ce21",
+    "emailVerifiedAt": "2026-04-10T18:38:28.501Z",
+    "phoneVerifiedAt": "2026-04-10T18:38:28.501Z",
+    "createdAt": "2026-04-10T18:38:28.501Z",
+    "updatedAt": "2026-04-10T18:38:28.501Z"
+  },
+  {
+    "seedKey": "member-group-01-0010",
+    "_id": "5e11a6e93a2ade20033a49c1",
+    "email": "femi.adeoye.g1@crc.local",
+    "phone": "09100100009",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "1300e1c09f129f691226a7d6",
+    "emailVerifiedAt": "2026-04-10T18:38:28.501Z",
+    "phoneVerifiedAt": "2026-04-10T18:38:28.501Z",
+    "createdAt": "2026-04-10T18:38:28.501Z",
+    "updatedAt": "2026-04-10T18:38:28.501Z"
+  }
+]

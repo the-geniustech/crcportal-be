@@ -1,0 +1,19 @@
+[
+  {
+    "seedKey": "group-08",
+    "_id": "767afcf8d419258aad6ac939",
+    "groupNumber": 8,
+    "groupName": "Fulfilling Champions",
+    "description": "Contribution group for Fulfilling Champions.",
+    "monthlyContribution": 30000,
+    "maxMembers": 45,
+    "memberCount": 45,
+    "totalSavings": 0,
+    "status": "active",
+    "isOpen": true,
+    "type": "revolving",
+    "cycleDuration": 12,
+    "createdAt": "2026-04-10T18:55:10.496Z",
+    "updatedAt": "2026-04-10T18:55:10.496Z"
+  }
+]

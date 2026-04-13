@@ -1,0 +1,19 @@
+[
+  {
+    "seedKey": "group-23",
+    "_id": "646a3d8a46b907106ecf3743",
+    "groupNumber": 23,
+    "groupName": "Progressive Champions",
+    "description": "Contribution group for Progressive Champions.",
+    "monthlyContribution": 30000,
+    "maxMembers": 37,
+    "memberCount": 37,
+    "totalSavings": 0,
+    "status": "active",
+    "isOpen": true,
+    "type": "revolving",
+    "cycleDuration": 12,
+    "createdAt": "2026-04-11T15:19:24.898Z",
+    "updatedAt": "2026-04-11T15:19:24.898Z"
+  }
+]

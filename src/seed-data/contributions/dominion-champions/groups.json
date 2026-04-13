@@ -1,0 +1,19 @@
+[
+  {
+    "seedKey": "group-09",
+    "_id": "82c283b1ef26fdbf0224484e",
+    "groupNumber": 9,
+    "groupName": "Dominion Champions",
+    "description": "Contribution group for Dominion Champions.",
+    "monthlyContribution": 30000,
+    "maxMembers": 36,
+    "memberCount": 36,
+    "totalSavings": 0,
+    "status": "active",
+    "isOpen": true,
+    "type": "revolving",
+    "cycleDuration": 12,
+    "createdAt": "2026-04-11T15:06:38.564Z",
+    "updatedAt": "2026-04-11T15:06:38.564Z"
+  }
+]

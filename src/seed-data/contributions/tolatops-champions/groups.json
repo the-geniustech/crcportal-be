@@ -1,0 +1,19 @@
+[
+  {
+    "seedKey": "group-16",
+    "_id": "5728883b16b5e6fbdac82846",
+    "groupNumber": 16,
+    "groupName": "TolaTops Champions",
+    "description": "Contribution group for TolaTops Champions.",
+    "monthlyContribution": 27500,
+    "maxMembers": 14,
+    "memberCount": 14,
+    "totalSavings": 0,
+    "status": "active",
+    "isOpen": true,
+    "type": "revolving",
+    "cycleDuration": 12,
+    "createdAt": "2026-04-11T18:06:48.042Z",
+    "updatedAt": "2026-04-11T18:06:48.042Z"
+  }
+]

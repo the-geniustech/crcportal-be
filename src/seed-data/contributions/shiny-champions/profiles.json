@@ -1,0 +1,137 @@
+[
+  {
+    "seedKey": "member-group-20-0001",
+    "_id": "597293f84d332e204d4d1748",
+    "fullName": "Aremu Tomisin",
+    "email": "aremu.tomisin.g20@crc.local",
+    "phone": "08002000000",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 10,
+      "updatedAt": "2026-04-11T15:02:37.712Z"
+    },
+    "createdAt": "2026-04-11T15:02:37.712Z",
+    "updatedAt": "2026-04-11T15:02:37.712Z"
+  },
+  {
+    "seedKey": "member-group-20-0002",
+    "_id": "952cbf9b203a12b4b09c2189",
+    "fullName": "Adegboye Gloria",
+    "email": "adegboye.gloria.g20@crc.local",
+    "phone": "08102000001",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 20,
+      "updatedAt": "2026-04-11T15:02:37.712Z"
+    },
+    "createdAt": "2026-04-11T15:02:37.712Z",
+    "updatedAt": "2026-04-11T15:02:37.712Z"
+  },
+  {
+    "seedKey": "member-group-20-0003",
+    "_id": "7d98e22c89a6751a55cb936c",
+    "fullName": "Adeleke Oyewunmi",
+    "email": "adeleke.oyewunmi.g20@crc.local",
+    "phone": "07002000002",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 20,
+      "updatedAt": "2026-04-11T15:02:37.712Z"
+    },
+    "createdAt": "2026-04-11T15:02:37.712Z",
+    "updatedAt": "2026-04-11T15:02:37.712Z"
+  },
+  {
+    "seedKey": "member-group-20-0004",
+    "_id": "d282c572db272344cc677cc6",
+    "fullName": "Alayemi Emmanuel",
+    "email": "alayemi.emmanuel.g20@crc.local",
+    "phone": "09002000003",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 20,
+      "updatedAt": "2026-04-11T15:02:37.712Z"
+    },
+    "createdAt": "2026-04-11T15:02:37.712Z",
+    "updatedAt": "2026-04-11T15:02:37.712Z"
+  },
+  {
+    "seedKey": "member-group-20-0005",
+    "_id": "b918ac673887200e696391b0",
+    "fullName": "Oyeniyi Oyebola",
+    "email": "oyeniyi.oyebola.g20@crc.local",
+    "phone": "09102000004",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 20,
+      "updatedAt": "2026-04-11T15:02:37.712Z"
+    },
+    "createdAt": "2026-04-11T15:02:37.712Z",
+    "updatedAt": "2026-04-11T15:02:37.712Z"
+  },
+  {
+    "seedKey": "member-group-20-0006",
+    "_id": "22f7148ee138b18454841622",
+    "fullName": "Oyeniyi Oyebisi",
+    "email": "oyeniyi.oyebisi.g20@crc.local",
+    "phone": "08002000005",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 20,
+      "updatedAt": "2026-04-11T15:02:37.712Z"
+    },
+    "createdAt": "2026-04-11T15:02:37.712Z",
+    "updatedAt": "2026-04-11T15:02:37.712Z"
+  },
+  {
+    "seedKey": "member-group-20-0007",
+    "_id": "cf7b058acdceab8197683962",
+    "fullName": "Oyeniyi Oyeyemi",
+    "email": "oyeniyi.oyeyemi.g20@crc.local",
+    "phone": "08102000006",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 30,
+      "updatedAt": "2026-04-11T15:02:37.712Z"
+    },
+    "createdAt": "2026-04-11T15:02:37.712Z",
+    "updatedAt": "2026-04-11T15:02:37.712Z"
+  },
+  {
+    "seedKey": "member-group-20-0008",
+    "_id": "9091989fdc2ef2a379419869",
+    "fullName": "Oyarinu Tomisin (N)",
+    "email": "oyarinu.tomisin.n.g20@crc.local",
+    "phone": "07002000007",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 50,
+      "updatedAt": "2026-04-11T15:02:37.712Z"
+    },
+    "createdAt": "2026-04-11T15:02:37.712Z",
+    "updatedAt": "2026-04-11T15:02:37.712Z"
+  },
+  {
+    "seedKey": "member-group-20-0009",
+    "_id": "0f6c374532dd1baa97311436",
+    "fullName": "Adegboye Omotola (N)",
+    "email": "adegboye.omotola.n.g20@crc.local",
+    "phone": "09002000008",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 75,
+      "updatedAt": "2026-04-11T15:02:37.712Z"
+    },
+    "createdAt": "2026-04-11T15:02:37.712Z",
+    "updatedAt": "2026-04-11T15:02:37.712Z"
+  }
+]

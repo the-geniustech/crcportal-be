@@ -1,0 +1,19 @@
+[
+  {
+    "seedKey": "group-18",
+    "_id": "27820ca8625a53432ba4ac61",
+    "groupNumber": 18,
+    "groupName": "Agape Love Champions",
+    "description": "Contribution group for Agape Love Champions.",
+    "monthlyContribution": 22500,
+    "maxMembers": 46,
+    "memberCount": 46,
+    "totalSavings": 0,
+    "status": "active",
+    "isOpen": true,
+    "type": "revolving",
+    "cycleDuration": 12,
+    "createdAt": "2026-04-11T14:49:55.473Z",
+    "updatedAt": "2026-04-11T14:49:55.473Z"
+  }
+]

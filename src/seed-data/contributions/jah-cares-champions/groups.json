@@ -1,0 +1,19 @@
+[
+  {
+    "seedKey": "group-27",
+    "_id": "42ddc7ce32f7fa31da5f863d",
+    "groupNumber": 27,
+    "groupName": "Jah Cares Champions",
+    "description": "Contribution group for Jah Cares Champions.",
+    "monthlyContribution": 45000,
+    "maxMembers": 17,
+    "memberCount": 17,
+    "totalSavings": 0,
+    "status": "active",
+    "isOpen": true,
+    "type": "revolving",
+    "cycleDuration": 12,
+    "createdAt": "2026-04-11T15:21:23.595Z",
+    "updatedAt": "2026-04-11T15:21:23.595Z"
+  }
+]

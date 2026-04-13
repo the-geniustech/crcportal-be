@@ -1,0 +1,19 @@
+[
+  {
+    "seedKey": "group-15",
+    "_id": "02e6c3e37ecca53fe4e616ac",
+    "groupNumber": 15,
+    "groupName": "Peculiar Champions",
+    "description": "Contribution group for Peculiar Champions.",
+    "monthlyContribution": 22500,
+    "maxMembers": 30,
+    "memberCount": 30,
+    "totalSavings": 0,
+    "status": "active",
+    "isOpen": true,
+    "type": "revolving",
+    "cycleDuration": 12,
+    "createdAt": "2026-04-10T23:26:20.939Z",
+    "updatedAt": "2026-04-10T23:26:20.939Z"
+  }
+]

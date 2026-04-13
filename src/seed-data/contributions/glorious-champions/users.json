@@ -1,0 +1,362 @@
+[
+  {
+    "seedKey": "member-group-24-0001",
+    "_id": "ceb20771dafce720487b2295",
+    "email": "adebiyi.titilope.g24@crc.local",
+    "phone": "08002400000",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "e875ab7aad8b4974c313a3cc",
+    "emailVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "phoneVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "createdAt": "2026-04-11T15:19:53.220Z",
+    "updatedAt": "2026-04-11T15:19:53.220Z"
+  },
+  {
+    "seedKey": "member-group-24-0002",
+    "_id": "2ebdb4adcb7050a69d885b20",
+    "email": "adejoro.aderonke.g24@crc.local",
+    "phone": "08102400001",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "dd61c0a64729e8b4a55a8de5",
+    "emailVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "phoneVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "createdAt": "2026-04-11T15:19:53.220Z",
+    "updatedAt": "2026-04-11T15:19:53.220Z"
+  },
+  {
+    "seedKey": "member-group-24-0003",
+    "_id": "4d740f2f369042df62257c73",
+    "email": "adekoya.olatunde.g24@crc.local",
+    "phone": "07002400002",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "3c4e8233f916b926439193cb",
+    "emailVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "phoneVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "createdAt": "2026-04-11T15:19:53.220Z",
+    "updatedAt": "2026-04-11T15:19:53.220Z"
+  },
+  {
+    "seedKey": "member-group-24-0004",
+    "_id": "b4a83acd133d406d854d9b57",
+    "email": "akinwale.kubura.g24@crc.local",
+    "phone": "09002400003",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "bb95fc15be4f04c5cbb0c3b6",
+    "emailVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "phoneVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "createdAt": "2026-04-11T15:19:53.220Z",
+    "updatedAt": "2026-04-11T15:19:53.220Z"
+  },
+  {
+    "seedKey": "member-group-24-0005",
+    "_id": "f2832e2f6d24c7f745b7b5da",
+    "email": "ayandipe.omolara.g24@crc.local",
+    "phone": "09102400004",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "16219f7a3fbe63e24a52c0fa",
+    "emailVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "phoneVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "createdAt": "2026-04-11T15:19:53.220Z",
+    "updatedAt": "2026-04-11T15:19:53.220Z"
+  },
+  {
+    "seedKey": "member-group-24-0006",
+    "_id": "c507afa36a42eea591546aaf",
+    "email": "odetola.bamji.g24@crc.local",
+    "phone": "08002400005",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "6c2f658cc76fb36dd072e1aa",
+    "emailVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "phoneVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "createdAt": "2026-04-11T15:19:53.220Z",
+    "updatedAt": "2026-04-11T15:19:53.220Z"
+  },
+  {
+    "seedKey": "member-group-24-0007",
+    "_id": "c0c8721938fba299854de809",
+    "email": "ogunrinde.temitope.g24@crc.local",
+    "phone": "08102400006",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "b9a6df0da1ebaa6411d62a06",
+    "emailVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "phoneVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "createdAt": "2026-04-11T15:19:53.220Z",
+    "updatedAt": "2026-04-11T15:19:53.220Z"
+  },
+  {
+    "seedKey": "member-group-24-0008",
+    "_id": "c8d008d53582fc7d718d9422",
+    "email": "madehin.bimpe.g24@crc.local",
+    "phone": "07002400007",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "077d3d1606152ef15de733bd",
+    "emailVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "phoneVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "createdAt": "2026-04-11T15:19:53.220Z",
+    "updatedAt": "2026-04-11T15:19:53.220Z"
+  },
+  {
+    "seedKey": "member-group-24-0009",
+    "_id": "9afc37cbb6fd83770defda8f",
+    "email": "olatoye.busayo.g24@crc.local",
+    "phone": "09002400008",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "507faa31b499e46cd1ef3484",
+    "emailVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "phoneVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "createdAt": "2026-04-11T15:19:53.220Z",
+    "updatedAt": "2026-04-11T15:19:53.220Z"
+  },
+  {
+    "seedKey": "member-group-24-0010",
+    "_id": "7a554aa2836da5c85dd41a53",
+    "email": "oluwafemi.oladele.g24@crc.local",
+    "phone": "09102400009",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "6435a261f7424a1ae12b24ae",
+    "emailVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "phoneVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "createdAt": "2026-04-11T15:19:53.220Z",
+    "updatedAt": "2026-04-11T15:19:53.220Z"
+  },
+  {
+    "seedKey": "member-group-24-0011",
+    "_id": "7ddacc60dba53db14129ddec",
+    "email": "sobayo.bukunmi.g24@crc.local",
+    "phone": "08002400010",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "87fd5f0f62e8ef5fb6b119c6",
+    "emailVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "phoneVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "createdAt": "2026-04-11T15:19:53.220Z",
+    "updatedAt": "2026-04-11T15:19:53.220Z"
+  },
+  {
+    "seedKey": "member-group-24-0012",
+    "_id": "bb0f40398b7245117ec609e3",
+    "email": "adeeko.asabi.g24@crc.local",
+    "phone": "08102400011",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "f62fe16255256b4a7744db16",
+    "emailVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "phoneVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "createdAt": "2026-04-11T15:19:53.220Z",
+    "updatedAt": "2026-04-11T15:19:53.220Z"
+  },
+  {
+    "seedKey": "member-group-24-0013",
+    "_id": "6e5d8c4713fdabea80b1b3d0",
+    "email": "akinola.adebayo.g24@crc.local",
+    "phone": "07002400012",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "7e2b5fa520a6416473d5b833",
+    "emailVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "phoneVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "createdAt": "2026-04-11T15:19:53.220Z",
+    "updatedAt": "2026-04-11T15:19:53.220Z"
+  },
+  {
+    "seedKey": "member-group-24-0014",
+    "_id": "4518d281d2c6582d00f60ef4",
+    "email": "ogunleye.abosede.g24@crc.local",
+    "phone": "09002400013",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "dd4543abf582381df37d6b96",
+    "emailVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "phoneVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "createdAt": "2026-04-11T15:19:53.220Z",
+    "updatedAt": "2026-04-11T15:19:53.220Z"
+  },
+  {
+    "seedKey": "member-group-24-0015",
+    "_id": "b799ec13821bfb3adc9b2474",
+    "email": "ojediran.oluwabukola.g24@crc.local",
+    "phone": "09102400014",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "aaa41068fc7e2c2be5783d93",
+    "emailVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "phoneVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "createdAt": "2026-04-11T15:19:53.220Z",
+    "updatedAt": "2026-04-11T15:19:53.220Z"
+  },
+  {
+    "seedKey": "member-group-24-0016",
+    "_id": "e40fcacb6e27d7cb09e6d1bb",
+    "email": "olasiwale.olabisi.g24@crc.local",
+    "phone": "08002400015",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "32fd13e575f7bc720f6e1f04",
+    "emailVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "phoneVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "createdAt": "2026-04-11T15:19:53.220Z",
+    "updatedAt": "2026-04-11T15:19:53.220Z"
+  },
+  {
+    "seedKey": "member-group-24-0017",
+    "_id": "070c3fe5ff610a2a81c4411d",
+    "email": "sotayo.ruth.g24@crc.local",
+    "phone": "08102400016",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "eb4dacefb3a536d6ea7a6358",
+    "emailVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "phoneVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "createdAt": "2026-04-11T15:19:53.220Z",
+    "updatedAt": "2026-04-11T15:19:53.220Z"
+  },
+  {
+    "seedKey": "member-group-24-0018",
+    "_id": "ba03ab8e24cca6fdb2e2b24b",
+    "email": "adegoke.temitope.g24@crc.local",
+    "phone": "07002400017",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "524f3ac212f2ead497c459c5",
+    "emailVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "phoneVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "createdAt": "2026-04-11T15:19:53.220Z",
+    "updatedAt": "2026-04-11T15:19:53.220Z"
+  },
+  {
+    "seedKey": "member-group-24-0019",
+    "_id": "f09e718c98c1c4bacc1d77f4",
+    "email": "akinlabi.mofoluwake.g24@crc.local",
+    "phone": "09002400018",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "87753109a683dc6562b353dc",
+    "emailVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "phoneVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "createdAt": "2026-04-11T15:19:53.220Z",
+    "updatedAt": "2026-04-11T15:19:53.220Z"
+  },
+  {
+    "seedKey": "member-group-24-0020",
+    "_id": "4b9cc93a8d44c859e26b3944",
+    "email": "akinjobi.rofiat.g24@crc.local",
+    "phone": "09102400019",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "8871b4b501d01848f9ea487a",
+    "emailVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "phoneVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "createdAt": "2026-04-11T15:19:53.220Z",
+    "updatedAt": "2026-04-11T15:19:53.220Z"
+  },
+  {
+    "seedKey": "member-group-24-0021",
+    "_id": "f907ceb87e2874a9f8b49047",
+    "email": "sanusi.wuraola.g24@crc.local",
+    "phone": "08002400020",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "6384b20ddf93e87327f636c2",
+    "emailVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "phoneVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "createdAt": "2026-04-11T15:19:53.220Z",
+    "updatedAt": "2026-04-11T15:19:53.220Z"
+  },
+  {
+    "seedKey": "member-group-24-0022",
+    "_id": "e84a86c44699e5898e537a8a",
+    "email": "oyewole.sunday.g24@crc.local",
+    "phone": "08102400021",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "d5aa80e284a6210ef36105b8",
+    "emailVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "phoneVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "createdAt": "2026-04-11T15:19:53.220Z",
+    "updatedAt": "2026-04-11T15:19:53.220Z"
+  },
+  {
+    "seedKey": "member-group-24-0023",
+    "_id": "fb66e99d01aff65a9fbb9d81",
+    "email": "oladoja.isaac.g24@crc.local",
+    "phone": "07002400022",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "394e8f4f817d21a8fd8f26b8",
+    "emailVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "phoneVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "createdAt": "2026-04-11T15:19:53.220Z",
+    "updatedAt": "2026-04-11T15:19:53.220Z"
+  },
+  {
+    "seedKey": "member-group-24-0024",
+    "_id": "1b038812e2c1c85300412ee3",
+    "email": "babalola.abosede.g24@crc.local",
+    "phone": "09002400023",
+    "password": "ChangeMe123!",
+    "role": [
+      "member"
+    ],
+    "profileId": "1c8a8abd4e44b70aed843d58",
+    "emailVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "phoneVerifiedAt": "2026-04-11T15:19:53.220Z",
+    "createdAt": "2026-04-11T15:19:53.220Z",
+    "updatedAt": "2026-04-11T15:19:53.220Z"
+  }
+]

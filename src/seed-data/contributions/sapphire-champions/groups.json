@@ -1,0 +1,19 @@
+[
+  {
+    "seedKey": "group-13",
+    "_id": "ebc300194c68c8f709ab7789",
+    "groupNumber": 13,
+    "groupName": "Sapphire Champions",
+    "description": "Contribution group for Sapphire Champions.",
+    "monthlyContribution": 30000,
+    "maxMembers": 24,
+    "memberCount": 24,
+    "totalSavings": 0,
+    "status": "active",
+    "isOpen": true,
+    "type": "revolving",
+    "cycleDuration": 12,
+    "createdAt": "2026-04-11T18:06:09.092Z",
+    "updatedAt": "2026-04-11T18:06:09.092Z"
+  }
+]

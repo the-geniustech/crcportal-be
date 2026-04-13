@@ -1,0 +1,19 @@
+[
+  {
+    "seedKey": "group-02",
+    "_id": "f13266e9a87019f9d50f8c6c",
+    "groupNumber": 2,
+    "groupName": "Golden Champions",
+    "description": "Contribution group for Golden Champions.",
+    "monthlyContribution": 37500,
+    "maxMembers": 59,
+    "memberCount": 59,
+    "totalSavings": 0,
+    "status": "active",
+    "isOpen": true,
+    "type": "revolving",
+    "cycleDuration": 12,
+    "createdAt": "2026-04-11T15:15:14.465Z",
+    "updatedAt": "2026-04-11T15:15:14.465Z"
+  }
+]

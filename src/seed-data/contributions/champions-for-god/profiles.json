@@ -1,0 +1,542 @@
+[
+  {
+    "seedKey": "member-group-07-0001",
+    "_id": "2569ad891a80c6b524d28675",
+    "fullName": "Adeleke Dare",
+    "email": "adeleke.dare.g7@crc.local",
+    "phone": "08000700000",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 5,
+      "updatedAt": "2026-04-10T18:54:26.879Z"
+    },
+    "createdAt": "2026-04-10T18:54:26.879Z",
+    "updatedAt": "2026-04-10T18:54:26.879Z"
+  },
+  {
+    "seedKey": "member-group-07-0002",
+    "_id": "e0ce923afb420e6be98c54d7",
+    "fullName": "Akinremi Saheed",
+    "email": "akinremi.saheed.g7@crc.local",
+    "phone": "08100700001",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 5,
+      "updatedAt": "2026-04-10T18:54:26.879Z"
+    },
+    "createdAt": "2026-04-10T18:54:26.879Z",
+    "updatedAt": "2026-04-10T18:54:26.879Z"
+  },
+  {
+    "seedKey": "member-group-07-0003",
+    "_id": "37ec9676fb5eaf3af4c6eace",
+    "fullName": "Ayankojo Elizabeth",
+    "email": "ayankojo.elizabeth.g7@crc.local",
+    "phone": "07000700002",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 5,
+      "updatedAt": "2026-04-10T18:54:26.879Z"
+    },
+    "createdAt": "2026-04-10T18:54:26.879Z",
+    "updatedAt": "2026-04-10T18:54:26.879Z"
+  },
+  {
+    "seedKey": "member-group-07-0004",
+    "_id": "41ffa404cc9d60ce4d806c9e",
+    "fullName": "Ayilara Oluwakemi",
+    "email": "ayilara.oluwakemi.g7@crc.local",
+    "phone": "09000700003",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 5,
+      "updatedAt": "2026-04-10T18:54:26.879Z"
+    },
+    "createdAt": "2026-04-10T18:54:26.879Z",
+    "updatedAt": "2026-04-10T18:54:26.879Z"
+  },
+  {
+    "seedKey": "member-group-07-0005",
+    "_id": "5ae7a0964f7e8a4edffade64",
+    "fullName": "Faleye Sunday N",
+    "email": "faleye.sunday.n.g7@crc.local",
+    "phone": "09100700004",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 5,
+      "updatedAt": "2026-04-10T18:54:26.879Z"
+    },
+    "createdAt": "2026-04-10T18:54:26.879Z",
+    "updatedAt": "2026-04-10T18:54:26.879Z"
+  },
+  {
+    "seedKey": "member-group-07-0006",
+    "_id": "e80a44fd8a9e62accd16b77c",
+    "fullName": "Kolawole Abiola",
+    "email": "kolawole.abiola.g7@crc.local",
+    "phone": "08000700005",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 5,
+      "updatedAt": "2026-04-10T18:54:26.879Z"
+    },
+    "createdAt": "2026-04-10T18:54:26.879Z",
+    "updatedAt": "2026-04-10T18:54:26.879Z"
+  },
+  {
+    "seedKey": "member-group-07-0007",
+    "_id": "7d91816988d09dff01ec10d2",
+    "fullName": "Salami Temitayo",
+    "email": "salami.temitayo.g7@crc.local",
+    "phone": "08100700006",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 5,
+      "updatedAt": "2026-04-10T18:54:26.879Z"
+    },
+    "createdAt": "2026-04-10T18:54:26.879Z",
+    "updatedAt": "2026-04-10T18:54:26.879Z"
+  },
+  {
+    "seedKey": "member-group-07-0008",
+    "_id": "06e388ee6b23d1385b938f48",
+    "fullName": "Adeyemi Kafilat",
+    "email": "adeyemi.kafilat.g7@crc.local",
+    "phone": "07000700007",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 10,
+      "updatedAt": "2026-04-10T18:54:26.879Z"
+    },
+    "createdAt": "2026-04-10T18:54:26.879Z",
+    "updatedAt": "2026-04-10T18:54:26.879Z"
+  },
+  {
+    "seedKey": "member-group-07-0009",
+    "_id": "5b51e61ff7b98315fe9c3eef",
+    "fullName": "Ahmed Rukayat",
+    "email": "ahmed.rukayat.g7@crc.local",
+    "phone": "09000700008",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 10,
+      "updatedAt": "2026-04-10T18:54:26.879Z"
+    },
+    "createdAt": "2026-04-10T18:54:26.879Z",
+    "updatedAt": "2026-04-10T18:54:26.879Z"
+  },
+  {
+    "seedKey": "member-group-07-0010",
+    "_id": "ddc072e9d55387c529999686",
+    "fullName": "Aribisala Victoria",
+    "email": "aribisala.victoria.g7@crc.local",
+    "phone": "09100700009",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 10,
+      "updatedAt": "2026-04-10T18:54:26.879Z"
+    },
+    "createdAt": "2026-04-10T18:54:26.879Z",
+    "updatedAt": "2026-04-10T18:54:26.879Z"
+  },
+  {
+    "seedKey": "member-group-07-0011",
+    "_id": "8315e9f431c367664deaef28",
+    "fullName": "Ayankojo Ebenezer",
+    "email": "ayankojo.ebenezer.g7@crc.local",
+    "phone": "08000700010",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 10,
+      "updatedAt": "2026-04-10T18:54:26.879Z"
+    },
+    "createdAt": "2026-04-10T18:54:26.879Z",
+    "updatedAt": "2026-04-10T18:54:26.879Z"
+  },
+  {
+    "seedKey": "member-group-07-0012",
+    "_id": "f50614c8baace667f98565fb",
+    "fullName": "Matthew Bola",
+    "email": "matthew.bola.g7@crc.local",
+    "phone": "08100700011",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 10,
+      "updatedAt": "2026-04-10T18:54:26.879Z"
+    },
+    "createdAt": "2026-04-10T18:54:26.879Z",
+    "updatedAt": "2026-04-10T18:54:26.879Z"
+  },
+  {
+    "seedKey": "member-group-07-0013",
+    "_id": "b9c0bc74d04d753bdf21c844",
+    "fullName": "Oderinde Omotayo",
+    "email": "oderinde.omotayo.g7@crc.local",
+    "phone": "07000700012",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 10,
+      "updatedAt": "2026-04-10T18:54:26.879Z"
+    },
+    "createdAt": "2026-04-10T18:54:26.879Z",
+    "updatedAt": "2026-04-10T18:54:26.879Z"
+  },
+  {
+    "seedKey": "member-group-07-0014",
+    "_id": "02c8917dfd8c1d9e6751e6af",
+    "fullName": "Oyekanmi Gbemiro",
+    "email": "oyekanmi.gbemiro.g7@crc.local",
+    "phone": "09000700013",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 10,
+      "updatedAt": "2026-04-10T18:54:26.879Z"
+    },
+    "createdAt": "2026-04-10T18:54:26.879Z",
+    "updatedAt": "2026-04-10T18:54:26.879Z"
+  },
+  {
+    "seedKey": "member-group-07-0015",
+    "_id": "cfce92111e47f2fcb059b6ca",
+    "fullName": "Raji Majidat",
+    "email": "raji.majidat.g7@crc.local",
+    "phone": "09100700014",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 10,
+      "updatedAt": "2026-04-10T18:54:26.879Z"
+    },
+    "createdAt": "2026-04-10T18:54:26.879Z",
+    "updatedAt": "2026-04-10T18:54:26.879Z"
+  },
+  {
+    "seedKey": "member-group-07-0016",
+    "_id": "cbd14de0499f2bb2895249b7",
+    "fullName": "Salami Samuel",
+    "email": "salami.samuel.g7@crc.local",
+    "phone": "08000700015",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 10,
+      "updatedAt": "2026-04-10T18:54:26.879Z"
+    },
+    "createdAt": "2026-04-10T18:54:26.879Z",
+    "updatedAt": "2026-04-10T18:54:26.879Z"
+  },
+  {
+    "seedKey": "member-group-07-0017",
+    "_id": "45b0a4971c742b73d555b5e8",
+    "fullName": "Taiwo Samuel N",
+    "email": "taiwo.samuel.n.g7@crc.local",
+    "phone": "08100700016",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 10,
+      "updatedAt": "2026-04-10T18:54:26.879Z"
+    },
+    "createdAt": "2026-04-10T18:54:26.879Z",
+    "updatedAt": "2026-04-10T18:54:26.879Z"
+  },
+  {
+    "seedKey": "member-group-07-0018",
+    "_id": "61c62bcab11c68e0209fb823",
+    "fullName": "Akinremi Monsuru",
+    "email": "akinremi.monsuru.g7@crc.local",
+    "phone": "07000700017",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 15,
+      "updatedAt": "2026-04-10T18:54:26.879Z"
+    },
+    "createdAt": "2026-04-10T18:54:26.879Z",
+    "updatedAt": "2026-04-10T18:54:26.879Z"
+  },
+  {
+    "seedKey": "member-group-07-0019",
+    "_id": "62e0e8de9ce9a7841696eeb0",
+    "fullName": "Adewole Risikat",
+    "email": "adewole.risikat.g7@crc.local",
+    "phone": "09000700018",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 20,
+      "updatedAt": "2026-04-10T18:54:26.879Z"
+    },
+    "createdAt": "2026-04-10T18:54:26.879Z",
+    "updatedAt": "2026-04-10T18:54:26.879Z"
+  },
+  {
+    "seedKey": "member-group-07-0020",
+    "_id": "63dd28af80d45a6e316fbfe7",
+    "fullName": "Aina Tolulope",
+    "email": "aina.tolulope.g7@crc.local",
+    "phone": "09100700019",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 20,
+      "updatedAt": "2026-04-10T18:54:26.879Z"
+    },
+    "createdAt": "2026-04-10T18:54:26.879Z",
+    "updatedAt": "2026-04-10T18:54:26.879Z"
+  },
+  {
+    "seedKey": "member-group-07-0021",
+    "_id": "f80de7082586a695911b267b",
+    "fullName": "Idowu Damilola",
+    "email": "idowu.damilola.g7@crc.local",
+    "phone": "08000700020",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 20,
+      "updatedAt": "2026-04-10T18:54:26.879Z"
+    },
+    "createdAt": "2026-04-10T18:54:26.879Z",
+    "updatedAt": "2026-04-10T18:54:26.879Z"
+  },
+  {
+    "seedKey": "member-group-07-0022",
+    "_id": "52c164a1f1d9c442b1b485d8",
+    "fullName": "Olagunju Samuel",
+    "email": "olagunju.samuel.g7@crc.local",
+    "phone": "08100700021",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 30,
+      "updatedAt": "2026-04-10T18:54:26.879Z"
+    },
+    "createdAt": "2026-04-10T18:54:26.879Z",
+    "updatedAt": "2026-04-10T18:54:26.879Z"
+  },
+  {
+    "seedKey": "member-group-07-0023",
+    "_id": "f89dad4134940116e089bc54",
+    "fullName": "Abu Oluwakemi",
+    "email": "abu.oluwakemi.g7@crc.local",
+    "phone": "07000700022",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 40,
+      "updatedAt": "2026-04-10T18:54:26.879Z"
+    },
+    "createdAt": "2026-04-10T18:54:26.879Z",
+    "updatedAt": "2026-04-10T18:54:26.879Z"
+  },
+  {
+    "seedKey": "member-group-07-0024",
+    "_id": "6200b4f7144be0a3fbe5e180",
+    "fullName": "John Bola",
+    "email": "john.bola.g7@crc.local",
+    "phone": "09000700023",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 40,
+      "updatedAt": "2026-04-10T18:54:26.879Z"
+    },
+    "createdAt": "2026-04-10T18:54:26.879Z",
+    "updatedAt": "2026-04-10T18:54:26.879Z"
+  },
+  {
+    "seedKey": "member-group-07-0025",
+    "_id": "62744b2ea1a1f4fd196a16c2",
+    "fullName": "Abimbola Kehinde",
+    "email": "abimbola.kehinde.g7@crc.local",
+    "phone": "09100700024",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 50,
+      "updatedAt": "2026-04-10T18:54:26.879Z"
+    },
+    "createdAt": "2026-04-10T18:54:26.879Z",
+    "updatedAt": "2026-04-10T18:54:26.879Z"
+  },
+  {
+    "seedKey": "member-group-07-0026",
+    "_id": "1a8df2942d1020478ce05004",
+    "fullName": "Adebayo Abiola",
+    "email": "adebayo.abiola.g7@crc.local",
+    "phone": "08000700025",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 50,
+      "updatedAt": "2026-04-10T18:54:26.879Z"
+    },
+    "createdAt": "2026-04-10T18:54:26.879Z",
+    "updatedAt": "2026-04-10T18:54:26.879Z"
+  },
+  {
+    "seedKey": "member-group-07-0027",
+    "_id": "cbd734431cb745015bf71489",
+    "fullName": "Bamigbola Nike",
+    "email": "bamigbola.nike.g7@crc.local",
+    "phone": "08100700026",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 50,
+      "updatedAt": "2026-04-10T18:54:26.879Z"
+    },
+    "createdAt": "2026-04-10T18:54:26.879Z",
+    "updatedAt": "2026-04-10T18:54:26.879Z"
+  },
+  {
+    "seedKey": "member-group-07-0028",
+    "_id": "b19198c3ce3e5a3bad01a0f6",
+    "fullName": "Hassan Olalekan",
+    "email": "hassan.olalekan.g7@crc.local",
+    "phone": "07000700027",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 50,
+      "updatedAt": "2026-04-10T18:54:26.879Z"
+    },
+    "createdAt": "2026-04-10T18:54:26.879Z",
+    "updatedAt": "2026-04-10T18:54:26.879Z"
+  },
+  {
+    "seedKey": "member-group-07-0029",
+    "_id": "1120deefb1aac98a08a24e18",
+    "fullName": "Opeisa Samson N",
+    "email": "opeisa.samson.n.g7@crc.local",
+    "phone": "09000700028",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 50,
+      "updatedAt": "2026-04-10T18:54:26.879Z"
+    },
+    "createdAt": "2026-04-10T18:54:26.879Z",
+    "updatedAt": "2026-04-10T18:54:26.879Z"
+  },
+  {
+    "seedKey": "member-group-07-0030",
+    "_id": "68b327077f70fc794b56a9b3",
+    "fullName": "Fashina Ayodele",
+    "email": "fashina.ayodele.g7@crc.local",
+    "phone": "09100700029",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 60,
+      "updatedAt": "2026-04-10T18:54:26.879Z"
+    },
+    "createdAt": "2026-04-10T18:54:26.879Z",
+    "updatedAt": "2026-04-10T18:54:26.879Z"
+  },
+  {
+    "seedKey": "member-group-07-0031",
+    "_id": "3528bc0ada07e6bda07549af",
+    "fullName": "Adeyemo John",
+    "email": "adeyemo.john.g7@crc.local",
+    "phone": "08000700030",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 100,
+      "updatedAt": "2026-04-10T18:54:26.879Z"
+    },
+    "createdAt": "2026-04-10T18:54:26.879Z",
+    "updatedAt": "2026-04-10T18:54:26.879Z"
+  },
+  {
+    "seedKey": "member-group-07-0032",
+    "_id": "9168933488bc621f9c3dc1a1",
+    "fullName": "Animashaun Sharafat",
+    "email": "animashaun.sharafat.g7@crc.local",
+    "phone": "08100700031",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 100,
+      "updatedAt": "2026-04-10T18:54:26.879Z"
+    },
+    "createdAt": "2026-04-10T18:54:26.879Z",
+    "updatedAt": "2026-04-10T18:54:26.879Z"
+  },
+  {
+    "seedKey": "member-group-07-0033",
+    "_id": "9d036a903baae0ef784af37b",
+    "fullName": "Bamigbola Ayodele",
+    "email": "bamigbola.ayodele.g7@crc.local",
+    "phone": "07000700032",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 100,
+      "updatedAt": "2026-04-10T18:54:26.879Z"
+    },
+    "createdAt": "2026-04-10T18:54:26.879Z",
+    "updatedAt": "2026-04-10T18:54:26.879Z"
+  },
+  {
+    "seedKey": "member-group-07-0034",
+    "_id": "3d8a5220359d1394acb2f125",
+    "fullName": "Oyekanmi Kemi",
+    "email": "oyekanmi.kemi.g7@crc.local",
+    "phone": "09000700033",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 100,
+      "updatedAt": "2026-04-10T18:54:26.879Z"
+    },
+    "createdAt": "2026-04-10T18:54:26.879Z",
+    "updatedAt": "2026-04-10T18:54:26.879Z"
+  },
+  {
+    "seedKey": "member-group-07-0035",
+    "_id": "7b32628b365cca9a3f040765",
+    "fullName": "Bamgboye Modupe",
+    "email": "bamgboye.modupe.g7@crc.local",
+    "phone": "09100700034",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 105,
+      "updatedAt": "2026-04-10T18:54:26.879Z"
+    },
+    "createdAt": "2026-04-10T18:54:26.879Z",
+    "updatedAt": "2026-04-10T18:54:26.879Z"
+  },
+  {
+    "seedKey": "member-group-07-0036",
+    "_id": "e1ae3a45445a6c410b9f2375",
+    "fullName": "Sanni Foluke",
+    "email": "sanni.foluke.g7@crc.local",
+    "phone": "08000700035",
+    "membershipStatus": "active",
+    "contributionSettings": {
+      "year": 2026,
+      "units": 120,
+      "updatedAt": "2026-04-10T18:54:26.879Z"
+    },
+    "createdAt": "2026-04-10T18:54:26.879Z",
+    "updatedAt": "2026-04-10T18:54:26.879Z"
+  }
+]

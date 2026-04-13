@@ -1,0 +1,19 @@
+[
+  {
+    "seedKey": "group-28",
+    "_id": "d30d1404164c13901444d43e",
+    "groupNumber": 28,
+    "groupName": "Blessed Champions",
+    "description": "Contribution group for Blessed Champions.",
+    "monthlyContribution": 7500,
+    "maxMembers": 16,
+    "memberCount": 16,
+    "totalSavings": 0,
+    "status": "active",
+    "isOpen": true,
+    "type": "revolving",
+    "cycleDuration": 12,
+    "createdAt": "2026-04-11T15:21:41.410Z",
+    "updatedAt": "2026-04-11T15:21:41.410Z"
+  }
+]

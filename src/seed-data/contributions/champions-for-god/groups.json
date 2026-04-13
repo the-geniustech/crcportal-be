@@ -1,0 +1,19 @@
+[
+  {
+    "seedKey": "group-07",
+    "_id": "1821cc754fffe69bebefacd6",
+    "groupNumber": 7,
+    "groupName": "Champions for God",
+    "description": "Contribution group for Champions for God.",
+    "monthlyContribution": 26250,
+    "maxMembers": 36,
+    "memberCount": 36,
+    "totalSavings": 0,
+    "status": "active",
+    "isOpen": true,
+    "type": "revolving",
+    "cycleDuration": 12,
+    "createdAt": "2026-04-10T18:54:26.879Z",
+    "updatedAt": "2026-04-10T18:54:26.879Z"
+  }
+]

@@ -3,6 +3,37 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { parseContributionWorkbook } from "./parser/xlsxParser.js";
 import { transformContributionSheet } from "./transformers/transformContributionSheet.js";
+// import { transformContributionSheet } from "";
+/*
+blessed-champions
+jah-cares-champions
+ultimate-champions
+gods-power-champions
+glorious-champions
+progressive-champions
+soaring-champions
+prevailing-champions
+shiny-champions
+stimulant-champions
+agape-love-champions
+wise-investment-full
+tolaTops-champions
+peculiar-champions
+able-God-champions
+sapphire-champions
+excellent-champions
+dynamic-champions
+mamaTee-D-champion
+dominion-champions
+fulfilling-champions
+champions-for-God
+classic-champions
+great-champions
+victorious-champions
+amazing-Grace-Champions
+golden-Champions
+sunshine-champions
+*/
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,9 +42,35 @@ const DEFAULT_INPUT =
   process.env.SEED_INPUT_PATH ??
   path.resolve(
     __dirname,
-    "../Group_21_Prevailing_Champions.xlsx",
+    // "../crc_revolving_contributions/Group_28_Blessed_Champions.xlsx", // ✅
+    // "../crc_revolving_contributions/Group_27_Jah_Cares_Champions.xlsx", // ✅
+    // "../crc_revolving_contributions/Group_26_Ultimate_Champions.xlsx", // ✅
+    // "../crc_revolving_contributions/Group_25_Gods_Power_Champions.xlsx", // ✅
+    // "../crc_revolving_contributions/Group_24_Glorious_Champions.xlsx", // ✅
+    // "../crc_revolving_contributions/Group_23_Progressive_Champions.xlsx", // ✅
+    // "../crc_revolving_contributions/Group_22_Soaring_Champions.xlsx", // ✅
+    // "../crc_revolving_contributions/Group_21_Prevailing_Champions.xlsx", // ✅
+    // "../crc_revolving_contributions/Group_20_Shiny_Champions.xlsx", //✅
+    // "../crc_revolving_contributions/Group_19_Stimulant_Champions.xlsx", // ✅
+    // "../crc_revolving_contributions/Group_18_Agape_Love_Champions.xlsx", // ✅
+    // "../crc_revolving_contributions/Group_17_Wise_Investment_Full.xlsx", // ✅
+    // "../crc_revolving_contributions/Group_16_TolaTops_Champions.xlsx", // ✅
+    // "../crc_revolving_contributions/Group_15_Peculiar_Champions.xlsx", // ✅
+    // "../crc_revolving_contributions/Group_14_Able_God_Champions.xlsx", // ✅
+    // "../crc_revolving_contributions/Group_13_Sapphire_Champions.xlsx", // ✅
+    // "../crc_revolving_contributions/Group_12_Excellent_Champions.xlsx", // ✅
+    // "../crc_revolving_contributions/Group_11_Dynamic_Champions.xlsx", // ✅
+    // "../crc_revolving_contributions/Group_10_MamaTee_D_Champion.xlsx", // ✅
+    // "../crc_revolving_contributions/Group_9_Dominion_Champions.xlsx", // ✅
+    // "../crc_revolving_contributions/Group_8_Fulfilling_Champions.xlsx", // ✅
+    // "../crc_revolving_contributions/Group_7_Champions_for_God.xlsx",
+    // "../crc_revolving_contributions/Group_6_Classic_Champions.xlsx", // ✅
+    // "../crc_revolving_contributions/Group_5_Great_Champions.xlsx", // ✅
+    // "../crc_revolving_contributions/Group_4_Victorious_Champions.xlsx", // ✅
+    // "../crc_revolving_contributions/Group_3_Amazing_Grace_Champions.xlsx", // ✅
+    // "../crc_revolving_contributions/Group_2_Golden_Champions.xlsx", // ✅
+    // "../crc_revolving_contributions/Group_1_Sunshine_Champions.xlsx", // ✅
   );
-
 const DEFAULT_OUTPUT_ROOT = path.resolve(
   __dirname,
   "../../seed-data/contributions",

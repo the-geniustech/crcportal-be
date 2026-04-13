@@ -1,0 +1,19 @@
+[
+  {
+    "seedKey": "group-20",
+    "_id": "e7ea709a2d7951680fd7e0fa",
+    "groupNumber": 20,
+    "groupName": "Shiny Champions",
+    "description": "Contribution group for Shiny Champions.",
+    "monthlyContribution": 20000,
+    "maxMembers": 9,
+    "memberCount": 9,
+    "totalSavings": 0,
+    "status": "active",
+    "isOpen": true,
+    "type": "revolving",
+    "cycleDuration": 11,
+    "createdAt": "2026-04-11T15:02:37.712Z",
+    "updatedAt": "2026-04-11T15:02:37.712Z"
+  }
+]
