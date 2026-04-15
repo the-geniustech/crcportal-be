@@ -1,10 +1,16 @@
-﻿export async function sendSms({ to, message }) {
+import { toNigerianE164 } from "../../utils/phone.js";
+
+export async function sendSms({ to, message }) {
   const apiKey = process.env.TERMII_API_KEY;
   const senderId = process.env.TERMII_SENDER_ID;
   const baseUrl = process.env.TERMII_BASE_URL || "https://api.ng.termii.com";
   const path = process.env.TERMII_SEND_PATH || "/api/sms/send";
 
-  to = "+234" + to.slice(-10);
+  const normalized = toNigerianE164(to);
+  if (!normalized) {
+    throw new Error("Invalid recipient phone number");
+  }
+  to = normalized;
 
   if (!apiKey) throw new Error("Missing TERMII_API_KEY");
   if (!senderId) throw new Error("Missing TERMII_SENDER_ID");

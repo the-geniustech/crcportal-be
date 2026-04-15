@@ -1,22 +1,33 @@
 {
-  "inputPath": "C:\\Users\\user\\Desktop\\crs\\backend\\src\\scripts\\crc_revolving_contributions\\Group_17_Wise_Investment_Full.xlsx",
-  "sheetName": "Overview",
+  "inputPath": "C:\\Users\\user\\Desktop\\crs\\backend\\src\\scripts\\crc_revolving_contributions\\Group_17_Champions_Wise_Investment.xlsx",
+  "sheetName": "Contributions",
   "groupSeedKey": "group-17",
-  "groupName": "Wise Investment Full",
+  "groupName": "Champions Wise Investment",
   "groupNumber": 17,
   "year": 2026,
   "monthsDetected": [
-    1
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
   ],
-  "unitAmount": null,
-  "groupMonthlyContribution": 5000,
-  "cycleDuration": 1,
+  "unitAmount": 2000,
+  "groupMonthlyContribution": 45000,
+  "cycleDuration": 12,
   "interestSummary": {
     "monthsComputed": 4,
     "totals": {
-      "contributions": 0,
-      "interest": 0,
-      "total": 0
+      "contributions": 21150000,
+      "interest": 2071051.45,
+      "total": 23221051.45
     },
     "schedule": [
       {
@@ -25,10 +36,10 @@
         "shortLabel": "Jan",
         "ratePerThousand": 35,
         "ratePct": 3.5,
-        "contributions": 0,
+        "contributions": 15060000,
         "interest": 0,
-        "total": 0,
-        "cumulativeTotal": 0
+        "total": 15060000,
+        "cumulativeTotal": 15060000
       },
       {
         "month": 2,
@@ -36,10 +47,10 @@
         "shortLabel": "Feb",
         "ratePerThousand": 35,
         "ratePct": 3.5,
-        "contributions": 0,
-        "interest": 0,
-        "total": 0,
-        "cumulativeTotal": 0
+        "contributions": 6090000,
+        "interest": 527100,
+        "total": 6617100,
+        "cumulativeTotal": 21677100
       },
       {
         "month": 3,
@@ -48,9 +59,9 @@
         "ratePerThousand": 35,
         "ratePct": 3.5,
         "contributions": 0,
-        "interest": 0,
-        "total": 0,
-        "cumulativeTotal": 0
+        "interest": 758698.5,
+        "total": 758698.5,
+        "cumulativeTotal": 22435798.5
       },
       {
         "month": 4,
@@ -59,9 +70,9 @@
         "ratePerThousand": 35,
         "ratePct": 3.5,
         "contributions": 0,
-        "interest": 0,
-        "total": 0,
-        "cumulativeTotal": 0
+        "interest": 785252.95,
+        "total": 785252.95,
+        "cumulativeTotal": 23221051.45
       },
       {
         "month": 5,
@@ -72,7 +83,7 @@
         "contributions": 0,
         "interest": 0,
         "total": 0,
-        "cumulativeTotal": 0
+        "cumulativeTotal": 23221051.45
       },
       {
         "month": 6,
@@ -83,7 +94,7 @@
         "contributions": 0,
         "interest": 0,
         "total": 0,
-        "cumulativeTotal": 0
+        "cumulativeTotal": 23221051.45
       },
       {
         "month": 7,
@@ -94,7 +105,7 @@
         "contributions": 0,
         "interest": 0,
         "total": 0,
-        "cumulativeTotal": 0
+        "cumulativeTotal": 23221051.45
       },
       {
         "month": 8,
@@ -105,7 +116,7 @@
         "contributions": 0,
         "interest": 0,
         "total": 0,
-        "cumulativeTotal": 0
+        "cumulativeTotal": 23221051.45
       },
       {
         "month": 9,
@@ -116,7 +127,7 @@
         "contributions": 0,
         "interest": 0,
         "total": 0,
-        "cumulativeTotal": 0
+        "cumulativeTotal": 23221051.45
       },
       {
         "month": 10,
@@ -127,7 +138,7 @@
         "contributions": 0,
         "interest": 0,
         "total": 0,
-        "cumulativeTotal": 0
+        "cumulativeTotal": 23221051.45
       },
       {
         "month": 11,
@@ -138,7 +149,7 @@
         "contributions": 0,
         "interest": 0,
         "total": 0,
-        "cumulativeTotal": 0
+        "cumulativeTotal": 23221051.45
       },
       {
         "month": 12,
@@ -149,11 +160,9 @@
         "contributions": 0,
         "interest": 0,
         "total": 0,
-        "cumulativeTotal": 0
+        "cumulativeTotal": 23221051.45
       }
     ]
   },
-  "warnings": [
-    "Member name column not detected; rows may be skipped."
-  ]
+  "warnings": []
 }

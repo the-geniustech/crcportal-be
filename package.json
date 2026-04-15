@@ -40,6 +40,7 @@
     "seed:contributions:parse": "node src/scripts/contribution-ingestion/parseContributionXlsx.js",
     "seed:contributions": "node src/scripts/contribution-ingestion/seedContributionData.js",
     "parse:migration": "node src/scripts/contribution-ingestion/parseContributionXlsx.js --year 2026",
-    "seed:migration": "node src/scripts/contribution-ingestion/seedContributionData.js --inputDir src/seed-data/contributions"
+    "seed:migration": "node src/scripts/contribution-ingestion/seedContributionData.js --inputDir src/seed-data/contributions/champions-wise-investment",
+    "normalize:phones:dry": "node src/scripts/normalizePhones.js --dry-run"
   }
 }

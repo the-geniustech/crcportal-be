@@ -35,6 +35,7 @@ import {
   verifyTransfer,
 } from "../services/paystack.js";
 import { hasUserRole } from "../utils/roles.js";
+import { normalizeNigerianPhone } from "../utils/phone.js";
 
 function pick(obj, allowedKeys) {
   const out = {};
@@ -402,9 +403,7 @@ function sanitizeDraftPayload(body = {}) {
   }
 
   payload.documents = Array.isArray(payload.documents) ? payload.documents : [];
-  payload.guarantors = Array.isArray(payload.guarantors)
-    ? payload.guarantors
-    : [];
+  payload.guarantors = normalizeGuarantorList(payload.guarantors);
 
   if (payload.draftStep !== undefined && payload.draftStep !== null) {
     payload.draftStep = Math.max(0, Number(payload.draftStep) || 0);
@@ -445,12 +444,18 @@ function sanitizeGuarantorInput(raw) {
   const type = typeRaw === "member" || typeRaw === "external" ? typeRaw : null;
   if (!type) return null;
 
+  const rawPhone = raw.phone ? String(raw.phone).trim() : "";
+  const normalizedPhone = rawPhone ? normalizeNigerianPhone(rawPhone) : "";
+  if (rawPhone && !normalizedPhone) {
+    throw new AppError("Provide a valid phone number", 400);
+  }
+
   return {
     type,
     profileId: raw.profileId ? String(raw.profileId) : null,
     name: String(raw.name || "").trim(),
     email: raw.email ? String(raw.email).trim().toLowerCase() : "",
-    phone: raw.phone ? String(raw.phone).trim() : "",
+    phone: normalizedPhone || "",
     relationship: raw.relationship ? String(raw.relationship).trim() : "",
     occupation: raw.occupation ? String(raw.occupation).trim() : "",
     address: raw.address ? String(raw.address).trim() : "",
@@ -464,6 +469,21 @@ function sanitizeGuarantorInput(raw) {
     requestMessage: raw.requestMessage ? String(raw.requestMessage) : null,
     signature: sanitizeSignatureInput(raw.signature),
   };
+}
+
+function normalizeGuarantorPayload(raw) {
+  if (!raw || typeof raw !== "object") return raw;
+  const rawPhone = raw.phone ? String(raw.phone).trim() : "";
+  if (!rawPhone) return { ...raw, phone: "" };
+  const normalized = normalizeNigerianPhone(rawPhone);
+  if (!normalized) {
+    throw new AppError("Provide a valid phone number", 400);
+  }
+  return { ...raw, phone: normalized };
+}
+
+function normalizeGuarantorList(list) {
+  return Array.isArray(list) ? list.map((g) => normalizeGuarantorPayload(g)) : [];
 }
 
 function sanitizeEditPayload(body = {}) {
@@ -537,6 +557,7 @@ function summarizeBankSnapshot({ bankName, accountNumber, accountName } = {}) {
 }
 
 function normalizeGuarantorForCompare(guarantor = {}) {
+  const normalizedPhone = normalizeNigerianPhone(guarantor?.phone || "") || "";
   const signature =
     guarantor?.signature && typeof guarantor.signature === "object"
       ? {
@@ -558,7 +579,7 @@ function normalizeGuarantorForCompare(guarantor = {}) {
     email: String(guarantor?.email || "")
       .trim()
       .toLowerCase(),
-    phone: String(guarantor?.phone || "").replace(/\s+/g, ""),
+    phone: normalizedPhone,
     relationship: String(guarantor?.relationship || "").trim(),
     occupation: String(guarantor?.occupation || "").trim(),
     address: String(guarantor?.address || "").trim(),
@@ -723,10 +744,7 @@ async function validateEditGuarantors({
     String(value || "")
       .trim()
       .toLowerCase();
-  const normalizePhone = (value) =>
-    String(value || "")
-      .replace(/\s+/g, "")
-      .replace(/[^0-9+]/g, "");
+  const normalizePhone = (value) => normalizeNigerianPhone(value) || "";
 
   const borrowerEmail = normalizeEmail(borrowerProfile?.email);
   const borrowerPhone = normalizePhone(borrowerProfile?.phone);
@@ -1108,6 +1126,10 @@ export const createLoanApplication = catchAsync(async (req, res, next) => {
     }
   }
 
+  if (Object.prototype.hasOwnProperty.call(payload, "guarantors")) {
+    payload.guarantors = normalizeGuarantorList(payload.guarantors);
+  }
+
   const loanTypeRaw = String(payload.loanType || "")
     .trim()
     .toLowerCase();
@@ -1305,10 +1327,7 @@ export const createLoanApplication = catchAsync(async (req, res, next) => {
     String(value || "")
       .trim()
       .toLowerCase();
-  const normalizePhone = (value) =>
-    String(value || "")
-      .replace(/\s+/g, "")
-      .replace(/[^0-9+]/g, "");
+  const normalizePhone = (value) => normalizeNigerianPhone(value) || "";
   const borrowerEmail = normalizeEmail(borrowerProfile?.email);
   const borrowerPhone = normalizePhone(borrowerProfile?.phone);
 

@@ -3,6 +3,15 @@ import {
   LoanFacilityTypes,
   LoanInterestRateTypes,
 } from "../utils/loanPolicy.js";
+import {
+  normalizeNigerianPhoneValue,
+  isNormalizedNigerianPhone,
+} from "../utils/phone.js";
+
+const phoneValidator = {
+  validator: isNormalizedNigerianPhone,
+  message: "Phone number must be in +234 803 123 4567 format.",
+};
 
 export const LoanApplicationStatuses = [
   "draft",
@@ -47,7 +56,13 @@ const LoanGuarantorInfoSchema = new Schema(
       trim: true,
     },
     email: { type: String, default: "", trim: true, lowercase: true },
-    phone: { type: String, default: "", trim: true },
+    phone: {
+      type: String,
+      default: "",
+      trim: true,
+      set: normalizeNigerianPhoneValue,
+      validate: phoneValidator,
+    },
     relationship: { type: String, default: "", trim: true },
     occupation: { type: String, default: "", trim: true },
     address: { type: String, default: "", trim: true },

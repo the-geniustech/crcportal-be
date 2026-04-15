@@ -1,4 +1,13 @@
 ﻿import { Schema, ObjectId, model } from "./_shared.js";
+import {
+  normalizeNigerianPhoneValue,
+  isNormalizedNigerianPhone,
+} from "../utils/phone.js";
+
+const phoneValidator = {
+  validator: isNormalizedNigerianPhone,
+  message: "Phone number must be in +234 803 123 4567 format.",
+};
 
 export const GroupSchema = new Schema(
   {
@@ -9,7 +18,13 @@ export const GroupSchema = new Schema(
 
     coordinatorId: { type: ObjectId, ref: "Profile", default: null },
     coordinatorName: { type: String, default: null, trim: true },
-    coordinatorPhone: { type: String, default: null, trim: true },
+    coordinatorPhone: {
+      type: String,
+      default: null,
+      trim: true,
+      set: normalizeNigerianPhoneValue,
+      validate: phoneValidator,
+    },
     coordinatorEmail: {
       type: String,
       default: null,

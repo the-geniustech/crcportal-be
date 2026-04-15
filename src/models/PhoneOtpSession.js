@@ -1,4 +1,13 @@
 ﻿import { Schema, model } from "./_shared.js";
+import {
+  normalizeNigerianPhoneValue,
+  isNormalizedNigerianPhone,
+} from "../utils/phone.js";
+
+const phoneValidator = {
+  validator: isNormalizedNigerianPhone,
+  message: "Phone number must be in +234 803 123 4567 format.",
+};
 
 export const PhoneOtpSessionSchema = new Schema(
   {
@@ -9,6 +18,8 @@ export const PhoneOtpSessionSchema = new Schema(
       index: true,
     },
     phone: {
+      set: normalizeNigerianPhoneValue,
+      validate: phoneValidator,
       type: String,
       required: true,
       trim: true,

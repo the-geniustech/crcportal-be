@@ -16,6 +16,7 @@ import {
 } from "../utils/groupMembershipPolicy.js";
 import { UserModel } from "../models/User.js";
 import { normalizeUserRoles, pickPrimaryRole } from "../utils/roles.js";
+import { normalizeNigerianPhone } from "../utils/phone.js";
 
 function pick(obj, allowedKeys) {
   const out = {};
@@ -202,6 +203,13 @@ export const createGroup = catchAsync(async (req, res, next) => {
     coordinatorProfile.fullName ?? input.coordinatorName ?? null;
   input.coordinatorPhone =
     coordinatorProfile.phone ?? input.coordinatorPhone ?? null;
+  if (input.coordinatorPhone) {
+    const normalized = normalizeNigerianPhone(input.coordinatorPhone);
+    if (!normalized) {
+      return next(new AppError("Provide a valid coordinator phone number", 400));
+    }
+    input.coordinatorPhone = normalized;
+  }
   input.coordinatorEmail =
     coordinatorProfile.email ?? input.coordinatorEmail ?? null;
 

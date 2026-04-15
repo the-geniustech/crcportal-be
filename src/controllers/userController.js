@@ -17,6 +17,7 @@ import {
   normalizeUserRoles,
   pickPrimaryRole,
 } from "../utils/roles.js";
+import { normalizeNigerianPhone } from "../utils/phone.js";
 
 function pick(obj, allowedKeys) {
   const out = {};
@@ -33,7 +34,7 @@ function normalizeEmail(email) {
 }
 
 function normalizePhone(phone) {
-  return String(phone || "").trim().replace(/\s+/g, "");
+  return normalizeNigerianPhone(phone);
 }
 
 function isValidEmail(value) {
@@ -140,6 +141,19 @@ export const updateMe = catchAsync(async (req, res, next) => {
   ]);
   if (Object.keys(updates).length === 0) {
     return next(new AppError("No updatable fields provided", 400));
+  }
+
+  if (Object.prototype.hasOwnProperty.call(updates, "nextOfKinPhone")) {
+    const rawPhone = updates.nextOfKinPhone;
+    if (rawPhone === null || rawPhone === undefined || rawPhone === "") {
+      updates.nextOfKinPhone = null;
+    } else {
+      const normalized = normalizePhone(rawPhone);
+      if (!normalized) {
+        return next(new AppError("Provide a valid phone number", 400));
+      }
+      updates.nextOfKinPhone = normalized;
+    }
   }
 
   const profile = await ProfileModel.findByIdAndUpdate(

@@ -53,7 +53,7 @@ const DEFAULT_INPUT =
     // "../crc_revolving_contributions/Group_20_Shiny_Champions.xlsx", //✅
     // "../crc_revolving_contributions/Group_19_Stimulant_Champions.xlsx", // ✅
     // "../crc_revolving_contributions/Group_18_Agape_Love_Champions.xlsx", // ✅
-    // "../crc_revolving_contributions/Group_17_Wise_Investment_Full.xlsx", // ✅
+    "../crc_revolving_contributions/Group_17_Champions_Wise_Investment.xlsx", // ✅
     // "../crc_revolving_contributions/Group_16_TolaTops_Champions.xlsx", // ✅
     // "../crc_revolving_contributions/Group_15_Peculiar_Champions.xlsx", // ✅
     // "../crc_revolving_contributions/Group_14_Able_God_Champions.xlsx", // ✅

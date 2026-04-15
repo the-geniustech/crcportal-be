@@ -1,0 +1,19 @@
+[
+  {
+    "seedKey": "group-17",
+    "_id": "f6c87206a9219384df938118",
+    "groupNumber": 17,
+    "groupName": "Champions Wise Investment",
+    "description": "Contribution group for Champions Wise Investment.",
+    "monthlyContribution": 45000,
+    "maxMembers": 98,
+    "memberCount": 98,
+    "totalSavings": 0,
+    "status": "active",
+    "isOpen": true,
+    "type": "revolving",
+    "cycleDuration": 12,
+    "createdAt": "2026-04-13T15:32:28.216Z",
+    "updatedAt": "2026-04-13T15:32:28.216Z"
+  }
+]

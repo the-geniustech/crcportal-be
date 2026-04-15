@@ -15,8 +15,9 @@ async function run() {
     {},
     {
       $set: {
-        imageUrl:
-          "https://res.cloudinary.com/ddfpckzbw/image/upload/v1774645938/CRCLogo_Updated_nflkgl.jpg",
+        maxMembers: 200,
+        // imageUrl:
+        //   "https://res.cloudinary.com/ddfpckzbw/image/upload/v1774645938/CRCLogo_Updated_nflkgl.jpg",
       },
     },
   );

@@ -25,6 +25,7 @@ import {
   signTwoFactorToken,
   verifyTwoFactorToken,
 } from "../utils/tokens.js";
+import { normalizeNigerianPhone } from "../utils/phone.js";
 import {
   hasUserRole,
   normalizeUserRoles,
@@ -56,7 +57,7 @@ function normalizeEmail(email) {
 }
 
 function normalizePhone(phone) {
-  return String(phone).trim().replace(/\s+/g, "");
+  return normalizeNigerianPhone(phone);
 }
 
 function generateOtp() {
@@ -244,12 +245,22 @@ function parseLoginIdentifier(body) {
   const { email, phone, loginId } = body || {};
 
   if (email) return { kind: "email", value: normalizeEmail(email) };
-  if (phone) return { kind: "phone", value: normalizePhone(phone) };
+  if (phone) {
+    const normalized = normalizePhone(phone);
+    if (!normalized) {
+      throw new AppError("Provide a valid phone number", 400);
+    }
+    return { kind: "phone", value: normalized };
+  }
 
   if (loginId) {
     const val = String(loginId).trim();
     if (val.includes("@")) return { kind: "email", value: normalizeEmail(val) };
-    return { kind: "phone", value: normalizePhone(val) };
+    const normalized = normalizePhone(val);
+    if (!normalized) {
+      throw new AppError("Provide a valid phone number", 400);
+    }
+    return { kind: "phone", value: normalized };
   }
 
   return null;
@@ -259,7 +270,11 @@ export const signup = catchAsync(async (req, res, next) => {
   const { password, fullName } = req.body || {};
 
   const email = req.body?.email ? normalizeEmail(req.body.email) : null;
-  const phone = req.body?.phone ? normalizePhone(req.body.phone) : null;
+  const rawPhone = req.body?.phone;
+  const phone = rawPhone ? normalizePhone(rawPhone) : null;
+  if (rawPhone && !phone) {
+    return next(new AppError("Provide a valid phone number", 400));
+  }
   const requestedGroupId = req.body?.groupId
     ? String(req.body.groupId).trim()
     : null;
@@ -431,6 +446,9 @@ export const verifyPhone = catchAsync(async (req, res, next) => {
   }
 
   const normalizedPhone = normalizePhone(phone);
+  if (!normalizedPhone) {
+    return next(new AppError("Provide a valid phone number", 400));
+  }
   const user = await UserModel.findOne({ phone: normalizedPhone }).select(
     "+phoneOtpHash +phoneOtpExpiresAt",
   );
@@ -532,6 +550,9 @@ export const sendPhoneOtpLogin = catchAsync(async (req, res, next) => {
   if (!phone) return next(new AppError("Phone is required", 400));
 
   const normalizedPhone = normalizePhone(phone);
+  if (!normalizedPhone) {
+    return next(new AppError("Provide a valid phone number", 400));
+  }
   const requestedGroupId = groupId ? String(groupId).trim() : null;
   let requestedGroup = null;
   if (requestedGroupId) {
@@ -1075,6 +1096,9 @@ export const resetPassword = catchAsync(async (req, res, next) => {
     user.passwordResetExpiresAt = null;
   } else if (phone && otp) {
     const normalizedPhone = normalizePhone(phone);
+    if (!normalizedPhone) {
+      return next(new AppError("Provide a valid phone number", 400));
+    }
 
     user = await UserModel.findOne({ phone: normalizedPhone }).select(
       "+passwordResetPhoneOtpHash +passwordResetPhoneOtpExpiresAt",

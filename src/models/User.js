@@ -6,6 +6,15 @@ import {
   normalizeUserRoles,
   pickPrimaryRole,
 } from "../utils/roles.js";
+import {
+  normalizeNigerianPhoneValue,
+  isNormalizedNigerianPhone,
+} from "../utils/phone.js";
+
+const phoneValidator = {
+  validator: isNormalizedNigerianPhone,
+  message: "Phone number must be in +234 803 123 4567 format.",
+};
 
 export const UserSchema = new Schema(
   {
@@ -17,6 +26,8 @@ export const UserSchema = new Schema(
     phone: {
       type: String,
       trim: true,
+      set: normalizeNigerianPhoneValue,
+      validate: phoneValidator,
     },
     pendingEmail: {
       type: String,
@@ -28,6 +39,8 @@ export const UserSchema = new Schema(
       type: String,
       trim: true,
       default: null,
+      set: normalizeNigerianPhoneValue,
+      validate: phoneValidator,
     },
     password: {
       type: String,

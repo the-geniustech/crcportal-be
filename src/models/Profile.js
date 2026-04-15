@@ -1,5 +1,14 @@
 ﻿// backend/src/models/Profile.js
 import { Schema, model } from "./_shared.js";
+import {
+  normalizeNigerianPhoneValue,
+  isNormalizedNigerianPhone,
+} from "../utils/phone.js";
+
+const phoneValidator = {
+  validator: isNormalizedNigerianPhone,
+  message: "Phone number must be in +234 803 123 4567 format.",
+};
 
 export const MembershipStatuses = [
   "pending",
@@ -34,7 +43,12 @@ export const ProfileSchema = new Schema(
   {
     email: { type: String, trim: true, lowercase: true },
     fullName: { type: String, default: null, trim: true },
-    phone: { type: String, trim: true },
+    phone: {
+      type: String,
+      trim: true,
+      set: normalizeNigerianPhoneValue,
+      validate: phoneValidator,
+    },
     dateOfBirth: { type: Date, default: null },
     address: { type: String, default: null, trim: true },
     city: { type: String, default: null, trim: true },
@@ -42,7 +56,13 @@ export const ProfileSchema = new Schema(
     occupation: { type: String, default: null, trim: true },
     employer: { type: String, default: null, trim: true },
     nextOfKinName: { type: String, default: null, trim: true },
-    nextOfKinPhone: { type: String, default: null, trim: true },
+    nextOfKinPhone: {
+      type: String,
+      default: null,
+      trim: true,
+      set: normalizeNigerianPhoneValue,
+      validate: phoneValidator,
+    },
     nextOfKinRelationship: { type: String, default: null, trim: true },
     membershipStatus: {
       type: String,
