@@ -20,6 +20,19 @@ function formatDate(value) {
   }).format(date);
 }
 
+function formatDateTime(value) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return new Intl.DateTimeFormat("en-NG", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
 function formatRate(rate, rateType) {
   if (!Number.isFinite(Number(rate))) return "-";
   const typeLabel = rateType ? String(rateType).toUpperCase() : "";
@@ -32,6 +45,13 @@ function formatFileSize(value) {
   if (size >= 1024 * 1024) return `${(size / (1024 * 1024)).toFixed(1)} MB`;
   if (size >= 1024) return `${(size / 1024).toFixed(1)} KB`;
   return `${size} B`;
+}
+
+function formatDisbursementMethod(value) {
+  if (!value) return "-";
+  return String(value)
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function ensureSpace(doc, height = 80) {
@@ -129,6 +149,9 @@ export async function generateLoanApplicationPdfBuffer(payload) {
   const loan = payload.loan || {};
   const applicant = payload.applicant || {};
   const organization = payload.organization || {};
+  const manualDisbursement = loan.manualDisbursement || null;
+  const isManualPayout =
+    String(loan.payoutGateway || "").toLowerCase() === "manual";
 
   const doc = new PDFDocument({
     size: "A4",
@@ -278,6 +301,100 @@ export async function generateLoanApplicationPdfBuffer(payload) {
       ],
       contentWidth,
     );
+
+    if (loan.payoutGateway || manualDisbursement) {
+      drawSectionTitle(doc, "Disbursement Metadata");
+      drawLabelValueTable(
+        doc,
+        [
+          {
+            label: "Gateway",
+            value: loan.payoutGateway
+              ? String(loan.payoutGateway).toUpperCase()
+              : "-",
+          },
+          {
+            label: "Payout Status",
+            value: loan.payoutStatus
+              ? String(loan.payoutStatus).replace(/_/g, " ").toUpperCase()
+              : "-",
+          },
+          {
+            label: "Payout Reference",
+            value: loan.payoutReference || "-",
+          },
+          {
+            label: "Transfer Code",
+            value: loan.payoutTransferCode || "-",
+          },
+          {
+            label: "Manual Method",
+            value: isManualPayout
+              ? formatDisbursementMethod(manualDisbursement?.method)
+              : "-",
+          },
+          {
+            label: "Manual Amount",
+            value:
+              isManualPayout && manualDisbursement?.amount != null
+                ? formatCurrency(manualDisbursement.amount)
+                : "-",
+          },
+          {
+            label: "Settlement Time",
+            value: isManualPayout
+              ? formatDateTime(manualDisbursement?.occurredAt)
+              : formatDateTime(loan.disbursedAt),
+          },
+          {
+            label: "External Reference",
+            value:
+              isManualPayout && manualDisbursement?.externalReference
+                ? manualDisbursement.externalReference
+                : "-",
+          },
+          {
+            label: "OTP Recipient",
+            value:
+              isManualPayout && manualDisbursement?.otpRecipient
+                ? manualDisbursement.otpRecipient
+                : "-",
+          },
+          {
+            label: "OTP Sent At",
+            value:
+              isManualPayout && manualDisbursement?.otpSentAt
+                ? formatDateTime(manualDisbursement.otpSentAt)
+                : "-",
+          },
+          {
+            label: "Bank Snapshot",
+            value: [
+              loan.disbursementBankName || null,
+              loan.disbursementAccountNumber || null,
+              loan.disbursementAccountName || null,
+            ]
+              .filter(Boolean)
+              .join(" • ") || "-",
+          },
+        ],
+        contentWidth,
+      );
+
+      if (isManualPayout) {
+        drawSectionTitle(doc, "Manual Disbursement Notes");
+        doc
+          .font("Helvetica")
+          .fontSize(9.5)
+          .fillColor("#6B7280")
+          .text(
+            manualDisbursement?.notes ||
+              "No manual disbursement notes recorded.",
+          );
+
+        doc.moveDown(0.8);
+      }
+    }
 
     drawSectionTitle(doc, "Review Notes");
     doc

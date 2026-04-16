@@ -31,6 +31,7 @@ function formatDateLabel(value) {
 
 export const receiptTypeLabels = {
   deposit: "Savings Deposit",
+  loan_disbursement: "Loan Disbursement",
   loan_repayment: "Loan Repayment",
   group_contribution: "Group Contribution",
   withdrawal: "Withdrawal",

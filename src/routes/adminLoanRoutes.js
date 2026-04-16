@@ -20,10 +20,14 @@ import {
   uploadAdminLoanRepaymentReceipt,
 } from "../controllers/adminLoanController.js";
 import {
+  cancelManualLoanDisbursement,
   disburseLoan as disburseLoanController,
   finalizeLoanDisbursementOtp,
+  finalizeManualLoanDisbursement,
+  initiateManualLoanDisbursement,
   listLoanBorrowerBankAccounts,
   resendLoanDisbursementOtp,
+  resendManualLoanDisbursementOtp,
   verifyLoanDisbursementTransfer,
 } from "../controllers/loanController.js";
 import { cloudinaryUploadSingle } from "../middlewares/cloudinaryUpload.js";
@@ -128,6 +132,13 @@ router.post(
   ensureAdminLoanAccess,
   disburseLoanController,
 );
+router.post(
+  "/applications/:applicationId/manual-disbursement",
+  restrictTo("admin"),
+  loadLoanApplication,
+  ensureAdminLoanAccess,
+  initiateManualLoanDisbursement,
+);
 router.patch(
   "/applications/:applicationId/finalize-otp",
   restrictTo("admin"),
@@ -136,11 +147,32 @@ router.patch(
   finalizeLoanDisbursementOtp,
 );
 router.patch(
+  "/applications/:applicationId/manual-disbursement/finalize",
+  restrictTo("admin"),
+  loadLoanApplication,
+  ensureAdminLoanAccess,
+  finalizeManualLoanDisbursement,
+);
+router.patch(
   "/applications/:applicationId/resend-otp",
   restrictTo("admin"),
   loadLoanApplication,
   ensureAdminLoanAccess,
   resendLoanDisbursementOtp,
+);
+router.patch(
+  "/applications/:applicationId/manual-disbursement/resend-otp",
+  restrictTo("admin"),
+  loadLoanApplication,
+  ensureAdminLoanAccess,
+  resendManualLoanDisbursementOtp,
+);
+router.patch(
+  "/applications/:applicationId/manual-disbursement/cancel",
+  restrictTo("admin"),
+  loadLoanApplication,
+  ensureAdminLoanAccess,
+  cancelManualLoanDisbursement,
 );
 router.patch(
   "/applications/:applicationId/verify-transfer",

@@ -10,16 +10,20 @@ import { LoanGuarantorModel } from "../models/LoanGuarantor.js";
 import { GuarantorNotificationModel } from "../models/GuarantorNotification.js";
 import { LoanRepaymentScheduleItemModel } from "../models/LoanRepaymentScheduleItem.js";
 import { ProfileModel } from "../models/Profile.js";
+import { UserModel } from "../models/User.js";
 import { BankAccountModel } from "../models/BankAccount.js";
 import { GroupModel } from "../models/Group.js";
 import { GroupMembershipModel } from "../models/GroupMembership.js";
 import { ContributionModel } from "../models/Contribution.js";
+import { TransactionModel } from "../models/Transaction.js";
 import { createNotification } from "../services/notificationService.js";
 import {
   applyLoanRepayment,
   buildLoanNextPaymentMap,
 } from "../services/loanRepaymentService.js";
-import { randomId } from "../utils/crypto.js";
+import { sendEmailOtp } from "../services/mail/sendEmailOtp.js";
+import { sendPhoneOtp } from "../services/sms/sendPhoneOtp.js";
+import { randomId, sha256 } from "../utils/crypto.js";
 import {
   LoanFacilityTypes,
   getLoanFacility,
@@ -118,6 +122,135 @@ const LOAN_OTP_RESEND_COOLDOWN_MS = (() => {
   return 60_000;
 })();
 
+const MANUAL_LOAN_DISBURSEMENT_OTP_TTL_MINUTES = (() => {
+  const raw = Number(process.env.LOAN_MANUAL_DISBURSEMENT_OTP_TTL_MINUTES);
+  if (Number.isFinite(raw) && raw > 0) return Math.round(raw);
+  return 10;
+})();
+
+const ManualLoanDisbursementMethods = [
+  "cash",
+  "bank_transfer",
+  "bank_settlement",
+  "cheque",
+  "pos",
+  "other",
+];
+
+function generateOtp() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+function maskPhoneNumber(phone) {
+  const raw = String(phone || "").trim();
+  if (raw.length <= 4) return raw;
+  return `${raw.slice(0, 4)}${"*".repeat(Math.max(0, raw.length - 6))}${raw.slice(-2)}`;
+}
+
+function maskEmailAddress(email) {
+  const raw = String(email || "").trim().toLowerCase();
+  const atIndex = raw.indexOf("@");
+  if (atIndex <= 1) return raw;
+  const local = raw.slice(0, atIndex);
+  const domain = raw.slice(atIndex);
+  return `${local.slice(0, 1)}${"*".repeat(Math.max(1, local.length - 2))}${local.slice(-1)}${domain}`;
+}
+
+function buildManualDisbursementReference(loan) {
+  const base = String(loan?.loanCode || loan?._id || "loan")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+  return `manual_${base}_${Date.now().toString(36)}_${randomId(3)}`.slice(
+    0,
+    50,
+  );
+}
+
+function normalizeManualDisbursementMethod(value) {
+  const method = String(value || "")
+    .trim()
+    .toLowerCase();
+  if (!ManualLoanDisbursementMethods.includes(method)) {
+    throw new AppError("Invalid manual disbursement method", 400);
+  }
+  return method;
+}
+
+function clearManualDisbursementAuthorization(loan) {
+  if (!loan) return;
+  loan.manualDisbursementOtpHash = null;
+  loan.manualDisbursementOtpExpiresAt = null;
+}
+
+function clearPendingManualDisbursementState(loan) {
+  if (!loan) return;
+  loan.payoutReference = null;
+  loan.payoutGateway = null;
+  loan.payoutTransferCode = null;
+  loan.payoutStatus = null;
+  loan.payoutOtpResentAt = null;
+  loan.manualDisbursement = null;
+  clearManualDisbursementAuthorization(loan);
+}
+
+async function sendManualDisbursementOtp({ user, otp }) {
+  if (user?.phone) {
+    await sendPhoneOtp({
+      toPhone: user.phone,
+      otp,
+      ttlMinutes: MANUAL_LOAN_DISBURSEMENT_OTP_TTL_MINUTES,
+    });
+    return {
+      channel: "phone",
+      recipient: user.phone,
+      maskedRecipient: maskPhoneNumber(user.phone),
+    };
+  }
+
+  if (user?.email) {
+    await sendEmailOtp({
+      toEmail: user.email,
+      otp,
+      ttlMinutes: MANUAL_LOAN_DISBURSEMENT_OTP_TTL_MINUTES,
+      purpose: "manual loan disbursement confirmation",
+    });
+    return {
+      channel: "email",
+      recipient: user.email,
+      maskedRecipient: maskEmailAddress(user.email),
+    };
+  }
+
+  throw new AppError(
+    "Authorized user must have a phone number or email to receive OTP.",
+    400,
+  );
+}
+
+function getAuthenticatedUserId(req) {
+  return String(req?.user?._id || req?.user?.id || "");
+}
+
+function ensureManualDisbursementInitiator(loan, req) {
+  const actorUserId = getAuthenticatedUserId(req);
+  const initiatedByUserId = String(
+    loan?.manualDisbursement?.initiatedByUserId || "",
+  );
+
+  if (!initiatedByUserId || !actorUserId || initiatedByUserId !== actorUserId) {
+    throw new AppError(
+      "Only the admin who requested this manual disbursement OTP can finalize or resend it.",
+      403,
+    );
+  }
+}
+
+async function loadLoanWithManualOtpState(loanId) {
+  return LoanApplicationModel.findById(loanId).select(
+    "+manualDisbursementOtpHash +manualDisbursementOtpExpiresAt",
+  );
+}
+
 function normalizeBankName(value) {
   return String(value || "")
     .toLowerCase()
@@ -200,6 +333,34 @@ async function selectDisbursementAccount(loan, bankAccountId) {
     isPrimary: -1,
     createdAt: -1,
   });
+}
+
+function buildManualDisbursementPayload({ loan, body, repaymentStartDate }) {
+  const amount = Number(loan?.approvedAmount ?? loan?.loanAmount ?? 0);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new AppError("Approved loan amount is required for disbursement", 400);
+  }
+
+  const method = normalizeManualDisbursementMethod(body?.method);
+  const externalReferenceRaw =
+    body?.externalReference || body?.reference || body?.settlementReference;
+  const externalReference = externalReferenceRaw
+    ? String(externalReferenceRaw).trim()
+    : null;
+  const notesRaw = body?.notes ? String(body.notes).trim() : "";
+  const notes = notesRaw || null;
+  const occurredAt =
+    parseDateOrNull(body?.occurredAt || body?.disbursedAt || body?.paidAt) ||
+    new Date();
+
+  return {
+    method,
+    amount,
+    externalReference,
+    notes,
+    occurredAt,
+    repaymentStartDate,
+  };
 }
 
 async function buildDisbursementContext(loan) {
@@ -323,6 +484,202 @@ function buildDisbursementSchedule({
   return { items, totalRepayable, monthlyPayment };
 }
 
+function resolveLoanDisbursementRepaymentStartDate(loan, rawDate) {
+  return (
+    parseDateOrNull(rawDate) || loan?.repaymentStartDate || addMonths(new Date(), 1)
+  );
+}
+
+function syncLoanPayoutFromTransfer(
+  loan,
+  transfer,
+  { fallbackReference = null, fallbackTransferCode = null } = {},
+) {
+  if (!loan) throw new AppError("Missing loan context", 500);
+  if (!transfer) throw new AppError("Invalid Paystack transfer response", 502);
+
+  const status = String(transfer?.status || "").toLowerCase();
+  const reference = transfer?.reference
+    ? String(transfer.reference)
+    : fallbackReference || loan.payoutReference || null;
+  const transferCode =
+    transfer?.transfer_code || fallbackTransferCode || loan.payoutTransferCode || null;
+
+  loan.payoutReference = reference || null;
+  loan.payoutGateway = "paystack";
+  loan.payoutTransferCode = transferCode;
+  loan.payoutStatus = status || null;
+
+  return { status, reference, transferCode };
+}
+
+async function persistLoanDisbursementOutcome({
+  loan,
+  transferStatus,
+  repaymentStartDate,
+  disbursedBy,
+}) {
+  if (transferStatus === "success") {
+    const { loanType, principal, rate, termMonths, interestCfg } =
+      await buildDisbursementContext(loan);
+
+    const rateType =
+      loan.interestRateType || interestCfg.rateType || "annual";
+
+    const { items, totalRepayable, monthlyPayment } = buildDisbursementSchedule({
+      principal,
+      rate,
+      termMonths,
+      rateType,
+      repaymentStartDate,
+      loanType,
+    });
+
+    await applyLoanDisbursement({
+      loan,
+      items,
+      repaymentStartDate,
+      rateType,
+      monthlyPayment,
+      totalRepayable,
+      principal,
+      disbursedBy,
+    });
+    return;
+  }
+
+  await loan.save();
+}
+
+function isRecoverableFinalizeOtpStateError(error) {
+  const message = String(error?.message || "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return (
+    message.includes("not currently awaiting otp") ||
+    message.includes("not currentiy awaiting otp") ||
+    message.includes("not awaiting otp") ||
+    message.includes("awaiting_otp") ||
+    message.includes("already finalized") ||
+    message.includes("already fulfilled") ||
+    message.includes("transfer has been sent")
+  );
+}
+
+async function verifyAndSyncLoanDisbursementTransfer({
+  loan,
+  repaymentStartDate,
+  disbursedBy,
+}) {
+  const referenceRaw = loan?.payoutReference;
+  if (!referenceRaw) {
+    throw new AppError("payoutReference is required to verify transfer", 400);
+  }
+
+  const verifyRes = await verifyTransfer(referenceRaw);
+  const transfer = verifyRes?.data;
+  if (!transfer) {
+    throw new AppError("Invalid Paystack transfer response", 502);
+  }
+
+  const { status } = syncLoanPayoutFromTransfer(loan, transfer, {
+    fallbackReference: referenceRaw,
+  });
+
+  await persistLoanDisbursementOutcome({
+    loan,
+    transferStatus: status,
+    repaymentStartDate,
+    disbursedBy,
+  });
+
+  return transfer;
+}
+
+async function upsertLoanDisbursementTransaction({
+  loan,
+  principal,
+  disbursedAt,
+}) {
+  const reference =
+    loan?.payoutReference || `loan_disbursement_${String(loan?._id || randomId(6))}`;
+  const channel =
+    loan?.payoutGateway === "manual"
+      ? loan?.manualDisbursement?.method || "manual"
+      : "bank_transfer";
+  const description =
+    loan?.payoutGateway === "manual"
+      ? `Manual loan disbursement for ${loan?.loanCode || "loan"}`
+      : `Loan disbursement for ${loan?.loanCode || "loan"}`;
+  const metadata = {
+    loanApplicationId: loan?._id ?? null,
+    loanCode: loan?.loanCode || null,
+    approvedAmount: Number(principal || 0),
+    payoutGateway: loan?.payoutGateway || null,
+    payoutStatus: loan?.payoutStatus || null,
+    disbursedAt: disbursedAt?.toISOString?.() || disbursedAt || null,
+    paystackTransfer:
+      loan?.payoutGateway === "paystack"
+        ? {
+            reference: loan?.payoutReference || reference,
+            transferCode: loan?.payoutTransferCode || null,
+            status: loan?.payoutStatus || null,
+          }
+        : null,
+    manualDisbursement:
+      loan?.payoutGateway === "manual" && loan?.manualDisbursement
+        ? {
+            method: loan.manualDisbursement.method || null,
+            externalReference:
+              loan.manualDisbursement.externalReference || null,
+            notes: loan.manualDisbursement.notes || null,
+            occurredAt:
+              loan.manualDisbursement.occurredAt?.toISOString?.() ||
+              loan.manualDisbursement.occurredAt ||
+              null,
+          }
+        : null,
+  };
+
+  const basePayload = {
+    userId: loan.userId,
+    reference,
+    amount: Number(principal || 0),
+    type: "loan_disbursement",
+    status: "success",
+    description,
+    channel,
+    groupId: loan.groupId ?? null,
+    groupName: loan.groupName ?? null,
+    loanId: loan._id ?? null,
+    loanName: loan.loanCode || null,
+    gateway: loan.payoutGateway || "manual",
+    metadata,
+  };
+
+  const existing = await TransactionModel.findOne({ reference });
+  if (existing) {
+    existing.userId = basePayload.userId;
+    existing.amount = basePayload.amount;
+    existing.type = basePayload.type;
+    existing.status = basePayload.status;
+    existing.description = basePayload.description;
+    existing.channel = basePayload.channel;
+    existing.groupId = basePayload.groupId;
+    existing.groupName = basePayload.groupName;
+    existing.loanId = basePayload.loanId;
+    existing.loanName = basePayload.loanName;
+    existing.gateway = basePayload.gateway;
+    existing.metadata = metadata;
+    await existing.save();
+    return existing;
+  }
+
+  return TransactionModel.create(basePayload);
+}
+
 async function applyLoanDisbursement({
   loan,
   items,
@@ -344,8 +701,13 @@ async function applyLoanDisbursement({
     { ordered: false },
   );
 
+  const effectiveDisbursedAt =
+    loan?.payoutGateway === "manual"
+      ? parseDateOrNull(loan?.manualDisbursement?.occurredAt) || new Date()
+      : new Date();
+
   loan.status = "disbursed";
-  loan.disbursedAt = new Date();
+  loan.disbursedAt = effectiveDisbursedAt;
   loan.disbursedBy = disbursedBy;
   loan.repaymentStartDate = repaymentStartDate;
   loan.interestRateType = rateType;
@@ -354,6 +716,11 @@ async function applyLoanDisbursement({
   loan.remainingBalance = totalRepayable;
 
   await loan.save();
+  await upsertLoanDisbursementTransaction({
+    loan,
+    principal,
+    disbursedAt: loan.disbursedAt,
+  });
 
   createNotification({
     userId: loan.userId,
@@ -1981,6 +2348,17 @@ export const finalizeLoanDisbursementOtp = catchAsync(async (req, res, next) => 
       ),
     );
   }
+  if (
+    req.loanApplication.payoutGateway &&
+    String(req.loanApplication.payoutGateway).toLowerCase() !== "paystack"
+  ) {
+    return next(
+      new AppError(
+        "This payout is awaiting manual OTP authorization, not Paystack finalization.",
+        400,
+      ),
+    );
+  }
 
   const transferCodeRaw =
     req.body?.transferCode ||
@@ -1994,68 +2372,179 @@ export const finalizeLoanDisbursementOtp = catchAsync(async (req, res, next) => 
   const otpRaw = req.body?.otp ? String(req.body.otp).trim() : "";
   if (!otpRaw) return next(new AppError("otp is required", 400));
 
-  const finalizeRes = await finalizeTransfer({
-    transfer_code: transferCode,
-    otp: otpRaw,
-  });
-  const transfer = finalizeRes?.data;
-  if (!transfer) {
-    return next(new AppError("Invalid Paystack transfer response", 502));
-  }
+  const repaymentStartDate = resolveLoanDisbursementRepaymentStartDate(
+    req.loanApplication,
+    req.body?.repaymentStartDate,
+  );
 
-  const status = String(transfer?.status || "").toLowerCase();
-  const reference = transfer?.reference
-    ? String(transfer.reference)
-    : req.loanApplication.payoutReference;
-  const resolvedTransferCode = transfer?.transfer_code || transferCode;
-
-  req.loanApplication.payoutReference = reference || null;
-  req.loanApplication.payoutGateway = "paystack";
-  req.loanApplication.payoutTransferCode = resolvedTransferCode;
-  req.loanApplication.payoutStatus = status || null;
-
-  if (status === "success") {
-    const { loanType, principal, rate, termMonths, interestCfg } =
-      await buildDisbursementContext(req.loanApplication);
-
-    const repaymentStartDate =
-      parseDateOrNull(req.body?.repaymentStartDate) ||
-      req.loanApplication.repaymentStartDate ||
-      addMonths(new Date(), 1);
-
-    const rateType =
-      req.loanApplication.interestRateType ||
-      interestCfg.rateType ||
-      "annual";
-
-    const { items, totalRepayable, monthlyPayment } = buildDisbursementSchedule({
-      principal,
-      rate,
-      termMonths,
-      rateType,
-      repaymentStartDate,
-      loanType,
+  let transfer = null;
+  try {
+    const finalizeRes = await finalizeTransfer({
+      transfer_code: transferCode,
+      otp: otpRaw,
     });
+    transfer = finalizeRes?.data;
+    if (!transfer) {
+      return next(new AppError("Invalid Paystack transfer response", 502));
+    }
+  } catch (error) {
+    if (!isRecoverableFinalizeOtpStateError(error)) {
+      throw error;
+    }
 
-    await applyLoanDisbursement({
+    await verifyAndSyncLoanDisbursementTransfer({
       loan: req.loanApplication,
-      items,
       repaymentStartDate,
-      rateType,
-      monthlyPayment,
-      totalRepayable,
-      principal,
       disbursedBy: req.user.profileId,
     });
-  } else {
-    await req.loanApplication.save();
+
+    return sendSuccess(res, {
+      statusCode: 200,
+      data: { application: req.loanApplication },
+      message:
+        req.loanApplication.payoutStatus === "success"
+          ? "Transfer was already completed and has now been synchronized."
+          : "Transfer state refreshed. Review the latest payout status before retrying.",
+    });
   }
+
+  const { status } = syncLoanPayoutFromTransfer(req.loanApplication, transfer, {
+    fallbackTransferCode: transferCode,
+  });
+
+  await persistLoanDisbursementOutcome({
+    loan: req.loanApplication,
+    transferStatus: status,
+    repaymentStartDate,
+    disbursedBy: req.user.profileId,
+  });
 
   return sendSuccess(res, {
     statusCode: 200,
     data: { application: req.loanApplication },
   });
 });
+
+export const initiateManualLoanDisbursement = catchAsync(
+  async (req, res, next) => {
+    if (!req.user) return next(new AppError("Not authenticated", 401));
+    if (!req.user.profileId)
+      return next(new AppError("User profile not found", 400));
+    if (!req.loanApplication)
+      return next(new AppError("Missing loan context", 500));
+
+    if (req.loanApplication.status !== "approved") {
+      return next(
+        new AppError(
+          "Loan application must be approved before disbursement",
+          400,
+        ),
+      );
+    }
+
+    const payoutGateway = String(
+      req.loanApplication.payoutGateway || "",
+    ).toLowerCase();
+    const payoutStatus = String(req.loanApplication.payoutStatus || "").toLowerCase();
+
+    if (
+      payoutGateway === "paystack" &&
+      req.loanApplication.payoutReference &&
+      !["failed", "reversed"].includes(payoutStatus)
+    ) {
+      return next(
+        new AppError(
+          "A Paystack disbursement is already in progress. Verify or resolve it before switching to manual disbursement.",
+          400,
+        ),
+      );
+    }
+
+    const { interestCfg } = await buildDisbursementContext(req.loanApplication);
+    const repaymentStartDate = resolveLoanDisbursementRepaymentStartDate(
+      req.loanApplication,
+      req.body?.repaymentStartDate,
+    );
+    const rateType =
+      req.loanApplication.interestRateType || interestCfg.rateType || "annual";
+
+    const bankAccountId =
+      req.body?.bankAccountId ||
+      req.body?.bank_account_id ||
+      req.loanApplication.disbursementBankAccountId ||
+      null;
+    if (bankAccountId) {
+      const account = await selectDisbursementAccount(
+        req.loanApplication,
+        bankAccountId,
+      );
+      if (!account) {
+        return next(new AppError("Bank account not found", 404));
+      }
+      applyDisbursementSnapshot(req.loanApplication, account);
+    }
+
+    const manualPayload = buildManualDisbursementPayload({
+      loan: req.loanApplication,
+      body: req.body || {},
+      repaymentStartDate,
+    });
+    const actingUser = await UserModel.findById(getAuthenticatedUserId(req))
+      .select("email phone")
+      .lean();
+    if (!actingUser) {
+      return next(new AppError("Authorized user not found", 404));
+    }
+
+    const otp = generateOtp();
+    const delivery = await sendManualDisbursementOtp({
+      user: actingUser,
+      otp,
+    });
+
+    req.loanApplication.repaymentStartDate = repaymentStartDate;
+    req.loanApplication.interestRateType = rateType;
+    req.loanApplication.payoutGateway = "manual";
+    req.loanApplication.payoutStatus = "otp";
+    req.loanApplication.payoutTransferCode = null;
+    req.loanApplication.payoutReference =
+      req.loanApplication.payoutReference &&
+      payoutGateway === "manual" &&
+      payoutStatus === "otp"
+        ? req.loanApplication.payoutReference
+        : buildManualDisbursementReference(req.loanApplication);
+    req.loanApplication.payoutOtpResentAt = new Date();
+    req.loanApplication.manualDisbursement = {
+      status: "pending_otp",
+      method: manualPayload.method,
+      amount: manualPayload.amount,
+      externalReference: manualPayload.externalReference,
+      occurredAt: manualPayload.occurredAt,
+      repaymentStartDate,
+      notes: manualPayload.notes,
+      initiatedByUserId: getAuthenticatedUserId(req),
+      initiatedBy: req.user.profileId,
+      authorizedBy: null,
+      initiatedAt: new Date(),
+      completedAt: null,
+      otpChannel: delivery.channel,
+      otpRecipient: delivery.maskedRecipient,
+      otpSentAt: new Date(),
+    };
+    req.loanApplication.manualDisbursementOtpHash = sha256(otp);
+    req.loanApplication.manualDisbursementOtpExpiresAt = new Date(
+      Date.now() + MANUAL_LOAN_DISBURSEMENT_OTP_TTL_MINUTES * 60 * 1000,
+    );
+
+    await req.loanApplication.save();
+
+    return sendSuccess(res, {
+      statusCode: 200,
+      message: `Manual disbursement OTP sent to ${delivery.maskedRecipient}.`,
+      data: { application: req.loanApplication },
+    });
+  },
+);
 
 export const resendLoanDisbursementOtp = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
@@ -2068,6 +2557,17 @@ export const resendLoanDisbursementOtp = catchAsync(async (req, res, next) => {
     return next(
       new AppError(
         "Loan application must be approved before disbursement",
+        400,
+      ),
+    );
+  }
+  if (
+    req.loanApplication.payoutGateway &&
+    String(req.loanApplication.payoutGateway).toLowerCase() !== "paystack"
+  ) {
+    return next(
+      new AppError(
+        "This payout uses manual OTP authorization. Use the manual resend endpoint instead.",
         400,
       ),
     );
@@ -2139,6 +2639,136 @@ export const resendLoanDisbursementOtp = catchAsync(async (req, res, next) => {
   });
 });
 
+export const resendManualLoanDisbursementOtp = catchAsync(
+  async (req, res, next) => {
+    if (!req.user) return next(new AppError("Not authenticated", 401));
+    if (!req.user.profileId)
+      return next(new AppError("User profile not found", 400));
+    if (!req.loanApplication)
+      return next(new AppError("Missing loan context", 500));
+
+    if (req.loanApplication.status !== "approved") {
+      return next(
+        new AppError(
+          "Loan application must be approved before disbursement",
+          400,
+        ),
+      );
+    }
+    if (String(req.loanApplication.payoutGateway || "").toLowerCase() !== "manual") {
+      return next(new AppError("No pending manual disbursement found", 400));
+    }
+    if (String(req.loanApplication.payoutStatus || "").toLowerCase() !== "otp") {
+      return next(
+        new AppError("Manual disbursement is not currently awaiting OTP", 400),
+      );
+    }
+
+    const otpLoan = await loadLoanWithManualOtpState(req.loanApplication._id);
+    if (!otpLoan) {
+      return next(new AppError("Loan application not found", 404));
+    }
+    ensureManualDisbursementInitiator(otpLoan, req);
+
+    if (LOAN_OTP_RESEND_COOLDOWN_MS > 0 && otpLoan.payoutOtpResentAt) {
+      const lastResentAt = new Date(otpLoan.payoutOtpResentAt).getTime();
+      if (Number.isFinite(lastResentAt)) {
+        const elapsedMs = Date.now() - lastResentAt;
+        if (elapsedMs >= 0 && elapsedMs < LOAN_OTP_RESEND_COOLDOWN_MS) {
+          const retryAfterSeconds = Math.ceil(
+            (LOAN_OTP_RESEND_COOLDOWN_MS - elapsedMs) / 1000,
+          );
+          res.set("Retry-After", String(retryAfterSeconds));
+          return next(
+            new AppError(
+              `Please wait ${retryAfterSeconds}s before resending OTP.`,
+              429,
+            ),
+          );
+        }
+      }
+    }
+
+    const actingUser = await UserModel.findById(getAuthenticatedUserId(req))
+      .select("email phone")
+      .lean();
+    if (!actingUser) {
+      return next(new AppError("Authorized user not found", 404));
+    }
+
+    const otp = generateOtp();
+    const delivery = await sendManualDisbursementOtp({
+      user: actingUser,
+      otp,
+    });
+
+    otpLoan.manualDisbursementOtpHash = sha256(otp);
+    otpLoan.manualDisbursementOtpExpiresAt = new Date(
+      Date.now() + MANUAL_LOAN_DISBURSEMENT_OTP_TTL_MINUTES * 60 * 1000,
+    );
+    otpLoan.payoutOtpResentAt = new Date();
+    otpLoan.manualDisbursement = {
+      ...(otpLoan.manualDisbursement || {}),
+      status: "pending_otp",
+      otpChannel: delivery.channel,
+      otpRecipient: delivery.maskedRecipient,
+      otpSentAt: new Date(),
+    };
+
+    await otpLoan.save();
+
+    if (LOAN_OTP_RESEND_COOLDOWN_MS > 0) {
+      res.set(
+        "Retry-After",
+        String(Math.ceil(LOAN_OTP_RESEND_COOLDOWN_MS / 1000)),
+      );
+    }
+
+    return sendSuccess(res, {
+      statusCode: 200,
+      message: `Manual disbursement OTP sent to ${delivery.maskedRecipient}.`,
+      data: { application: otpLoan },
+    });
+  },
+);
+
+export const cancelManualLoanDisbursement = catchAsync(
+  async (req, res, next) => {
+    if (!req.user) return next(new AppError("Not authenticated", 401));
+    if (!req.user.profileId)
+      return next(new AppError("User profile not found", 400));
+    if (!req.loanApplication)
+      return next(new AppError("Missing loan context", 500));
+
+    if (req.loanApplication.status !== "approved") {
+      return next(
+        new AppError(
+          "Loan application must be approved before disbursement",
+          400,
+        ),
+      );
+    }
+    if (String(req.loanApplication.payoutGateway || "").toLowerCase() !== "manual") {
+      return next(new AppError("No pending manual disbursement found", 400));
+    }
+    if (String(req.loanApplication.payoutStatus || "").toLowerCase() !== "otp") {
+      return next(
+        new AppError("Manual disbursement is not currently awaiting OTP", 400),
+      );
+    }
+
+    clearPendingManualDisbursementState(req.loanApplication);
+    await req.loanApplication.save();
+
+    return sendSuccess(res, {
+      statusCode: 200,
+      message:
+        "Pending manual disbursement authorization cancelled. You can switch back to Paystack now.",
+      data: { application: req.loanApplication },
+    });
+  },
+);
+
 export const listLoanBorrowerBankAccounts = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
   if (!req.user.profileId)
@@ -2163,6 +2793,102 @@ export const listLoanBorrowerBankAccounts = catchAsync(async (req, res, next) =>
   });
 });
 
+export const finalizeManualLoanDisbursement = catchAsync(
+  async (req, res, next) => {
+    if (!req.user) return next(new AppError("Not authenticated", 401));
+    if (!req.user.profileId)
+      return next(new AppError("User profile not found", 400));
+    if (!req.loanApplication)
+      return next(new AppError("Missing loan context", 500));
+
+    if (req.loanApplication.status !== "approved") {
+      return next(
+        new AppError(
+          "Loan application must be approved before disbursement",
+          400,
+        ),
+      );
+    }
+    if (String(req.loanApplication.payoutGateway || "").toLowerCase() !== "manual") {
+      return next(new AppError("No pending manual disbursement found", 400));
+    }
+    if (String(req.loanApplication.payoutStatus || "").toLowerCase() !== "otp") {
+      return next(
+        new AppError("Manual disbursement is not currently awaiting OTP", 400),
+      );
+    }
+
+    const otpRaw = req.body?.otp ? String(req.body.otp).trim() : "";
+    if (!otpRaw) return next(new AppError("otp is required", 400));
+
+    const otpLoan = await loadLoanWithManualOtpState(req.loanApplication._id);
+    if (!otpLoan) {
+      return next(new AppError("Loan application not found", 404));
+    }
+    ensureManualDisbursementInitiator(otpLoan, req);
+
+    if (
+      !otpLoan.manualDisbursementOtpHash ||
+      !otpLoan.manualDisbursementOtpExpiresAt
+    ) {
+      return next(
+        new AppError(
+          "Manual disbursement OTP has not been issued. Please request a new OTP.",
+          400,
+        ),
+      );
+    }
+    if (otpLoan.manualDisbursementOtpExpiresAt.getTime() <= Date.now()) {
+      clearManualDisbursementAuthorization(otpLoan);
+      await otpLoan.save();
+      return next(
+        new AppError(
+          "OTP has expired. Please request a new code to finalize this manual disbursement.",
+          400,
+        ),
+      );
+    }
+    if (sha256(otpRaw) !== otpLoan.manualDisbursementOtpHash) {
+      return next(new AppError("Invalid OTP", 400));
+    }
+
+    const manualDisbursement = otpLoan.manualDisbursement || {};
+    const repaymentStartDate = resolveLoanDisbursementRepaymentStartDate(
+      otpLoan,
+      manualDisbursement.repaymentStartDate || req.body?.repaymentStartDate,
+    );
+
+    otpLoan.payoutGateway = "manual";
+    otpLoan.payoutStatus = "success";
+    otpLoan.payoutTransferCode = null;
+    otpLoan.payoutReference =
+      otpLoan.payoutReference || buildManualDisbursementReference(otpLoan);
+    otpLoan.payoutOtpResentAt = null;
+    otpLoan.manualDisbursement = {
+      ...manualDisbursement,
+      status: "completed",
+      authorizedBy: req.user.profileId,
+      completedAt: new Date(),
+      repaymentStartDate,
+      otpSentAt: manualDisbursement.otpSentAt || new Date(),
+    };
+    clearManualDisbursementAuthorization(otpLoan);
+
+    await persistLoanDisbursementOutcome({
+      loan: otpLoan,
+      transferStatus: "success",
+      repaymentStartDate,
+      disbursedBy: req.user.profileId,
+    });
+
+    return sendSuccess(res, {
+      statusCode: 200,
+      message: "Manual loan disbursement finalized successfully.",
+      data: { application: otpLoan },
+    });
+  },
+);
+
 export const verifyLoanDisbursementTransfer = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
   if (!req.user.profileId)
@@ -2178,64 +2904,33 @@ export const verifyLoanDisbursementTransfer = catchAsync(async (req, res, next) 
       ),
     );
   }
+  if (
+    req.loanApplication.payoutGateway &&
+    String(req.loanApplication.payoutGateway).toLowerCase() !== "paystack"
+  ) {
+    return next(
+      new AppError(
+        "Manual disbursement does not use Paystack transfer verification.",
+        400,
+      ),
+    );
+  }
 
   const referenceRaw = req.loanApplication.payoutReference;
   if (!referenceRaw) {
     return next(new AppError("payoutReference is required to verify transfer", 400));
   }
 
-  const verifyRes = await verifyTransfer(referenceRaw);
-  const transfer = verifyRes?.data;
-  if (!transfer) {
-    return next(new AppError("Invalid Paystack transfer response", 502));
-  }
+  const repaymentStartDate = resolveLoanDisbursementRepaymentStartDate(
+    req.loanApplication,
+    req.body?.repaymentStartDate,
+  );
 
-  const status = String(transfer?.status || "").toLowerCase();
-  const reference = transfer?.reference
-    ? String(transfer.reference)
-    : referenceRaw;
-  const transferCode =
-    transfer?.transfer_code || req.loanApplication.payoutTransferCode || null;
-
-  req.loanApplication.payoutReference = reference || null;
-  req.loanApplication.payoutGateway = "paystack";
-  req.loanApplication.payoutTransferCode = transferCode;
-  req.loanApplication.payoutStatus = status || null;
-
-  if (status === "success") {
-    const { loanType, principal, rate, termMonths, interestCfg } =
-      await buildDisbursementContext(req.loanApplication);
-
-    const repaymentStartDate =
-      parseDateOrNull(req.body?.repaymentStartDate) ||
-      req.loanApplication.repaymentStartDate ||
-      addMonths(new Date(), 1);
-
-    const rateType =
-      req.loanApplication.interestRateType || interestCfg.rateType || "annual";
-
-    const { items, totalRepayable, monthlyPayment } = buildDisbursementSchedule({
-      principal,
-      rate,
-      termMonths,
-      rateType,
-      repaymentStartDate,
-      loanType,
-    });
-
-    await applyLoanDisbursement({
-      loan: req.loanApplication,
-      items,
-      repaymentStartDate,
-      rateType,
-      monthlyPayment,
-      totalRepayable,
-      principal,
-      disbursedBy: req.user.profileId,
-    });
-  } else {
-    await req.loanApplication.save();
-  }
+  await verifyAndSyncLoanDisbursementTransfer({
+    loan: req.loanApplication,
+    repaymentStartDate,
+    disbursedBy: req.user.profileId,
+  });
 
   return sendSuccess(res, {
     statusCode: 200,
@@ -2252,6 +2947,17 @@ export const disburseLoan = catchAsync(async (req, res, next) => {
 
   if (req.loanApplication.status === "disbursed") {
     return next(new AppError("Loan has already been disbursed", 400));
+  }
+  if (
+    String(req.loanApplication.payoutGateway || "").toLowerCase() === "manual" &&
+    String(req.loanApplication.payoutStatus || "").toLowerCase() === "otp"
+  ) {
+    return next(
+      new AppError(
+        "A manual disbursement OTP is already pending. Finalize or resend that OTP before starting another disbursement flow.",
+        400,
+      ),
+    );
   }
 
   const { loanType, principal, rate, termMonths, interestCfg } =
@@ -2278,6 +2984,15 @@ export const disburseLoan = catchAsync(async (req, res, next) => {
   const requestedReference = req.body?.reference
     ? String(req.body.reference).trim()
     : null;
+
+  if (gateway === "manual") {
+    return next(
+      new AppError(
+        "Manual disbursement requires OTP authorization. Use the manual disbursement initiation endpoint.",
+        400,
+      ),
+    );
+  }
 
   if (gateway !== "paystack") {
     const reference = requestedReference || `LOAN-${randomId(8)}`;
@@ -2348,6 +3063,8 @@ export const disburseLoan = catchAsync(async (req, res, next) => {
   req.loanApplication.interestRateType = rateType;
 
   const existingReference =
+    String(req.loanApplication.payoutGateway || "").toLowerCase() ===
+      "paystack" &&
     req.loanApplication.payoutReference &&
     !["failed", "reversed"].includes(
       String(req.loanApplication.payoutStatus || "").toLowerCase(),
@@ -2356,35 +3073,11 @@ export const disburseLoan = catchAsync(async (req, res, next) => {
       : null;
 
   if (existingReference) {
-    const verifyRes = await verifyTransfer(existingReference);
-    const transfer = verifyRes?.data;
-    if (!transfer) {
-      return next(new AppError("Invalid Paystack transfer response", 502));
-    }
-
-    const status = String(transfer?.status || "").toLowerCase();
-    const transferCode =
-      transfer?.transfer_code || req.loanApplication.payoutTransferCode || null;
-
-    req.loanApplication.payoutReference = existingReference;
-    req.loanApplication.payoutGateway = "paystack";
-    req.loanApplication.payoutTransferCode = transferCode;
-    req.loanApplication.payoutStatus = status || null;
-
-    if (status === "success") {
-      await applyLoanDisbursement({
-        loan: req.loanApplication,
-        items,
-        repaymentStartDate,
-        rateType,
-        monthlyPayment,
-        totalRepayable,
-        principal,
-        disbursedBy: req.user.profileId,
-      });
-    } else {
-      await req.loanApplication.save();
-    }
+    await verifyAndSyncLoanDisbursementTransfer({
+      loan: req.loanApplication,
+      repaymentStartDate,
+      disbursedBy: req.user.profileId,
+    });
 
     return sendSuccess(res, {
       statusCode: 200,
@@ -2418,13 +3111,9 @@ export const disburseLoan = catchAsync(async (req, res, next) => {
     return next(new AppError("Invalid Paystack transfer response", 502));
   }
 
-  const status = String(transfer?.status || "").toLowerCase();
-  const transferCode = transfer?.transfer_code || null;
-
-  req.loanApplication.payoutReference = reference;
-  req.loanApplication.payoutGateway = "paystack";
-  req.loanApplication.payoutTransferCode = transferCode;
-  req.loanApplication.payoutStatus = status || null;
+  const { status } = syncLoanPayoutFromTransfer(req.loanApplication, transfer, {
+    fallbackReference: reference,
+  });
 
   if (status === "success") {
     await applyLoanDisbursement({

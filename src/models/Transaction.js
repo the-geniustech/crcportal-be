@@ -2,6 +2,7 @@
 
 export const TransactionTypes = [
   "deposit",
+  "loan_disbursement",
   "loan_repayment",
   "group_contribution",
   "withdrawal",

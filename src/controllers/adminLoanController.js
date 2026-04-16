@@ -284,6 +284,9 @@ function resetLoanForResubmission(loan, { notes } = {}) {
   loan.payoutTransferCode = null;
   loan.payoutStatus = null;
   loan.payoutOtpResentAt = null;
+  loan.manualDisbursement = null;
+  loan.manualDisbursementOtpHash = null;
+  loan.manualDisbursementOtpExpiresAt = null;
 }
 
 function buildLoanEmailHtml({ loan, applicant, recipientsLabel }) {

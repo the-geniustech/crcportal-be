@@ -4,20 +4,24 @@ import { protect, restrictTo } from "../controllers/authController.js";
 import AppError from "../utils/AppError.js";
 import sendSuccess from "../utils/sendSuccess.js";
 import {
+  cancelManualLoanDisbursement,
   createLoanDraft,
   createLoanApplication,
   createLoanEditRequest,
   deleteLoanDraft,
   disburseLoan,
   finalizeLoanDisbursementOtp,
+  finalizeManualLoanDisbursement,
   getLoanEligibility,
   getLoanApplication,
+  initiateManualLoanDisbursement,
   listLoanApplications,
   listLoanSchedule,
   listLoanBorrowerBankAccounts,
   listMyLoanApplications,
   recordLoanRepayment,
   resendLoanDisbursementOtp,
+  resendManualLoanDisbursementOtp,
   reviewLoanApplication,
   verifyLoanDisbursementTransfer,
   updateLoanDraft,
@@ -232,6 +236,12 @@ router.post(
   loadLoanApplication,
   disburseLoan,
 );
+router.post(
+  "/applications/:applicationId/manual-disbursement",
+  restrictTo("admin"),
+  loadLoanApplication,
+  initiateManualLoanDisbursement,
+);
 router.patch(
   "/applications/:applicationId/finalize-otp",
   restrictTo("admin"),
@@ -239,10 +249,28 @@ router.patch(
   finalizeLoanDisbursementOtp,
 );
 router.patch(
+  "/applications/:applicationId/manual-disbursement/finalize",
+  restrictTo("admin"),
+  loadLoanApplication,
+  finalizeManualLoanDisbursement,
+);
+router.patch(
   "/applications/:applicationId/resend-otp",
   restrictTo("admin"),
   loadLoanApplication,
   resendLoanDisbursementOtp,
+);
+router.patch(
+  "/applications/:applicationId/manual-disbursement/resend-otp",
+  restrictTo("admin"),
+  loadLoanApplication,
+  resendManualLoanDisbursementOtp,
+);
+router.patch(
+  "/applications/:applicationId/manual-disbursement/cancel",
+  restrictTo("admin"),
+  loadLoanApplication,
+  cancelManualLoanDisbursement,
 );
 router.get(
   "/applications/:applicationId/bank-accounts",

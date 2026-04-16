@@ -194,7 +194,12 @@ export const downloadMyStatement = catchAsync(async (req, res, next) => {
     .sort({ date: -1 })
     .lean();
 
-  const creditTypes = new Set(["deposit", "group_contribution", "interest"]);
+  const creditTypes = new Set([
+    "deposit",
+    "group_contribution",
+    "interest",
+    "loan_disbursement",
+  ]);
   const debitTypes = new Set(["withdrawal", "loan_repayment"]);
 
   const summary = transactions.reduce(

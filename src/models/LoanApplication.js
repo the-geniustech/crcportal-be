@@ -85,6 +85,46 @@ const LoanGuarantorInfoSchema = new Schema(
   { _id: false },
 );
 
+const ManualLoanDisbursementSchema = new Schema(
+  {
+    status: {
+      type: String,
+      enum: ["pending_otp", "completed"],
+      default: null,
+    },
+    method: {
+      type: String,
+      enum: [
+        "cash",
+        "bank_transfer",
+        "bank_settlement",
+        "cheque",
+        "pos",
+        "other",
+      ],
+      default: null,
+    },
+    amount: { type: Number, default: null, min: 0 },
+    externalReference: { type: String, default: null, trim: true },
+    occurredAt: { type: Date, default: null },
+    repaymentStartDate: { type: Date, default: null },
+    notes: { type: String, default: null, trim: true },
+    initiatedByUserId: { type: ObjectId, ref: "User", default: null },
+    initiatedBy: { type: ObjectId, ref: "Profile", default: null },
+    authorizedBy: { type: ObjectId, ref: "Profile", default: null },
+    initiatedAt: { type: Date, default: null },
+    completedAt: { type: Date, default: null },
+    otpChannel: {
+      type: String,
+      enum: ["phone", "email"],
+      default: null,
+    },
+    otpRecipient: { type: String, default: null, trim: true },
+    otpSentAt: { type: Date, default: null },
+  },
+  { _id: false },
+);
+
 export const LoanApplicationSchema = new Schema(
   {
     userId: { type: ObjectId, ref: "Profile", required: true, index: true },
@@ -172,6 +212,17 @@ export const LoanApplicationSchema = new Schema(
     payoutTransferCode: { type: String, default: null, trim: true },
     payoutStatus: { type: String, default: null, trim: true },
     payoutOtpResentAt: { type: Date, default: null },
+    manualDisbursement: { type: ManualLoanDisbursementSchema, default: null },
+    manualDisbursementOtpHash: {
+      type: String,
+      default: null,
+      select: false,
+    },
+    manualDisbursementOtpExpiresAt: {
+      type: Date,
+      default: null,
+      select: false,
+    },
 
     reviewNotes: { type: String, default: null, trim: true },
     reviewedBy: { type: ObjectId, ref: "Profile", default: null },
