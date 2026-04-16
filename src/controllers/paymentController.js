@@ -16,7 +16,12 @@ import {
   isValidWebhookSignature,
 } from "../services/paystack.js";
 import {
+  applyLoanRepayment,
+  getLoanScheduleOutstandingAmount,
+} from "../services/loanRepaymentService.js";
+import {
   calculateContributionUnits,
+  calculateContributionInterestForType,
   getContributionTypeConfig,
   isContributionAmountValid,
   normalizeContributionType,
@@ -57,7 +62,10 @@ function applyContributionMetrics(contribution, amount) {
   if (!contribution) return;
   const safeAmount = Number(amount ?? contribution.amount ?? 0);
   contribution.units = calculateContributionUnits(safeAmount);
-  contribution.interestAmount = 0;
+  contribution.interestAmount = calculateContributionInterestForType(
+    contribution.contributionType,
+    safeAmount,
+  );
 }
 
 async function updateRecurringPaymentStats({
@@ -315,101 +323,6 @@ async function finalizeGroupContribution({ transaction, paystackData }) {
 }
 
 async function finalizeLoanRepayment({ transaction, paystackData }) {
-  const bulkLoanItems = transaction?.metadata?.bulkLoanScheduleItemIds;
-  if (Array.isArray(bulkLoanItems) && bulkLoanItems.length > 0) {
-    const scheduleItems = await LoanRepaymentScheduleItemModel.find({
-      _id: { $in: bulkLoanItems },
-    }).sort({ installmentNumber: 1 });
-
-    if (scheduleItems.length === 0) {
-      throw new AppError("No repayment schedule items found", 400);
-    }
-
-    const loanApplicationId = scheduleItems[0].loanApplicationId;
-    const application = await LoanApplicationModel.findById(loanApplicationId);
-    if (!application) throw new AppError("Loan application not found", 404);
-
-    if (!["disbursed", "defaulted"].includes(application.status)) {
-      throw new AppError("Loan is not active", 400);
-    }
-
-    const total = scheduleItems.reduce(
-      (sum, item) => sum + Number(item.totalAmount ?? 0),
-      0,
-    );
-    const txAmount = Number(transaction.amount ?? 0);
-    if (Math.round(total * 100) !== Math.round(txAmount * 100)) {
-      throw new AppError("Bulk repayment amount mismatch", 400);
-    }
-
-    const paidAt = new Date(paystackData?.paid_at || Date.now());
-    await Promise.all(
-      scheduleItems.map((item) => {
-        item.status = "paid";
-        item.paidAt = paidAt;
-        item.paidAmount = Number(item.totalAmount ?? 0);
-        item.transactionId = transaction._id;
-        item.reference = transaction.reference;
-        return item.save();
-      }),
-    );
-
-    await updateRecurringPaymentStats({
-      userId: transaction.userId,
-      paymentType: "loan_repayment",
-      loanId: application._id,
-      amount: total,
-      count: scheduleItems.length,
-      paidAt,
-    });
-
-    const remaining = Math.max(
-      0,
-      Number(application.remainingBalance || 0) - total,
-    );
-    application.remainingBalance = remaining;
-
-    const hasMore = await LoanRepaymentScheduleItemModel.exists({
-      loanApplicationId: application._id,
-      status: { $in: ["pending", "upcoming", "overdue"] },
-      _id: { $nin: scheduleItems.map((i) => i._id) },
-    });
-
-    if (!hasMore && remaining === 0) {
-      application.status = "completed";
-    } else {
-      const lastPaid = scheduleItems[scheduleItems.length - 1];
-      await LoanRepaymentScheduleItemModel.updateOne(
-        {
-          loanApplicationId: application._id,
-          status: "upcoming",
-          installmentNumber: { $gt: lastPaid.installmentNumber },
-        },
-        { $set: { status: "pending" } },
-      );
-    }
-
-    await application.save();
-
-    await TransactionModel.updateOne(
-      { _id: transaction._id },
-      {
-        $set: {
-          status: "success",
-          gateway: "paystack",
-          channel: paystackData?.channel || transaction.channel || null,
-          loanId: application._id,
-          loanName: application.loanCode || transaction.loanName || null,
-          metadata: {
-            ...(transaction.metadata || {}),
-            paystack: buildPaystackMeta(paystackData),
-          },
-        },
-      },
-    );
-    return;
-  }
-
   const loanApplicationId =
     transaction?.loanId || transaction?.metadata?.loanApplicationId || null;
   if (!loanApplicationId) return;
@@ -421,79 +334,19 @@ async function finalizeLoanRepayment({ transaction, paystackData }) {
     throw new AppError("Loan is not active", 400);
   }
 
-  const nextItem = await LoanRepaymentScheduleItemModel.findOne({
-    loanApplicationId: application._id,
-    status: { $in: ["pending", "upcoming", "overdue"] },
-  }).sort({ installmentNumber: 1 });
-
-  if (!nextItem) throw new AppError("No pending repayments found", 400);
-
-  const txAmount = Number(transaction.amount ?? 0);
-  if (txAmount < Number(nextItem.totalAmount)) {
-    throw new AppError("Repayment amount must cover the next installment", 400);
-  }
-
-  // Attach tx to schedule item and update application balance.
-  nextItem.status = "paid";
-  nextItem.paidAt = new Date(paystackData?.paid_at || Date.now());
-  nextItem.paidAmount = Number(nextItem.totalAmount);
-  nextItem.transactionId = transaction._id;
-  nextItem.reference = transaction.reference;
-  await nextItem.save();
-
-  await updateRecurringPaymentStats({
-    userId: transaction.userId,
-    paymentType: "loan_repayment",
-    loanId: application._id,
-    amount: Number(nextItem.totalAmount),
-    count: 1,
-    paidAt: nextItem.paidAt,
-  });
-
-  const remaining = Math.max(
-    0,
-    Number(application.remainingBalance || 0) - Number(nextItem.totalAmount),
-  );
-  application.remainingBalance = remaining;
-
-  const hasMore = await LoanRepaymentScheduleItemModel.exists({
-    loanApplicationId: application._id,
-    status: { $in: ["pending", "upcoming", "overdue"] },
-    _id: { $ne: nextItem._id },
-  });
-
-  if (!hasMore && remaining === 0) {
-    application.status = "completed";
-  } else {
-    await LoanRepaymentScheduleItemModel.updateOne(
-      {
-        loanApplicationId: application._id,
-        status: "upcoming",
-        installmentNumber: nextItem.installmentNumber + 1,
-      },
-      { $set: { status: "pending" } },
-    );
-  }
-
-  await application.save();
-
-  await TransactionModel.updateOne(
-    { _id: transaction._id },
-    {
-      $set: {
-        status: "success",
-        gateway: "paystack",
-        channel: paystackData?.channel || transaction.channel || null,
-        loanId: application._id,
-        loanName: application.loanCode || transaction.loanName || null,
-        metadata: {
-          ...(transaction.metadata || {}),
-          installmentNumber: nextItem.installmentNumber,
-          paystack: buildPaystackMeta(paystackData),
-        },
-      },
+  await applyLoanRepayment({
+    application,
+    amount: Number(transaction.amount ?? 0),
+    reference: transaction.reference,
+    channel: paystackData?.channel || transaction.channel || null,
+    transaction,
+    gateway: "paystack",
+    metadata: {
+      ...(transaction.metadata || {}),
+      paystack: buildPaystackMeta(paystackData),
     },
-  );
+    paidAt: paystackData?.paid_at || new Date(),
+  });
 }
 
 async function finalizeDeposit({ transaction, paystackData }) {
@@ -717,14 +570,14 @@ export const initializePaystackPayment = catchAsync(async (req, res, next) => {
     if (!nextItem)
       return next(new AppError("No pending repayments found", 400));
 
-    // For now, enforce exact installment amount to avoid reconciliation issues.
-    if (Number(parsedAmount) !== Number(nextItem.totalAmount)) {
-      return next(
-        new AppError(
-          `Amount must equal the next installment (₦${Number(nextItem.totalAmount).toLocaleString()})`,
-          400,
-        ),
-      );
+    // Keep the member self-service flow aligned to the current amount due.
+    const nextItemDue = getLoanScheduleOutstandingAmount(nextItem);
+    if (
+      Math.round(Number(parsedAmount) * 100) !==
+      Math.round(nextItemDue * 100)
+    ) {
+      const message = `Amount must equal the next amount due (NGN ${nextItemDue.toLocaleString()})`;
+      return next(new AppError(message, 400));
     }
 
     loanName = loan.loanCode || null;
@@ -993,7 +846,7 @@ export const initializePaystackBulkPayment = catchAsync(
       }
 
       const expectedTotal = scheduleItems.reduce(
-        (sum, item) => sum + Number(item.totalAmount || 0),
+        (sum, item) => sum + getLoanScheduleOutstandingAmount(item),
         0,
       );
       const providedTotal = items.reduce(
@@ -1121,3 +974,4 @@ export const paystackWebhook = catchAsync(async (req, res, next) => {
 
   return sendSuccess(res, { statusCode: 200, data: { ok: true } });
 });
+

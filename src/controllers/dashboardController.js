@@ -4,6 +4,7 @@ import sendSuccess from "../utils/sendSuccess.js";
 import { ContributionModel } from "../models/Contribution.js";
 import { LoanApplicationModel } from "../models/LoanApplication.js";
 import { LoanRepaymentScheduleItemModel } from "../models/LoanRepaymentScheduleItem.js";
+import { getLoanScheduleOutstandingAmount } from "../services/loanRepaymentService.js";
 
 const PaidContributionStatuses = ["completed", "verified"];
 
@@ -84,7 +85,7 @@ export const getDashboardSummary = catchAsync(async (req, res, next) => {
         loanCode: loanMeta?.loanCode ?? null,
         groupName: loanMeta?.groupName ?? null,
         dueDate: scheduleItem.dueDate,
-        amount: scheduleItem.totalAmount,
+        amount: getLoanScheduleOutstandingAmount(scheduleItem),
         status: scheduleItem.status,
       };
     }

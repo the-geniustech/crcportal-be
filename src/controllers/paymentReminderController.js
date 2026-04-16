@@ -3,6 +3,8 @@ import catchAsync from "../utils/catchAsync.js";
 import sendSuccess from "../utils/sendSuccess.js";
 import { RecurringPaymentModel } from "../models/RecurringPayment.js";
 import { LoanApplicationModel } from "../models/LoanApplication.js";
+import { LoanRepaymentScheduleItemModel } from "../models/LoanRepaymentScheduleItem.js";
+import { getLoanScheduleOutstandingAmount } from "../services/loanRepaymentService.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -111,21 +113,42 @@ export const listMyPaymentReminders = catchAsync(async (req, res, next) => {
     userId: req.user.profileId,
     status: { $in: ["disbursed", "defaulted"] },
     remainingBalance: { $gt: 0 },
-    monthlyPayment: { $gt: 0 },
     repaymentStartDate: { $ne: null },
   }).lean();
 
+  const nextScheduleItems =
+    loans.length > 0
+      ? await LoanRepaymentScheduleItemModel.find({
+          loanApplicationId: { $in: loans.map((loan) => loan._id) },
+          status: { $in: ["pending", "upcoming", "overdue"] },
+        })
+          .sort({ dueDate: 1, installmentNumber: 1 })
+          .lean()
+      : [];
+  const nextScheduleByLoanId = new Map();
+  for (const item of nextScheduleItems) {
+    const loanId = String(item.loanApplicationId);
+    if (!nextScheduleByLoanId.has(loanId)) {
+      nextScheduleByLoanId.set(loanId, item);
+    }
+  }
+
   for (const loan of loans) {
     if (recurringLoanIds.has(String(loan._id))) continue;
-    const dueDate = nextMonthlyDue(loan.repaymentStartDate, now);
-    if (!dueDate) continue;
+    const nextSchedule = nextScheduleByLoanId.get(String(loan._id));
+    const dueDate = nextSchedule?.dueDate
+      ? new Date(nextSchedule.dueDate)
+      : nextMonthlyDue(loan.repaymentStartDate, now);
+    if (!dueDate || Number.isNaN(dueDate.getTime())) continue;
     if (dueDate > windowEnd) continue;
 
     reminders.push(
       buildReminder({
         id: loan._id,
         type: "loan_repayment",
-        amount: loan.monthlyPayment,
+        amount: nextSchedule
+          ? getLoanScheduleOutstandingAmount(nextSchedule)
+          : Number(loan.monthlyPayment || 0),
         dueDate,
         loanId: loan._id,
         groupName: loan.groupName,

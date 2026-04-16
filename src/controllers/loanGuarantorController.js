@@ -6,6 +6,7 @@ import { LoanApplicationModel } from "../models/LoanApplication.js";
 import { LoanRepaymentScheduleItemModel } from "../models/LoanRepaymentScheduleItem.js";
 import { GuarantorNotificationModel } from "../models/GuarantorNotification.js";
 import { ProfileModel } from "../models/Profile.js";
+import { getLoanScheduleOutstandingAmount } from "../services/loanRepaymentService.js";
 
 function mapLoanStatus(appStatus) {
   if (appStatus === "completed") return "completed";
@@ -149,7 +150,9 @@ export const listMyGuarantorCommitments = catchAsync(async (req, res, next) => {
       disbursedDate: loan.disbursedAt,
       remainingBalance,
       nextPaymentDate: nextPayment?.dueDate || null,
-      nextPaymentAmount: nextPayment?.totalAmount || null,
+      nextPaymentAmount: nextPayment
+        ? getLoanScheduleOutstandingAmount(nextPayment)
+        : null,
       missedPayments,
       totalPaid,
       progressPercentage,
@@ -205,4 +208,3 @@ export const markGuarantorNotificationRead = catchAsync(async (req, res, next) =
 
   return sendSuccess(res, { statusCode: 200, data: { notification } });
 });
-

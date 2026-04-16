@@ -1,4 +1,4 @@
-import AppError from "../utils/AppError.js";
+﻿import AppError from "../utils/AppError.js";
 import catchAsync from "../utils/catchAsync.js";
 import sendSuccess from "../utils/sendSuccess.js";
 import {
@@ -11,11 +11,14 @@ import { GroupMembershipModel } from "../models/GroupMembership.js";
 import { ContributionModel } from "../models/Contribution.js";
 import { ProfileModel } from "../models/Profile.js";
 import { NotificationModel } from "../models/Notification.js";
+import { RecurringPaymentModel } from "../models/RecurringPayment.js";
+import { TransactionModel } from "../models/Transaction.js";
 import mongoose from "mongoose";
 import { assignGroupMemberSerial } from "../utils/groupMemberSerial.js";
 import { hasUserRole } from "../utils/roles.js";
 import {
   ContributionTypeCanonical,
+  calculateContributionInterestForType,
   calculateContributionUnits,
   getContributionTypeMatch,
   isContributionAmountValid,
@@ -85,6 +88,94 @@ function dueDateUtc(year, month1to12, day = 4) {
   return new Date(Date.UTC(year, nextMonthIndex, day, 23, 59, 59, 999));
 }
 
+function generateReference(prefix = "CRC") {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 11).toUpperCase()}`;
+}
+
+function addFrequency(date, frequency) {
+  const d = new Date(date);
+  if (frequency === "weekly") d.setDate(d.getDate() + 7);
+  else if (frequency === "bi-weekly") d.setDate(d.getDate() + 14);
+  else d.setMonth(d.getMonth() + 1);
+  return d;
+}
+
+function parseDate(value, fallback = null) {
+  if (!value) return fallback;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return fallback;
+  return date;
+}
+
+function applyContributionMetrics(contribution, amount) {
+  if (!contribution) return;
+  const safeAmount = Number(amount ?? contribution.amount ?? 0);
+  contribution.units = calculateContributionUnits(safeAmount);
+  contribution.interestAmount = calculateContributionInterestForType(
+    contribution.contributionType,
+    safeAmount,
+  );
+}
+
+async function updateRecurringPaymentStats({
+  userId,
+  paymentType,
+  groupId,
+  loanId,
+  amount,
+  count = 1,
+  paidAt,
+} = {}) {
+  if (!userId || !paymentType) return;
+
+  const query = { userId, paymentType, isActive: true };
+  if (paymentType === "group_contribution") {
+    if (!groupId) return;
+    query.groupId = groupId;
+  }
+  if (paymentType === "loan_repayment") {
+    if (!loanId) return;
+    query.loanId = loanId;
+  }
+
+  const schedules = await RecurringPaymentModel.find(query).sort({
+    nextPaymentDate: 1,
+    createdAt: 1,
+  });
+  if (schedules.length === 0) return;
+
+  let target = schedules[0];
+  if (Number.isFinite(amount) && count === 1) {
+    const match = schedules.find(
+      (schedule) =>
+        Math.round(Number(schedule.amount ?? 0) * 100) ===
+        Math.round(Number(amount ?? 0) * 100),
+    );
+    if (match) target = match;
+  }
+
+  const paidAtDate = parseDate(paidAt, new Date());
+  target.totalPaymentsMade = Number(target.totalPaymentsMade ?? 0) + count;
+  target.totalAmountPaid =
+    Number(target.totalAmountPaid ?? 0) + Number(amount ?? 0);
+  target.lastPaymentDate = paidAtDate;
+  target.lastPaymentStatus = "success";
+
+  const baseDate =
+    parseDate(target.nextPaymentDate, null) ||
+    parseDate(target.startDate, null) ||
+    paidAtDate;
+  let nextDate = baseDate || paidAtDate;
+  for (let i = 0; i < count; i += 1) {
+    nextDate = addFrequency(nextDate, target.frequency);
+  }
+  while (nextDate <= paidAtDate) {
+    nextDate = addFrequency(nextDate, target.frequency);
+  }
+  target.nextPaymentDate = nextDate;
+  await target.save();
+}
+
 function endOfMonthUtc(year, month1to12) {
   return new Date(Date.UTC(year, month1to12, 0, 23, 59, 59, 999));
 }
@@ -102,8 +193,18 @@ function buildContributionReminderMessage({ groupName, label, amount }) {
   const amountText = Number(amount || 0)
     ? ` Amount: NGN${Number(amount || 0).toLocaleString()}.`
     : "";
-  return `Your contribution for ${safeGroup} (${safeLabel}) is due.${amountText} Payment window: 27th–4th.`;
+  return `Your contribution for ${safeGroup} (${safeLabel}) is due.${amountText} Payment window: 27th-4th.`;
 }
+
+const ManualContributionPaymentMethods = new Set([
+  "bank_transfer",
+  "cash",
+  "card",
+  "pos",
+  "mobile_money",
+  "cheque",
+  "other",
+]);
 
 export const listAdminGroups = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
@@ -894,11 +995,23 @@ export const markContributionPaid = catchAsync(async (req, res, next) => {
   const year = Number(req.body?.year);
   const amount = Number(req.body?.amount);
   const contributionTypeRaw = req.body?.contributionType;
+  const paymentMethod = String(
+    req.body?.paymentMethod || "bank_transfer",
+  ).trim().toLowerCase();
+  const manualPaymentReference = req.body?.paymentReference
+    ? String(req.body.paymentReference).trim()
+    : null;
+  const description = req.body?.description
+    ? String(req.body.description).trim()
+    : "";
 
   if (!userId || !groupId) return next(new AppError("userId and groupId are required", 400));
   if (!Number.isFinite(month) || month < 1 || month > 12) return next(new AppError("Invalid month", 400));
   if (!Number.isFinite(year) || year < 2000 || year > 2100) return next(new AppError("Invalid year", 400));
   if (!Number.isFinite(amount) || amount <= 0) return next(new AppError("amount must be > 0", 400));
+  if (!ManualContributionPaymentMethods.has(paymentMethod)) {
+    return next(new AppError("Invalid paymentMethod", 400));
+  }
 
   const normalizedTypeRaw = normalizeContributionType(contributionTypeRaw);
   if (contributionTypeRaw !== undefined && !normalizedTypeRaw) {
@@ -914,11 +1027,20 @@ export const markContributionPaid = catchAsync(async (req, res, next) => {
   const membership = await GroupMembershipModel.findOne({ groupId, userId, status: "active" });
   if (!membership) return next(new AppError("Member is not active in this group", 400));
 
+  const group = await GroupModel.findById(groupId, { groupName: 1 });
+  if (!group) return next(new AppError("Group not found", 404));
+
   if (!isContributionAmountValid(normalizedType, amount)) {
     return next(new AppError("Amount does not meet contribution requirements", 400));
   }
 
-  const contribution = await ContributionModel.create({
+  const verifiedAt = new Date();
+  const reference = generateReference("CRC-MAN");
+  const transactionDescription =
+    description ||
+    `Manual ${normalizedType} contribution for ${formatMonthLabel(year, month)}`;
+
+  const contribution = new ContributionModel({
     userId,
     groupId,
     month,
@@ -926,11 +1048,37 @@ export const markContributionPaid = catchAsync(async (req, res, next) => {
     contributionType: normalizedType,
     amount,
     status: "verified",
-    paymentMethod: "manual",
+    paymentMethod,
+    paymentReference: reference,
     verifiedBy: req.user.profileId,
-    verifiedAt: new Date(),
-    units: calculateContributionUnits(amount),
-    interestAmount: 0,
+    verifiedAt,
+    notes: description || null,
+  });
+  applyContributionMetrics(contribution, amount);
+  await contribution.save({ validateBeforeSave: true });
+
+  const transaction = await TransactionModel.create({
+    userId,
+    reference,
+    amount,
+    type: "group_contribution",
+    status: "success",
+    description: transactionDescription,
+    channel: paymentMethod,
+    groupId,
+    groupName: group.groupName || "Group",
+    metadata: {
+      paymentType: "group_contribution",
+      contributionId: contribution._id,
+      month,
+      year,
+      contributionType: normalizedType,
+      manual: true,
+      manualPaymentReference: manualPaymentReference || null,
+      recordedBy: req.user.profileId,
+      recordedAt: verifiedAt.toISOString(),
+    },
+    gateway: "manual",
   });
 
   await Promise.all([
@@ -939,7 +1087,20 @@ export const markContributionPaid = catchAsync(async (req, res, next) => {
       { groupId, userId },
       { $inc: { totalContributed: amount } },
     ),
+    updateRecurringPaymentStats({
+      userId,
+      paymentType: "group_contribution",
+      groupId,
+      amount,
+      count: 1,
+      paidAt: verifiedAt,
+    }),
   ]);
 
-  return sendSuccess(res, { statusCode: 200, message: "Contribution marked as paid", data: { contribution } });
+  return sendSuccess(res, {
+    statusCode: 200,
+    message: "Contribution marked as paid",
+    data: { contribution, transaction },
+  });
 });
+

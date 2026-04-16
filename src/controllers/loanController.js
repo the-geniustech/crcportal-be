@@ -9,13 +9,16 @@ import { LoanApplicationEditRequestModel } from "../models/LoanApplicationEditRe
 import { LoanGuarantorModel } from "../models/LoanGuarantor.js";
 import { GuarantorNotificationModel } from "../models/GuarantorNotification.js";
 import { LoanRepaymentScheduleItemModel } from "../models/LoanRepaymentScheduleItem.js";
-import { TransactionModel } from "../models/Transaction.js";
 import { ProfileModel } from "../models/Profile.js";
 import { BankAccountModel } from "../models/BankAccount.js";
 import { GroupModel } from "../models/Group.js";
 import { GroupMembershipModel } from "../models/GroupMembership.js";
 import { ContributionModel } from "../models/Contribution.js";
 import { createNotification } from "../services/notificationService.js";
+import {
+  applyLoanRepayment,
+  buildLoanNextPaymentMap,
+} from "../services/loanRepaymentService.js";
 import { randomId } from "../utils/crypto.js";
 import {
   LoanFacilityTypes,
@@ -814,26 +817,6 @@ async function validateEditGuarantors({
       }
     }
   }
-}
-
-async function buildNextPaymentMap(apps) {
-  if (!Array.isArray(apps) || apps.length === 0) return new Map();
-  const ids = apps.map((app) => app._id);
-  const scheduleItems = await LoanRepaymentScheduleItemModel.find({
-    loanApplicationId: { $in: ids },
-    status: { $in: ["pending", "upcoming", "overdue"] },
-  })
-    .sort({ dueDate: 1 })
-    .lean();
-
-  const map = new Map();
-  for (const item of scheduleItems) {
-    const key = String(item.loanApplicationId);
-    if (!map.has(key)) {
-      map.set(key, item);
-    }
-  }
-  return map;
 }
 
 function buildRepaymentSchedule({
@@ -1744,7 +1727,7 @@ export const listMyLoanApplications = catchAsync(async (req, res, next) => {
   })
     .sort({ createdAt: -1 })
     .lean();
-  const nextPaymentMap = await buildNextPaymentMap(apps);
+  const nextPaymentMap = await buildLoanNextPaymentMap(apps);
   const editRequests = await LoanApplicationEditRequestModel.find({
     loanApplicationId: { $in: apps.map((app) => app._id) },
   })
@@ -1765,7 +1748,7 @@ export const listMyLoanApplications = catchAsync(async (req, res, next) => {
     return {
       ...base,
       nextPaymentDueDate: next?.dueDate ?? null,
-      nextPaymentAmount: next?.totalAmount ?? null,
+      nextPaymentAmount: next?.amountDue ?? null,
       nextPaymentStatus: next?.status ?? null,
       latestEditRequest: editRequest
         ? {
@@ -1831,14 +1814,14 @@ export const listLoanApplications = catchAsync(async (req, res) => {
       .lean(),
     LoanApplicationModel.countDocuments(filter),
   ]);
-  const nextPaymentMap = await buildNextPaymentMap(applications);
+  const nextPaymentMap = await buildLoanNextPaymentMap(applications);
   const enriched = applications.map((app) => {
     const base = withRepaymentToDate(app);
     const next = nextPaymentMap.get(String(app._id));
     return {
       ...base,
       nextPaymentDueDate: next?.dueDate ?? null,
-      nextPaymentAmount: next?.totalAmount ?? null,
+      nextPaymentAmount: next?.amountDue ?? null,
       nextPaymentStatus: next?.status ?? null,
     };
   });
@@ -2496,67 +2479,26 @@ export const recordLoanRepayment = catchAsync(async (req, res, next) => {
     return next(new AppError("amount is required", 400));
   if (!reference) return next(new AppError("reference is required", 400));
 
-  const nextItem = await LoanRepaymentScheduleItemModel.findOne({
-    loanApplicationId: req.loanApplication._id,
-    status: { $in: ["pending", "upcoming", "overdue"] },
-  }).sort({ installmentNumber: 1 });
-
-  if (!nextItem) {
-    return next(new AppError("No pending repayments found", 400));
-  }
-
-  if (amount < nextItem.totalAmount) {
-    return next(
-      new AppError("Repayment amount must cover the next installment", 400),
-    );
-  }
-
-  const tx = await TransactionModel.create({
-    userId: req.loanApplication.userId,
+  const result = await applyLoanRepayment({
+    application: req.loanApplication,
+    amount,
     reference,
-    amount: nextItem.totalAmount,
-    type: "loan_repayment",
-    status: "success",
-    description: `Loan repayment for ${req.loanApplication.loanCode}`,
     channel: req.body?.channel || null,
-    loanId: req.loanApplication._id,
-    loanName: req.loanApplication.loanCode,
-    metadata: { installmentNumber: nextItem.installmentNumber },
+    description: `Loan repayment for ${req.loanApplication.loanCode}`,
+    gateway: req.body?.gateway || "manual",
+    metadata: {
+      recordedBy: req.user.profileId,
+      manual: req.body?.gateway !== "paystack",
+    },
+    paidAt: new Date(),
   });
-
-  nextItem.status = "paid";
-  nextItem.paidAt = new Date();
-  nextItem.paidAmount = nextItem.totalAmount;
-  nextItem.transactionId = tx._id;
-  nextItem.reference = reference;
-  await nextItem.save();
-
-  const remaining = Math.max(
-    0,
-    Number(req.loanApplication.remainingBalance || 0) - nextItem.totalAmount,
-  );
-  req.loanApplication.remainingBalance = remaining;
-
-  const hasMore = await LoanRepaymentScheduleItemModel.exists({
-    loanApplicationId: req.loanApplication._id,
-    status: { $in: ["pending", "upcoming", "overdue"] },
-    _id: { $ne: nextItem._id },
-  });
-
-  if (!hasMore && remaining === 0) {
-    req.loanApplication.status = "completed";
-  } else {
-    await LoanRepaymentScheduleItemModel.updateOne(
-      {
-        loanApplicationId: req.loanApplication._id,
-        status: "upcoming",
-        installmentNumber: nextItem.installmentNumber + 1,
-      },
-      { $set: { status: "pending" } },
-    );
-  }
-
-  await req.loanApplication.save();
+  const firstAffectedScheduleItem =
+    result.allocations.length > 0
+      ? result.scheduleItems.find(
+          (item) =>
+            String(item._id) === String(result.allocations[0].scheduleItemId),
+        ) || null
+      : null;
 
   createNotification({
     userId: req.loanApplication.userId,
@@ -2566,9 +2508,12 @@ export const recordLoanRepayment = catchAsync(async (req, res, next) => {
     metadata: {
       loanId: req.loanApplication._id,
       loanCode: req.loanApplication.loanCode,
-      amount: nextItem.totalAmount,
+      amount,
       reference,
-      installmentNumber: nextItem.installmentNumber,
+      allocations: result.allocations.map((allocation) => ({
+        installmentNumber: allocation.installmentNumber,
+        appliedAmount: allocation.appliedAmount,
+      })),
     },
   }).catch((err) => {
     // eslint-disable-next-line no-console
@@ -2578,9 +2523,10 @@ export const recordLoanRepayment = catchAsync(async (req, res, next) => {
   return sendSuccess(res, {
     statusCode: 200,
     data: {
-      transaction: tx,
-      scheduleItem: nextItem,
-      application: req.loanApplication,
+      transaction: result.transaction,
+      scheduleItem: firstAffectedScheduleItem,
+      allocations: result.allocations,
+      application: result.application,
     },
   });
 });
