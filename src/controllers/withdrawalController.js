@@ -6,8 +6,11 @@ import { BankAccountModel } from "../models/BankAccount.js";
 import { TransactionModel } from "../models/Transaction.js";
 import { GroupMembershipModel } from "../models/GroupMembership.js";
 import { GroupModel } from "../models/Group.js";
+import { UserModel } from "../models/User.js";
 import { computeContributionBalances } from "../utils/finance.js";
-import { randomId } from "../utils/crypto.js";
+import { sendEmailOtp } from "../services/mail/sendEmailOtp.js";
+import { sendPhoneOtp } from "../services/sms/sendPhoneOtp.js";
+import { randomId, sha256 } from "../utils/crypto.js";
 import { normalizeContributionType } from "../utils/contributionPolicy.js";
 import { hasUserRole } from "../utils/roles.js";
 import {
@@ -28,6 +31,24 @@ const OTP_RESEND_COOLDOWN_MS = (() => {
   if (Number.isFinite(msRaw) && msRaw > 0) return Math.round(msRaw);
   return 60_000;
 })();
+
+const MANUAL_WITHDRAWAL_PAYOUT_OTP_TTL_MINUTES = (() => {
+  const raw = Number(
+    process.env.WITHDRAWAL_MANUAL_PAYOUT_OTP_TTL_MINUTES ||
+      process.env.LOAN_MANUAL_DISBURSEMENT_OTP_TTL_MINUTES,
+  );
+  if (Number.isFinite(raw) && raw > 0) return Math.round(raw);
+  return 10;
+})();
+
+const ManualWithdrawalPayoutMethods = [
+  "cash",
+  "bank_transfer",
+  "bank_settlement",
+  "cheque",
+  "pos",
+  "other",
+];
 
 async function getManageableGroupIds(req) {
   if (!req.user) throw new AppError("Not authenticated", 401);
@@ -101,6 +122,279 @@ function sanitizeTransferReference(input) {
   const raw = String(input || "").toLowerCase().replace(/[^a-z0-9_-]/g, "");
   if (raw.length >= 16 && raw.length <= 50) return raw;
   return buildTransferReference();
+}
+
+function buildManualPayoutReference(withdrawal) {
+  const base = String(withdrawal?._id || "withdrawal")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+  return `manual_${base}_${Date.now().toString(36)}_${randomId(3)}`.slice(
+    0,
+    50,
+  );
+}
+
+function getAuthenticatedUserId(req) {
+  return String(req?.user?._id || req?.user?.id || "");
+}
+
+function generateOtp() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+function maskPhoneNumber(phone) {
+  const raw = String(phone || "").trim();
+  if (raw.length <= 4) return raw;
+  return `${raw.slice(0, 4)}${"*".repeat(Math.max(0, raw.length - 6))}${raw.slice(-2)}`;
+}
+
+function maskEmailAddress(email) {
+  const raw = String(email || "").trim().toLowerCase();
+  const atIndex = raw.indexOf("@");
+  if (atIndex <= 1) return raw;
+  const local = raw.slice(0, atIndex);
+  const domain = raw.slice(atIndex);
+  return `${local.slice(0, 1)}${"*".repeat(Math.max(1, local.length - 2))}${local.slice(-1)}${domain}`;
+}
+
+function normalizeManualPayoutMethod(value) {
+  const method = String(value || "")
+    .trim()
+    .toLowerCase();
+  if (!ManualWithdrawalPayoutMethods.includes(method)) {
+    throw new AppError("Invalid manual payout method", 400);
+  }
+  return method;
+}
+
+function formatManualPayoutMethodLabel(method) {
+  switch (String(method || "").trim().toLowerCase()) {
+    case "bank_transfer":
+      return "bank transfer";
+    case "bank_settlement":
+      return "bank settlement";
+    default:
+      return String(method || "manual payout")
+        .replace(/_/g, " ")
+        .trim();
+  }
+}
+
+function isManualPayoutGateway(value) {
+  const gateway = String(value || "")
+    .trim()
+    .toLowerCase();
+  return gateway === "manual" || ManualWithdrawalPayoutMethods.includes(gateway);
+}
+
+function clearManualPayoutAuthorization(withdrawal) {
+  if (!withdrawal) return;
+  withdrawal.manualPayoutOtpHash = null;
+  withdrawal.manualPayoutOtpExpiresAt = null;
+}
+
+function clearPendingManualPayoutState(withdrawal) {
+  if (!withdrawal) return;
+  const previousStatus =
+    String(withdrawal.manualPayout?.previousStatus || "").trim().toLowerCase() ||
+    "approved";
+  withdrawal.status = previousStatus === "processing" ? "processing" : "approved";
+  withdrawal.payoutReference = null;
+  withdrawal.payoutGateway = null;
+  withdrawal.payoutTransferCode = null;
+  withdrawal.payoutStatus = null;
+  withdrawal.payoutOtpResentAt = null;
+  withdrawal.manualPayout = null;
+  clearManualPayoutAuthorization(withdrawal);
+}
+
+function isMissingOrStalePaystackTransferError(error) {
+  const message = String(error?.message || "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return (
+    message.includes("transfer not found") ||
+    message.includes("could not find transfer") ||
+    message.includes("invalid paystack transfer response") ||
+    message.includes("invalid transfer response") ||
+    message.includes("transfer reference does not exist") ||
+    message.includes("reference not found")
+  );
+}
+
+function appendPayoutEvent(withdrawal, req, event = {}) {
+  if (!withdrawal) return;
+  const occurredAt = event.occurredAt instanceof Date
+    ? event.occurredAt
+    : event.occurredAt
+      ? new Date(event.occurredAt)
+      : new Date();
+  const actorUserId = getAuthenticatedUserId(req) || null;
+  const actorProfileId = req?.user?.profileId || null;
+
+  withdrawal.payoutEvents = Array.isArray(withdrawal.payoutEvents)
+    ? withdrawal.payoutEvents
+    : [];
+  withdrawal.payoutEvents.push({
+    eventType: event.eventType || "payout_event",
+    gateway: event.gateway || withdrawal.payoutGateway || null,
+    status: event.status || withdrawal.payoutStatus || null,
+    reference: event.reference || withdrawal.payoutReference || null,
+    transferCode: event.transferCode || withdrawal.payoutTransferCode || null,
+    message: event.message || null,
+    actorUserId,
+    actorProfileId,
+    occurredAt,
+    metadata: event.metadata || null,
+  });
+
+  if (withdrawal.payoutEvents.length > 100) {
+    withdrawal.payoutEvents = withdrawal.payoutEvents.slice(-100);
+  }
+}
+
+function ensureManualPayoutInitiator(withdrawal, req) {
+  const actorUserId = getAuthenticatedUserId(req);
+  const initiatedByUserId = String(
+    withdrawal?.manualPayout?.initiatedByUserId || "",
+  );
+
+  if (!initiatedByUserId || !actorUserId || initiatedByUserId !== actorUserId) {
+    throw new AppError(
+      "Only the admin who requested this manual payout OTP can finalize or resend it.",
+      403,
+    );
+  }
+}
+
+function getWithdrawalBaseMetadata(withdrawal) {
+  return {
+    withdrawalRequestId: withdrawal._id,
+    contributionType: withdrawal.contributionType ?? null,
+  };
+}
+
+function buildWithdrawalDescription(withdrawal, options = {}) {
+  const manualPayout = options.manualPayout || withdrawal.manualPayout || null;
+  const method = String(manualPayout?.method || "").trim().toLowerCase();
+  const beneficiary = `${withdrawal.bankName} (${String(withdrawal.accountNumber).slice(-4)})`;
+
+  if (manualPayout) {
+    if (["bank_transfer", "bank_settlement"].includes(method)) {
+      return `Manual withdrawal payout to ${beneficiary}`;
+    }
+    return `Manual withdrawal payout via ${formatManualPayoutMethodLabel(method)}`;
+  }
+
+  return `Withdrawal to ${beneficiary}`;
+}
+
+async function upsertWithdrawalTransaction({
+  withdrawal,
+  reference,
+  status,
+  gateway,
+  channel = "transfer",
+  metadata = {},
+  description = null,
+}) {
+  if (!reference) return null;
+
+  const txStatus =
+    status === "success" ? "success" : ["failed", "reversed"].includes(status) ? "failed" : "pending";
+  const baseMetadata = {
+    ...getWithdrawalBaseMetadata(withdrawal),
+    ...metadata,
+  };
+
+  let tx = await TransactionModel.findOne({ reference });
+  if (!tx) {
+    tx = await TransactionModel.create({
+      userId: withdrawal.userId,
+      reference,
+      amount: withdrawal.amount,
+      type: "withdrawal",
+      status: txStatus,
+      description:
+        description ||
+        buildWithdrawalDescription(withdrawal, {
+          manualPayout: metadata.manualPayout || null,
+        }),
+      channel,
+      gateway,
+      groupId: withdrawal.groupId ?? null,
+      groupName: withdrawal.groupName ?? null,
+      metadata: baseMetadata,
+    });
+    return tx;
+  }
+
+  tx.status = txStatus;
+  tx.gateway = gateway;
+  tx.channel = channel || tx.channel || "transfer";
+  tx.description =
+    description ||
+    tx.description ||
+    buildWithdrawalDescription(withdrawal, {
+      manualPayout: metadata.manualPayout || null,
+    });
+  tx.metadata = {
+    ...(tx.metadata || {}),
+    ...baseMetadata,
+  };
+  await tx.save();
+  return tx;
+}
+
+function applyPaystackTransferState(withdrawal, status) {
+  if (status === "success") {
+    withdrawal.status = "completed";
+    withdrawal.completedAt = new Date();
+    return;
+  }
+
+  withdrawal.completedAt = null;
+  if (["failed", "reversed"].includes(status)) {
+    withdrawal.status = "approved";
+  } else {
+    withdrawal.status = "processing";
+  }
+}
+
+async function sendManualWithdrawalPayoutOtp({ user, otp }) {
+  if (user?.phone) {
+    await sendPhoneOtp({
+      toPhone: user.phone,
+      otp,
+      ttlMinutes: MANUAL_WITHDRAWAL_PAYOUT_OTP_TTL_MINUTES,
+    });
+    return {
+      channel: "phone",
+      recipient: user.phone,
+      maskedRecipient: maskPhoneNumber(user.phone),
+    };
+  }
+
+  if (user?.email) {
+    await sendEmailOtp({
+      toEmail: user.email,
+      otp,
+      ttlMinutes: MANUAL_WITHDRAWAL_PAYOUT_OTP_TTL_MINUTES,
+      purpose: "manual withdrawal payout confirmation",
+    });
+    return {
+      channel: "email",
+      recipient: user.email,
+      maskedRecipient: maskEmailAddress(user.email),
+    };
+  }
+
+  throw new AppError(
+    "Authorized user must have a phone number or email to receive OTP.",
+    400,
+  );
 }
 
 async function resolveBankCode({ bankCode, bankName } = {}) {
@@ -302,6 +596,11 @@ export const approveWithdrawal = catchAsync(async (req, res, next) => {
   withdrawal.status = "approved";
   withdrawal.adminNotes = req.body?.adminNotes ? String(req.body.adminNotes).trim() : withdrawal.adminNotes;
   withdrawal.approvedAt = new Date();
+  appendPayoutEvent(withdrawal, req, {
+    eventType: "withdrawal_approved",
+    message: "Withdrawal request approved for payout processing.",
+    status: "approved",
+  });
   await withdrawal.save();
 
   return sendSuccess(res, { statusCode: 200, data: { withdrawal } });
@@ -324,6 +623,14 @@ export const rejectWithdrawal = catchAsync(async (req, res, next) => {
   withdrawal.status = "rejected";
   withdrawal.rejectionReason = rejectionReason;
   withdrawal.adminNotes = req.body?.adminNotes ? String(req.body.adminNotes).trim() : withdrawal.adminNotes;
+  appendPayoutEvent(withdrawal, req, {
+    eventType: "withdrawal_rejected",
+    message: "Withdrawal request was rejected.",
+    status: "rejected",
+    metadata: {
+      rejectionReason,
+    },
+  });
   await withdrawal.save();
 
   return sendSuccess(res, { statusCode: 200, data: { withdrawal } });
@@ -341,10 +648,198 @@ export const markWithdrawalProcessing = catchAsync(async (req, res, next) => {
   }
 
   withdrawal.status = "processing";
+  appendPayoutEvent(withdrawal, req, {
+    eventType: "withdrawal_processing_marked",
+    message: "Withdrawal manually marked as processing.",
+    status: "processing",
+  });
   await withdrawal.save();
 
   return sendSuccess(res, { statusCode: 200, data: { withdrawal } });
 });
+
+function appendOperationalNote(existing, extra) {
+  const base = String(existing || "").trim();
+  const addition = String(extra || "").trim();
+  if (!addition) return base || null;
+  if (!base) return addition;
+  if (base.includes(addition)) return base;
+  return `${base}\n${addition}`;
+}
+
+function buildSupersededPaystackAttemptNote({
+  reference = null,
+  transferCode = null,
+  status = null,
+} = {}) {
+  const fragments = ["Superseded Paystack withdrawal payout attempt"];
+  if (reference) fragments.push(`ref: ${reference}`);
+  if (transferCode) fragments.push(`code: ${transferCode}`);
+  if (status) fragments.push(`status: ${status}`);
+  return fragments.join(" | ");
+}
+
+async function loadWithdrawalWithManualOtpState(id) {
+  return WithdrawalRequestModel.findById(id).select(
+    "+manualPayoutOtpHash +manualPayoutOtpExpiresAt",
+  );
+}
+
+async function verifyAndSyncPaystackWithdrawal(withdrawal, options = {}) {
+  const requestedReference = withdrawal?.payoutReference
+    ? String(withdrawal.payoutReference).trim()
+    : "";
+  if (!requestedReference) {
+    throw new AppError("Withdrawal payout reference not found", 400);
+  }
+
+  const verifyRes = await verifyTransfer(requestedReference);
+  const transfer = verifyRes?.data;
+  if (!transfer) throw new AppError("Invalid Paystack transfer response", 502);
+
+  const reference = transfer?.reference
+    ? String(transfer.reference)
+    : requestedReference;
+  const status = String(transfer?.status || "").toLowerCase();
+  const transferCode =
+    transfer?.transfer_code || withdrawal.payoutTransferCode || null;
+
+  const tx = await upsertWithdrawalTransaction({
+    withdrawal,
+    reference,
+    status,
+    gateway: "paystack",
+    channel: "transfer",
+    metadata: {
+      paystackTransfer: {
+        reference,
+        transferCode,
+        status,
+        transferId: transfer?.id ?? null,
+      },
+    },
+  });
+
+  withdrawal.payoutReference = reference;
+  withdrawal.payoutGateway = "paystack";
+  withdrawal.payoutTransferCode = transferCode;
+  withdrawal.payoutStatus = status || null;
+  applyPaystackTransferState(withdrawal, status);
+  if (options.req) {
+    appendPayoutEvent(withdrawal, options.req, {
+      eventType: options.eventType || "paystack_verified",
+      gateway: "paystack",
+      status,
+      reference,
+      transferCode,
+      message:
+        options.message ||
+        (status === "success"
+          ? "Paystack transfer verification confirmed a successful payout."
+          : `Paystack transfer verification returned status ${status || "unknown"}.`),
+      metadata: {
+        transferId: transfer?.id ?? null,
+        ...(options.metadata || {}),
+      },
+    });
+  }
+
+  return { transaction: tx, transfer };
+}
+
+async function reconcilePaystackAttemptForManualSwitch(withdrawal, req) {
+  const payoutGateway = String(withdrawal?.payoutGateway || "")
+    .trim()
+    .toLowerCase();
+  const payoutStatus = String(withdrawal?.payoutStatus || "")
+    .trim()
+    .toLowerCase();
+
+  if (payoutGateway !== "paystack" || !withdrawal?.payoutReference) {
+    return { canSwitch: true, note: null };
+  }
+
+  if (["failed", "reversed"].includes(payoutStatus)) {
+    return {
+      canSwitch: true,
+      note: buildSupersededPaystackAttemptNote({
+        reference: withdrawal.payoutReference,
+        transferCode: withdrawal.payoutTransferCode,
+        status: withdrawal.payoutStatus,
+      }),
+    };
+  }
+
+  if (payoutStatus === "success") {
+    return {
+      canSwitch: false,
+      note: null,
+      reason: "This Paystack payout has already been completed successfully.",
+    };
+  }
+
+  try {
+    const { transfer } = await verifyAndSyncPaystackWithdrawal(withdrawal, {
+      req,
+      eventType: "paystack_verified_for_manual_switch",
+      message:
+        "Verified existing Paystack payout before attempting manual payout fallback.",
+    });
+    const verifiedStatus = String(transfer?.status || "").toLowerCase();
+
+    if (verifiedStatus === "success") {
+      return {
+        canSwitch: false,
+        note: null,
+        reason:
+          "The Paystack payout has already completed successfully. Manual payout is no longer required.",
+      };
+    }
+
+    if (["failed", "reversed"].includes(verifiedStatus)) {
+      return {
+        canSwitch: true,
+        note: buildSupersededPaystackAttemptNote({
+          reference: withdrawal.payoutReference,
+          transferCode: withdrawal.payoutTransferCode,
+          status: verifiedStatus,
+        }),
+      };
+    }
+
+    return {
+      canSwitch: false,
+      note: null,
+      reason:
+        "A Paystack payout is still active. Verify or complete that transfer before switching to manual payout.",
+    };
+  } catch (error) {
+    if (isMissingOrStalePaystackTransferError(error)) {
+      appendPayoutEvent(withdrawal, req, {
+        eventType: "paystack_stale_before_manual_switch",
+        gateway: "paystack",
+        status: "stale",
+        reference: withdrawal.payoutReference,
+        transferCode: withdrawal.payoutTransferCode,
+        message:
+          "A stale or missing Paystack transfer was detected and manual payout fallback was allowed.",
+        metadata: {
+          error: String(error?.message || error || ""),
+        },
+      });
+      return {
+        canSwitch: true,
+        note: buildSupersededPaystackAttemptNote({
+          reference: withdrawal.payoutReference,
+          transferCode: withdrawal.payoutTransferCode,
+          status: "stale",
+        }),
+      };
+    }
+
+    throw error;
+  }
+}
 
 export const completeWithdrawal = catchAsync(async (req, res, next) => {
   const id = req.params.id;
@@ -359,34 +854,56 @@ export const completeWithdrawal = catchAsync(async (req, res, next) => {
 
   const gateway = req.body?.gateway ? String(req.body.gateway).trim().toLowerCase() : "paystack";
   const requestedReference = req.body?.reference ? String(req.body.reference).trim() : null;
+  const payoutGateway = String(withdrawal.payoutGateway || "").trim().toLowerCase();
+  const payoutStatus = String(withdrawal.payoutStatus || "").trim().toLowerCase();
+
+  if (payoutGateway === "manual" && payoutStatus === "otp") {
+    return next(
+      new AppError(
+        "A manual payout is awaiting OTP authorization. Finalize or cancel it before switching to Paystack.",
+        400,
+      ),
+    );
+  }
 
   if (gateway !== "paystack") {
+    if (isManualPayoutGateway(gateway)) {
+      return next(
+        new AppError(
+          "Manual payout requires OTP authorization. Use the manual payout initiation endpoint.",
+          400,
+        ),
+      );
+    }
+
     const reference = requestedReference || `WDR-${randomId(8)}`;
     const existing = await TransactionModel.findOne({ reference });
     if (existing) return next(new AppError("Duplicate transaction reference", 409));
 
-    const tx = await TransactionModel.create({
-      userId: withdrawal.userId,
+    const tx = await upsertWithdrawalTransaction({
+      withdrawal,
       reference,
-      amount: withdrawal.amount,
-      type: "withdrawal",
       status: "success",
-      description: `Withdrawal to ${withdrawal.bankName} (${String(withdrawal.accountNumber).slice(-4)})`,
-      channel: "transfer",
       gateway,
-      groupId: withdrawal.groupId ?? null,
-      groupName: withdrawal.groupName ?? null,
-      metadata: {
-        withdrawalRequestId: withdrawal._id,
-        contributionType: withdrawal.contributionType ?? null,
-      },
+      channel: "transfer",
     });
 
     withdrawal.status = "completed";
     withdrawal.completedAt = new Date();
     withdrawal.payoutReference = reference;
     withdrawal.payoutGateway = gateway;
+    withdrawal.payoutTransferCode = null;
     withdrawal.payoutStatus = "success";
+    withdrawal.payoutOtpResentAt = null;
+    withdrawal.manualPayout = null;
+    clearManualPayoutAuthorization(withdrawal);
+    appendPayoutEvent(withdrawal, req, {
+      eventType: "external_payout_completed",
+      gateway,
+      status: "success",
+      reference,
+      message: `Withdrawal payout was completed through ${gateway}.`,
+    });
     await withdrawal.save();
 
     return sendSuccess(res, { statusCode: 200, data: { withdrawal, transaction: tx } });
@@ -413,73 +930,25 @@ export const completeWithdrawal = catchAsync(async (req, res, next) => {
   }
 
   const existingReference =
-    withdrawal.payoutReference && withdrawal.payoutStatus !== "failed"
+    withdrawal.payoutReference &&
+    payoutGateway === "paystack" &&
+    !["failed", "reversed", "success"].includes(payoutStatus)
       ? withdrawal.payoutReference
       : null;
 
   if (existingReference) {
-    const verifyRes = await verifyTransfer(existingReference);
-    const transfer = verifyRes?.data;
-    if (!transfer) return next(new AppError("Invalid Paystack transfer response", 502));
-
-    const status = String(transfer?.status || "").toLowerCase();
-    const transferCode = transfer?.transfer_code || withdrawal.payoutTransferCode || null;
-
-    let tx = await TransactionModel.findOne({ reference: existingReference });
-    if (!tx) {
-      tx = await TransactionModel.create({
-        userId: withdrawal.userId,
-        reference: existingReference,
-        amount: withdrawal.amount,
-        type: "withdrawal",
-        status: status === "success" ? "success" : status === "failed" ? "failed" : "pending",
-        description: `Withdrawal to ${withdrawal.bankName} (${String(withdrawal.accountNumber).slice(-4)})`,
-        channel: "transfer",
-        gateway: "paystack",
-        groupId: withdrawal.groupId ?? null,
-        groupName: withdrawal.groupName ?? null,
-        metadata: {
-          withdrawalRequestId: withdrawal._id,
-          contributionType: withdrawal.contributionType ?? null,
-          paystackTransfer: {
-            reference: existingReference,
-            transferCode,
-            status,
-            transferId: transfer?.id ?? null,
-          },
-        },
-      });
-    } else {
-      tx.status = status === "success" ? "success" : status === "failed" ? "failed" : "pending";
-      tx.gateway = "paystack";
-      tx.channel = tx.channel || "transfer";
-      tx.metadata = {
-        ...(tx.metadata || {}),
-        paystackTransfer: {
-          reference: existingReference,
-          transferCode,
-          status,
-          transferId: transfer?.id ?? null,
-        },
-      };
-      await tx.save();
-    }
-
-    withdrawal.payoutReference = existingReference;
-    withdrawal.payoutGateway = "paystack";
-    withdrawal.payoutTransferCode = transferCode;
-    withdrawal.payoutStatus = status || null;
-    if (status === "success") {
-      withdrawal.status = "completed";
-      withdrawal.completedAt = new Date();
-    } else if (status === "failed") {
-      withdrawal.status = "approved";
-    } else {
-      withdrawal.status = "processing";
-    }
+    const { transaction } = await verifyAndSyncPaystackWithdrawal(withdrawal, {
+      req,
+      eventType: "paystack_verified_during_completion",
+      message:
+        "Verified the existing Paystack payout instead of creating a new transfer.",
+    });
     await withdrawal.save();
 
-    return sendSuccess(res, { statusCode: 200, data: { withdrawal, transaction: tx } });
+    return sendSuccess(res, {
+      statusCode: 200,
+      data: { withdrawal, transaction },
+    });
   }
 
   const reference = sanitizeTransferReference(requestedReference);
@@ -509,20 +978,13 @@ export const completeWithdrawal = catchAsync(async (req, res, next) => {
   const status = String(transfer?.status || "").toLowerCase();
   const transferCode = transfer?.transfer_code || null;
 
-  const tx = await TransactionModel.create({
-    userId: withdrawal.userId,
+  const tx = await upsertWithdrawalTransaction({
+    withdrawal,
     reference,
-    amount: withdrawal.amount,
-    type: "withdrawal",
-    status: status === "success" ? "success" : status === "failed" ? "failed" : "pending",
-    description: `Withdrawal to ${withdrawal.bankName} (${String(withdrawal.accountNumber).slice(-4)})`,
-    channel: "transfer",
+    status,
     gateway: "paystack",
-    groupId: withdrawal.groupId ?? null,
-    groupName: withdrawal.groupName ?? null,
+    channel: "transfer",
     metadata: {
-      withdrawalRequestId: withdrawal._id,
-      contributionType: withdrawal.contributionType ?? null,
       paystackTransfer: {
         reference,
         transferCode,
@@ -537,18 +999,193 @@ export const completeWithdrawal = catchAsync(async (req, res, next) => {
   withdrawal.payoutGateway = "paystack";
   withdrawal.payoutTransferCode = transferCode;
   withdrawal.payoutStatus = status || null;
-  if (status === "success") {
-    withdrawal.status = "completed";
-    withdrawal.completedAt = new Date();
-  } else if (status === "failed") {
-    withdrawal.status = "approved";
-  } else {
-    withdrawal.status = "processing";
-  }
+  applyPaystackTransferState(withdrawal, status);
   withdrawal.bankCode = withdrawal.bankCode || bankCode;
+  withdrawal.payoutOtpResentAt = null;
+  appendPayoutEvent(withdrawal, req, {
+    eventType: "paystack_payout_initiated",
+    gateway: "paystack",
+    status,
+    reference,
+    transferCode,
+    message:
+      status === "otp"
+        ? "Paystack payout was initiated and requires OTP authorization."
+        : `Paystack payout was initiated with status ${status || "unknown"}.`,
+    metadata: {
+      recipientCode,
+      transferId: transfer?.id ?? null,
+    },
+  });
   await withdrawal.save();
 
   return sendSuccess(res, { statusCode: 200, data: { withdrawal, transaction: tx } });
+});
+
+export const verifyWithdrawalTransfer = catchAsync(async (req, res, next) => {
+  const id = req.params.id;
+  const withdrawal = await WithdrawalRequestModel.findById(id);
+  if (!withdrawal) return next(new AppError("Withdrawal request not found", 404));
+
+  await ensureWithdrawalAccess(req, withdrawal);
+
+  if (!["approved", "processing"].includes(withdrawal.status)) {
+    return next(new AppError("Withdrawal request must be approved or processing", 400));
+  }
+  if (
+    withdrawal.payoutGateway &&
+    String(withdrawal.payoutGateway).toLowerCase() !== "paystack"
+  ) {
+    return next(
+      new AppError(
+        "This payout uses manual OTP authorization. Use the manual payout actions instead.",
+        400,
+      ),
+    );
+  }
+  if (!withdrawal.payoutReference) {
+    return next(new AppError("Withdrawal payout reference not found", 400));
+  }
+
+  const { transaction } = await verifyAndSyncPaystackWithdrawal(withdrawal, {
+    req,
+    eventType: "paystack_verified",
+  });
+  await withdrawal.save();
+
+  return sendSuccess(res, {
+    statusCode: 200,
+    data: { withdrawal, transaction },
+  });
+});
+
+export const initiateManualWithdrawalPayout = catchAsync(async (req, res, next) => {
+  if (!req.user) return next(new AppError("Not authenticated", 401));
+  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+
+  const id = req.params.id;
+  const withdrawal = await WithdrawalRequestModel.findById(id);
+  if (!withdrawal) return next(new AppError("Withdrawal request not found", 404));
+
+  await ensureWithdrawalAccess(req, withdrawal);
+
+  if (!["approved", "processing"].includes(withdrawal.status)) {
+    return next(new AppError("Withdrawal request must be approved or processing", 400));
+  }
+
+  const payoutGateway = String(withdrawal.payoutGateway || "").trim().toLowerCase();
+  const payoutStatus = String(withdrawal.payoutStatus || "").trim().toLowerCase();
+  if (payoutGateway === "manual" && payoutStatus === "otp") {
+    return next(
+      new AppError(
+        "A manual payout is already awaiting OTP authorization. Finalize, resend, or cancel it first.",
+        400,
+      ),
+    );
+  }
+  const paystackReconciliation = await reconcilePaystackAttemptForManualSwitch(
+    withdrawal,
+    req,
+  );
+  if (!paystackReconciliation.canSwitch) {
+    await withdrawal.save();
+    return next(
+      new AppError(
+        paystackReconciliation.reason ||
+          "A Paystack payout is already in progress. Verify its status before switching to manual payout.",
+        400,
+      ),
+    );
+  }
+
+  const method = normalizeManualPayoutMethod(req.body?.method || req.body?.payoutMethod);
+  const occurredAt = req.body?.occurredAt ? new Date(req.body.occurredAt) : new Date();
+  if (Number.isNaN(occurredAt.getTime())) {
+    return next(new AppError("occurredAt must be a valid date", 400));
+  }
+
+  const externalReference = req.body?.externalReference
+    ? String(req.body.externalReference).trim()
+    : null;
+  let notes = req.body?.notes ? String(req.body.notes).trim() : null;
+  if (payoutGateway === "paystack" && withdrawal.payoutReference) {
+    notes = appendOperationalNote(
+      notes,
+      paystackReconciliation.note ||
+        buildSupersededPaystackAttemptNote({
+          reference: withdrawal.payoutReference,
+          transferCode: withdrawal.payoutTransferCode,
+          status: withdrawal.payoutStatus,
+        }),
+    );
+  }
+
+  const actingUser = await UserModel.findById(getAuthenticatedUserId(req))
+    .select("email phone")
+    .lean();
+  if (!actingUser) {
+    return next(new AppError("Authorized user not found", 404));
+  }
+
+  const otp = generateOtp();
+  const delivery = await sendManualWithdrawalPayoutOtp({
+    user: actingUser,
+    otp,
+  });
+
+  const previousStatus = ["approved", "processing"].includes(withdrawal.status)
+    ? withdrawal.status
+    : "approved";
+
+  withdrawal.status = "processing";
+  withdrawal.completedAt = null;
+  withdrawal.payoutGateway = "manual";
+  withdrawal.payoutStatus = "otp";
+  withdrawal.payoutTransferCode = null;
+  withdrawal.payoutReference = buildManualPayoutReference(withdrawal);
+  withdrawal.payoutOtpResentAt = new Date();
+  withdrawal.manualPayout = {
+    status: "pending_otp",
+    method,
+    amount: withdrawal.amount,
+    externalReference,
+    occurredAt,
+    notes,
+    previousStatus,
+    initiatedByUserId: getAuthenticatedUserId(req),
+    initiatedBy: req.user.profileId,
+    authorizedBy: null,
+    initiatedAt: new Date(),
+    completedAt: null,
+    otpChannel: delivery.channel,
+    otpRecipient: delivery.maskedRecipient,
+    otpSentAt: new Date(),
+  };
+  withdrawal.manualPayoutOtpHash = sha256(otp);
+  withdrawal.manualPayoutOtpExpiresAt = new Date(
+    Date.now() + MANUAL_WITHDRAWAL_PAYOUT_OTP_TTL_MINUTES * 60 * 1000,
+  );
+  appendPayoutEvent(withdrawal, req, {
+    eventType: "manual_payout_initiated",
+    gateway: "manual",
+    status: "otp",
+    reference: withdrawal.payoutReference,
+    message: `Manual payout initiated via ${formatManualPayoutMethodLabel(method)} and OTP authorization was sent.`,
+    metadata: {
+      method,
+      occurredAt: occurredAt.toISOString(),
+      externalReference,
+      otpRecipient: delivery.maskedRecipient,
+    },
+  });
+
+  await withdrawal.save();
+
+  return sendSuccess(res, {
+    statusCode: 200,
+    message: `Manual withdrawal payout OTP sent to ${delivery.maskedRecipient}.`,
+    data: { withdrawal },
+  });
 });
 
 export const finalizeWithdrawalOtp = catchAsync(async (req, res, next) => {
@@ -560,6 +1197,17 @@ export const finalizeWithdrawalOtp = catchAsync(async (req, res, next) => {
 
   if (!["approved", "processing"].includes(withdrawal.status)) {
     return next(new AppError("Withdrawal request must be approved or processing", 400));
+  }
+  if (
+    withdrawal.payoutGateway &&
+    String(withdrawal.payoutGateway).toLowerCase() !== "paystack"
+  ) {
+    return next(
+      new AppError(
+        "This payout uses manual OTP authorization. Use the manual finalization endpoint instead.",
+        400,
+      ),
+    );
   }
 
   const otp = String(req.body?.otp || "").trim();
@@ -584,45 +1232,21 @@ export const finalizeWithdrawalOtp = catchAsync(async (req, res, next) => {
   const reference = transfer?.reference ? String(transfer.reference) : withdrawal.payoutReference;
   const resolvedTransferCode = transfer?.transfer_code || transferCode;
 
-  let tx = reference ? await TransactionModel.findOne({ reference }) : null;
-  if (!tx && reference) {
-    tx = await TransactionModel.create({
-      userId: withdrawal.userId,
-      reference,
-      amount: withdrawal.amount,
-      type: "withdrawal",
-      status: status === "success" ? "success" : status === "failed" ? "failed" : "pending",
-      description: `Withdrawal to ${withdrawal.bankName} (${String(withdrawal.accountNumber).slice(-4)})`,
-      channel: "transfer",
-      gateway: "paystack",
-      groupId: withdrawal.groupId ?? null,
-      groupName: withdrawal.groupName ?? null,
-      metadata: {
-        withdrawalRequestId: withdrawal._id,
-        contributionType: withdrawal.contributionType ?? null,
-        paystackTransfer: {
-          reference,
-          transferCode: resolvedTransferCode,
-          status,
-          transferId: transfer?.id ?? null,
-        },
-      },
-    });
-  } else if (tx) {
-    tx.status = status === "success" ? "success" : status === "failed" ? "failed" : "pending";
-    tx.gateway = "paystack";
-    tx.channel = tx.channel || "transfer";
-    tx.metadata = {
-      ...(tx.metadata || {}),
+  const tx = await upsertWithdrawalTransaction({
+    withdrawal,
+    reference,
+    status,
+    gateway: "paystack",
+    channel: "transfer",
+    metadata: {
       paystackTransfer: {
-        reference: reference || tx.reference,
+        reference: reference || withdrawal.payoutReference,
         transferCode: resolvedTransferCode,
         status,
         transferId: transfer?.id ?? null,
       },
-    };
-    await tx.save();
-  }
+    },
+  });
 
   if (reference) {
     withdrawal.payoutReference = reference;
@@ -630,16 +1254,21 @@ export const finalizeWithdrawalOtp = catchAsync(async (req, res, next) => {
   withdrawal.payoutGateway = "paystack";
   withdrawal.payoutTransferCode = resolvedTransferCode || withdrawal.payoutTransferCode;
   withdrawal.payoutStatus = status || withdrawal.payoutStatus;
-
-  if (status === "success") {
-    withdrawal.status = "completed";
-    withdrawal.completedAt = new Date();
-  } else if (status === "failed" || status === "reversed") {
-    withdrawal.status = "approved";
-  } else {
-    withdrawal.status = "processing";
-  }
-
+  applyPaystackTransferState(withdrawal, status);
+  appendPayoutEvent(withdrawal, req, {
+    eventType: "paystack_otp_finalized",
+    gateway: "paystack",
+    status,
+    reference: reference || withdrawal.payoutReference,
+    transferCode: resolvedTransferCode || withdrawal.payoutTransferCode,
+    message:
+      status === "success"
+        ? "Paystack OTP was finalized and the payout completed successfully."
+        : `Paystack OTP finalization returned status ${status || "unknown"}.`,
+    metadata: {
+      transferId: transfer?.id ?? null,
+    },
+  });
   await withdrawal.save();
 
   return sendSuccess(res, { statusCode: 200, data: { withdrawal, transaction: tx } });
@@ -654,6 +1283,17 @@ export const resendWithdrawalOtp = catchAsync(async (req, res, next) => {
 
   if (!["approved", "processing"].includes(withdrawal.status)) {
     return next(new AppError("Withdrawal request must be approved or processing", 400));
+  }
+  if (
+    withdrawal.payoutGateway &&
+    String(withdrawal.payoutGateway).toLowerCase() !== "paystack"
+  ) {
+    return next(
+      new AppError(
+        "This payout uses manual OTP authorization. Use the manual resend endpoint instead.",
+        400,
+      ),
+    );
   }
 
   if (OTP_RESEND_COOLDOWN_MS > 0 && withdrawal.payoutOtpResentAt) {
@@ -706,6 +1346,13 @@ export const resendWithdrawalOtp = catchAsync(async (req, res, next) => {
   if (withdrawal.status !== "processing") {
     withdrawal.status = "processing";
   }
+  appendPayoutEvent(withdrawal, req, {
+    eventType: "paystack_otp_resent",
+    gateway: "paystack",
+    status: "otp",
+    transferCode,
+    message: "A fresh Paystack OTP was requested for this payout.",
+  });
   await withdrawal.save();
 
   if (OTP_RESEND_COOLDOWN_MS > 0) {
@@ -716,4 +1363,249 @@ export const resendWithdrawalOtp = catchAsync(async (req, res, next) => {
   }
 
   return sendSuccess(res, { statusCode: 200, data: { withdrawal } });
+});
+
+export const resendManualWithdrawalPayoutOtp = catchAsync(async (req, res, next) => {
+  if (!req.user) return next(new AppError("Not authenticated", 401));
+  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+
+  const id = req.params.id;
+  const withdrawal = await loadWithdrawalWithManualOtpState(id);
+  if (!withdrawal) return next(new AppError("Withdrawal request not found", 404));
+
+  await ensureWithdrawalAccess(req, withdrawal);
+
+  if (!["approved", "processing"].includes(withdrawal.status)) {
+    return next(new AppError("Withdrawal request must be approved or processing", 400));
+  }
+  if (String(withdrawal.payoutGateway || "").toLowerCase() !== "manual") {
+    return next(new AppError("No pending manual payout found", 400));
+  }
+  if (String(withdrawal.payoutStatus || "").toLowerCase() !== "otp") {
+    return next(new AppError("Manual payout is not currently awaiting OTP", 400));
+  }
+
+  ensureManualPayoutInitiator(withdrawal, req);
+
+  if (OTP_RESEND_COOLDOWN_MS > 0 && withdrawal.payoutOtpResentAt) {
+    const lastResentAt = new Date(withdrawal.payoutOtpResentAt).getTime();
+    if (Number.isFinite(lastResentAt)) {
+      const elapsedMs = Date.now() - lastResentAt;
+      if (elapsedMs >= 0 && elapsedMs < OTP_RESEND_COOLDOWN_MS) {
+        const retryAfterSeconds = Math.ceil(
+          (OTP_RESEND_COOLDOWN_MS - elapsedMs) / 1000,
+        );
+        res.set("Retry-After", String(retryAfterSeconds));
+        return next(
+          new AppError(
+            `Please wait ${retryAfterSeconds}s before resending OTP.`,
+            429,
+          ),
+        );
+      }
+    }
+  }
+
+  const actingUser = await UserModel.findById(getAuthenticatedUserId(req))
+    .select("email phone")
+    .lean();
+  if (!actingUser) {
+    return next(new AppError("Authorized user not found", 404));
+  }
+
+  const otp = generateOtp();
+  const delivery = await sendManualWithdrawalPayoutOtp({
+    user: actingUser,
+    otp,
+  });
+
+  withdrawal.manualPayoutOtpHash = sha256(otp);
+  withdrawal.manualPayoutOtpExpiresAt = new Date(
+    Date.now() + MANUAL_WITHDRAWAL_PAYOUT_OTP_TTL_MINUTES * 60 * 1000,
+  );
+  withdrawal.payoutOtpResentAt = new Date();
+  withdrawal.manualPayout = {
+    ...(withdrawal.manualPayout || {}),
+    status: "pending_otp",
+    otpChannel: delivery.channel,
+    otpRecipient: delivery.maskedRecipient,
+    otpSentAt: new Date(),
+  };
+  appendPayoutEvent(withdrawal, req, {
+    eventType: "manual_payout_otp_resent",
+    gateway: "manual",
+    status: "otp",
+    reference: withdrawal.payoutReference,
+    message: "A fresh manual payout OTP was sent to the initiating admin.",
+    metadata: {
+      otpRecipient: delivery.maskedRecipient,
+    },
+  });
+
+  await withdrawal.save();
+
+  if (OTP_RESEND_COOLDOWN_MS > 0) {
+    res.set("Retry-After", String(Math.ceil(OTP_RESEND_COOLDOWN_MS / 1000)));
+  }
+
+  return sendSuccess(res, {
+    statusCode: 200,
+    message: `Manual withdrawal payout OTP sent to ${delivery.maskedRecipient}.`,
+    data: { withdrawal },
+  });
+});
+
+export const cancelManualWithdrawalPayout = catchAsync(async (req, res, next) => {
+  if (!req.user) return next(new AppError("Not authenticated", 401));
+  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+
+  const id = req.params.id;
+  const withdrawal = await WithdrawalRequestModel.findById(id);
+  if (!withdrawal) return next(new AppError("Withdrawal request not found", 404));
+
+  await ensureWithdrawalAccess(req, withdrawal);
+
+  if (!["approved", "processing"].includes(withdrawal.status)) {
+    return next(new AppError("Withdrawal request must be approved or processing", 400));
+  }
+  if (String(withdrawal.payoutGateway || "").toLowerCase() !== "manual") {
+    return next(new AppError("No pending manual payout found", 400));
+  }
+  if (String(withdrawal.payoutStatus || "").toLowerCase() !== "otp") {
+    return next(new AppError("Manual payout is not currently awaiting OTP", 400));
+  }
+
+  ensureManualPayoutInitiator(withdrawal, req);
+
+  appendPayoutEvent(withdrawal, req, {
+    eventType: "manual_payout_cancelled",
+    gateway: "manual",
+    status: "cancelled",
+    reference: withdrawal.payoutReference,
+    message: "Pending manual payout authorization was cancelled.",
+    metadata: {
+      method: withdrawal.manualPayout?.method || null,
+    },
+  });
+  clearPendingManualPayoutState(withdrawal);
+  await withdrawal.save();
+
+  return sendSuccess(res, {
+    statusCode: 200,
+    message:
+      "Pending manual withdrawal payout authorization cancelled. You can switch back to Paystack now.",
+    data: { withdrawal },
+  });
+});
+
+export const finalizeManualWithdrawalPayout = catchAsync(async (req, res, next) => {
+  if (!req.user) return next(new AppError("Not authenticated", 401));
+  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+
+  const id = req.params.id;
+  const withdrawal = await loadWithdrawalWithManualOtpState(id);
+  if (!withdrawal) return next(new AppError("Withdrawal request not found", 404));
+
+  await ensureWithdrawalAccess(req, withdrawal);
+
+  if (!["approved", "processing"].includes(withdrawal.status)) {
+    return next(new AppError("Withdrawal request must be approved or processing", 400));
+  }
+  if (String(withdrawal.payoutGateway || "").toLowerCase() !== "manual") {
+    return next(new AppError("No pending manual payout found", 400));
+  }
+  if (String(withdrawal.payoutStatus || "").toLowerCase() !== "otp") {
+    return next(new AppError("Manual payout is not currently awaiting OTP", 400));
+  }
+
+  const otpRaw = req.body?.otp ? String(req.body.otp).trim() : "";
+  if (!otpRaw) return next(new AppError("otp is required", 400));
+
+  ensureManualPayoutInitiator(withdrawal, req);
+
+  if (!withdrawal.manualPayoutOtpHash || !withdrawal.manualPayoutOtpExpiresAt) {
+    return next(
+      new AppError(
+        "Manual payout OTP has not been issued. Please request a new OTP.",
+        400,
+      ),
+    );
+  }
+  if (withdrawal.manualPayoutOtpExpiresAt.getTime() <= Date.now()) {
+    clearManualPayoutAuthorization(withdrawal);
+    await withdrawal.save();
+    return next(
+      new AppError(
+        "OTP has expired. Please request a new code to finalize this manual payout.",
+        400,
+      ),
+    );
+  }
+  if (sha256(otpRaw) !== withdrawal.manualPayoutOtpHash) {
+    return next(new AppError("Invalid OTP", 400));
+  }
+
+  const manualPayout = withdrawal.manualPayout || {};
+  const reference =
+    withdrawal.payoutReference || buildManualPayoutReference(withdrawal);
+  const completedAt = new Date();
+
+  const tx = await upsertWithdrawalTransaction({
+    withdrawal,
+    reference,
+    status: "success",
+    gateway: "manual",
+    channel: String(manualPayout.method || "manual").trim().toLowerCase() || "manual",
+    metadata: {
+      manualPayout: {
+        status: "completed",
+        method: manualPayout.method || null,
+        amount: manualPayout.amount ?? withdrawal.amount,
+        externalReference: manualPayout.externalReference || null,
+        occurredAt:
+          manualPayout.occurredAt?.toISOString?.() || manualPayout.occurredAt || null,
+        notes: manualPayout.notes || null,
+        initiatedAt:
+          manualPayout.initiatedAt?.toISOString?.() || manualPayout.initiatedAt || null,
+        completedAt: completedAt.toISOString(),
+      },
+    },
+    description: buildWithdrawalDescription(withdrawal, { manualPayout }),
+  });
+
+  withdrawal.status = "completed";
+  withdrawal.completedAt = completedAt;
+  withdrawal.payoutGateway = "manual";
+  withdrawal.payoutStatus = "success";
+  withdrawal.payoutTransferCode = null;
+  withdrawal.payoutReference = reference;
+  withdrawal.payoutOtpResentAt = null;
+  withdrawal.manualPayout = {
+    ...manualPayout,
+    status: "completed",
+    authorizedBy: req.user.profileId,
+    completedAt,
+    otpSentAt: manualPayout.otpSentAt || new Date(),
+  };
+  clearManualPayoutAuthorization(withdrawal);
+  appendPayoutEvent(withdrawal, req, {
+    eventType: "manual_payout_finalized",
+    gateway: "manual",
+    status: "success",
+    reference,
+    message: "Manual withdrawal payout was finalized successfully.",
+    metadata: {
+      method: manualPayout.method || null,
+      externalReference: manualPayout.externalReference || null,
+      completedAt: completedAt.toISOString(),
+    },
+  });
+
+  await withdrawal.save();
+
+  return sendSuccess(res, {
+    statusCode: 200,
+    message: "Manual withdrawal payout finalized successfully.",
+    data: { withdrawal, transaction: tx },
+  });
 });

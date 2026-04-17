@@ -182,15 +182,58 @@ function clearManualDisbursementAuthorization(loan) {
   loan.manualDisbursementOtpExpiresAt = null;
 }
 
-function clearPendingManualDisbursementState(loan) {
+function clearPendingPaystackDisbursementState(loan) {
   if (!loan) return;
   loan.payoutReference = null;
   loan.payoutGateway = null;
   loan.payoutTransferCode = null;
   loan.payoutStatus = null;
   loan.payoutOtpResentAt = null;
+}
+
+function clearPendingManualDisbursementState(loan) {
+  if (!loan) return;
+  clearPendingPaystackDisbursementState(loan);
   loan.manualDisbursement = null;
   clearManualDisbursementAuthorization(loan);
+}
+
+function isMissingOrStalePaystackTransferError(error) {
+  const message = String(error?.message || "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return (
+    message.includes("transfer not found") ||
+    message.includes("could not find transfer") ||
+    message.includes("invalid paystack transfer response") ||
+    message.includes("invalid transfer response") ||
+    message.includes("transfer reference does not exist") ||
+    message.includes("reference not found")
+  );
+}
+
+function buildSupersededPaystackAttemptNote({
+  reference = null,
+  transferCode = null,
+  status = null,
+} = {}) {
+  const fragments = ["Superseded Paystack disbursement attempt"];
+  if (reference) fragments.push(`ref: ${reference}`);
+  if (transferCode) fragments.push(`code: ${transferCode}`);
+  if (status) fragments.push(`status: ${status}`);
+  return fragments.join(" | ");
+}
+
+function appendOperationalNote(existing, extra) {
+  const base = String(existing || "").trim();
+  const addition = String(extra || "").trim();
+
+  if (!addition) return base || null;
+  if (!base) return addition;
+  if (base.includes(addition)) return base;
+  return `${base}\n${addition}`;
 }
 
 async function sendManualDisbursementOtp({ user, otp }) {
@@ -596,6 +639,73 @@ async function verifyAndSyncLoanDisbursementTransfer({
   });
 
   return transfer;
+}
+
+async function preparePaystackDisbursementSwitch({
+  loan,
+  repaymentStartDate,
+  disbursedBy,
+}) {
+  const payoutGateway = String(loan?.payoutGateway || "").toLowerCase();
+  const payoutStatus = String(loan?.payoutStatus || "").toLowerCase();
+  const payoutReference = loan?.payoutReference
+    ? String(loan.payoutReference)
+    : null;
+  const payoutTransferCode = loan?.payoutTransferCode
+    ? String(loan.payoutTransferCode)
+    : null;
+
+  if (payoutGateway !== "paystack" || !payoutReference) {
+    return { switched: false, note: null };
+  }
+
+  if (loan?.status === "disbursed" || payoutStatus === "success") {
+    throw new AppError(
+      "This loan has already been disbursed through Paystack and cannot be switched to manual.",
+      400,
+    );
+  }
+
+  try {
+    await verifyAndSyncLoanDisbursementTransfer({
+      loan,
+      repaymentStartDate,
+      disbursedBy,
+    });
+  } catch (error) {
+    const verificationState = isMissingOrStalePaystackTransferError(error)
+      ? payoutStatus || "unverified"
+      : "verification_unavailable";
+    clearPendingPaystackDisbursementState(loan);
+    return {
+      switched: true,
+      note: appendOperationalNote(
+        buildSupersededPaystackAttemptNote({
+          reference: payoutReference,
+          transferCode: payoutTransferCode,
+          status: verificationState,
+        }),
+        "Switching to manual disbursement after Paystack verification could not be completed.",
+      ),
+    };
+  }
+
+  const refreshedStatus = String(loan?.payoutStatus || "").toLowerCase();
+  if (loan?.status === "disbursed" || refreshedStatus === "success") {
+    throw new AppError(
+      "The previous Paystack disbursement has already completed and this loan is now marked as disbursed.",
+      400,
+    );
+  }
+
+  const note = buildSupersededPaystackAttemptNote({
+    reference: loan?.payoutReference || payoutReference,
+    transferCode: loan?.payoutTransferCode || payoutTransferCode,
+    status: refreshedStatus || payoutStatus || "pending",
+  });
+
+  clearPendingPaystackDisbursementState(loan);
+  return { switched: true, note };
 }
 
 async function upsertLoanDisbursementTransaction({
@@ -2442,29 +2552,16 @@ export const initiateManualLoanDisbursement = catchAsync(
       );
     }
 
-    const payoutGateway = String(
-      req.loanApplication.payoutGateway || "",
-    ).toLowerCase();
-    const payoutStatus = String(req.loanApplication.payoutStatus || "").toLowerCase();
-
-    if (
-      payoutGateway === "paystack" &&
-      req.loanApplication.payoutReference &&
-      !["failed", "reversed"].includes(payoutStatus)
-    ) {
-      return next(
-        new AppError(
-          "A Paystack disbursement is already in progress. Verify or resolve it before switching to manual disbursement.",
-          400,
-        ),
-      );
-    }
-
-    const { interestCfg } = await buildDisbursementContext(req.loanApplication);
     const repaymentStartDate = resolveLoanDisbursementRepaymentStartDate(
       req.loanApplication,
       req.body?.repaymentStartDate,
     );
+    const paystackSwitch = await preparePaystackDisbursementSwitch({
+      loan: req.loanApplication,
+      repaymentStartDate,
+      disbursedBy: req.user.profileId,
+    });
+    const { interestCfg } = await buildDisbursementContext(req.loanApplication);
     const rateType =
       req.loanApplication.interestRateType || interestCfg.rateType || "annual";
 
@@ -2489,6 +2586,10 @@ export const initiateManualLoanDisbursement = catchAsync(
       body: req.body || {},
       repaymentStartDate,
     });
+    manualPayload.notes = appendOperationalNote(
+      manualPayload.notes,
+      paystackSwitch.note,
+    );
     const actingUser = await UserModel.findById(getAuthenticatedUserId(req))
       .select("email phone")
       .lean();
@@ -2509,8 +2610,9 @@ export const initiateManualLoanDisbursement = catchAsync(
     req.loanApplication.payoutTransferCode = null;
     req.loanApplication.payoutReference =
       req.loanApplication.payoutReference &&
-      payoutGateway === "manual" &&
-      payoutStatus === "otp"
+      String(req.loanApplication.payoutGateway || "").toLowerCase() ===
+        "manual" &&
+      String(req.loanApplication.payoutStatus || "").toLowerCase() === "otp"
         ? req.loanApplication.payoutReference
         : buildManualDisbursementReference(req.loanApplication);
     req.loanApplication.payoutOtpResentAt = new Date();
@@ -2952,12 +3054,7 @@ export const disburseLoan = catchAsync(async (req, res, next) => {
     String(req.loanApplication.payoutGateway || "").toLowerCase() === "manual" &&
     String(req.loanApplication.payoutStatus || "").toLowerCase() === "otp"
   ) {
-    return next(
-      new AppError(
-        "A manual disbursement OTP is already pending. Finalize or resend that OTP before starting another disbursement flow.",
-        400,
-      ),
-    );
+    clearPendingManualDisbursementState(req.loanApplication);
   }
 
   const { loanType, principal, rate, termMonths, interestCfg } =

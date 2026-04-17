@@ -208,7 +208,8 @@ const ManualContributionPaymentMethods = new Set([
 
 export const listAdminGroups = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
-  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
 
   const manageableGroupIds = await getManageableGroupIds(req);
 
@@ -222,18 +223,23 @@ export const listAdminGroups = catchAsync(async (req, res, next) => {
   }
 
   const category =
-    typeof req.query?.category === "string" ? String(req.query.category).trim() : "";
+    typeof req.query?.category === "string"
+      ? String(req.query.category).trim()
+      : "";
   if (category && category !== "All Categories") {
     filter.category = category;
   }
 
   const location =
-    typeof req.query?.location === "string" ? String(req.query.location).trim() : "";
+    typeof req.query?.location === "string"
+      ? String(req.query.location).trim()
+      : "";
   if (location && location !== "All Locations") {
     filter.location = location;
   }
 
-  const search = typeof req.query?.search === "string" ? req.query.search.trim() : "";
+  const search =
+    typeof req.query?.search === "string" ? req.query.search.trim() : "";
   if (search) {
     filter.$or = [
       { groupName: { $regex: search, $options: "i" } },
@@ -244,10 +250,14 @@ export const listAdminGroups = catchAsync(async (req, res, next) => {
   }
 
   const page = Math.max(1, parseInt(String(req.query?.page ?? "1"), 10) || 1);
-  const limit = Math.min(200, Math.max(1, parseInt(String(req.query?.limit ?? "100"), 10) || 100));
+  const limit = Math.min(
+    200,
+    Math.max(1, parseInt(String(req.query?.limit ?? "100"), 10) || 100),
+  );
   const skip = (page - 1) * limit;
 
-  const sortKey = typeof req.query?.sort === "string" ? req.query.sort.trim() : "";
+  const sortKey =
+    typeof req.query?.sort === "string" ? req.query.sort.trim() : "";
   let sort = { groupNumber: 1 };
   if (sortKey === "newest") {
     sort = { createdAt: -1 };
@@ -264,9 +274,11 @@ export const listAdminGroups = catchAsync(async (req, res, next) => {
     GroupModel.countDocuments(filter),
   ]);
 
-  const includeMetrics = String(req.query?.includeMetrics ?? "true").toLowerCase() !== "false";
+  const includeMetrics =
+    String(req.query?.includeMetrics ?? "true").toLowerCase() !== "false";
   const monthYear = parseMonthYear(req);
-  if (includeMetrics && monthYear.error) return next(new AppError(monthYear.error, 400));
+  if (includeMetrics && monthYear.error)
+    return next(new AppError(monthYear.error, 400));
 
   if (!includeMetrics) {
     return sendSuccess(res, {
@@ -296,7 +308,9 @@ export const listAdminGroups = catchAsync(async (req, res, next) => {
           groupId: { $in: groupObjectIds },
           year,
           month,
-          contributionType: { $in: getContributionTypeMatch("revolving") || ["revolving"] },
+          contributionType: {
+            $in: getContributionTypeMatch("revolving") || ["revolving"],
+          },
         },
       },
       {
@@ -304,7 +318,11 @@ export const listAdminGroups = catchAsync(async (req, res, next) => {
           _id: "$groupId",
           paidAmount: {
             $sum: {
-              $cond: [{ $in: ["$status", ["verified", "completed"]] }, "$amount", 0],
+              $cond: [
+                { $in: ["$status", ["verified", "completed"]] },
+                "$amount",
+                0,
+              ],
             },
           },
         },
@@ -312,13 +330,20 @@ export const listAdminGroups = catchAsync(async (req, res, next) => {
     ]),
   ]);
 
-  const activeByGroupId = new Map(activeCounts.map((r) => [String(r._id), Number(r.count || 0)]));
-  const paidByGroupId = new Map(paidSums.map((r) => [String(r._id), Number(r.paidAmount || 0)]));
+  const activeByGroupId = new Map(
+    activeCounts.map((r) => [String(r._id), Number(r.count || 0)]),
+  );
+  const paidByGroupId = new Map(
+    paidSums.map((r) => [String(r._id), Number(r.paidAmount || 0)]),
+  );
 
   const enriched = groups.map((g) => {
     const gid = String(g._id);
-    const activeMembers = activeByGroupId.get(gid) ?? Number(g.memberCount || 0);
-    const expected = Number(g.monthlyContribution || 0) * Math.max(0, Number(activeMembers || 0));
+    const activeMembers =
+      activeByGroupId.get(gid) ?? Number(g.memberCount || 0);
+    const expected =
+      Number(g.monthlyContribution || 0) *
+      Math.max(0, Number(activeMembers || 0));
     const paid = paidByGroupId.get(gid) ?? 0;
     const rate = expected > 0 ? (paid / expected) * 100 : 0;
 
@@ -332,7 +357,11 @@ export const listAdminGroups = catchAsync(async (req, res, next) => {
     };
   });
 
-  const allGroups = await GroupModel.find(filter, { _id: 1, coordinatorId: 1, memberCount: 1 }).lean();
+  const allGroups = await GroupModel.find(filter, {
+    _id: 1,
+    coordinatorId: 1,
+    memberCount: 1,
+  }).lean();
   const allGroupObjectIds = allGroups
     .map((g) => String(g._id))
     .filter((id) => mongoose.Types.ObjectId.isValid(id))
@@ -343,23 +372,26 @@ export const listAdminGroups = catchAsync(async (req, res, next) => {
     0,
   );
 
-  const [withCoordinators, totalCollectedAgg, categories, locations] = await Promise.all([
-    GroupModel.countDocuments({ ...filter, coordinatorId: { $ne: null } }),
-    ContributionModel.aggregate([
-      {
-        $match: {
-          groupId: { $in: allGroupObjectIds },
-          year,
-          month,
-          contributionType: { $in: getContributionTypeMatch("revolving") || ["revolving"] },
-          status: { $in: ["verified", "completed"] },
+  const [withCoordinators, totalCollectedAgg, categories, locations] =
+    await Promise.all([
+      GroupModel.countDocuments({ ...filter, coordinatorId: { $ne: null } }),
+      ContributionModel.aggregate([
+        {
+          $match: {
+            groupId: { $in: allGroupObjectIds },
+            year,
+            month,
+            contributionType: {
+              $in: getContributionTypeMatch("revolving") || ["revolving"],
+            },
+            status: { $in: ["verified", "completed"] },
+          },
         },
-      },
-      { $group: { _id: null, total: { $sum: "$amount" } } },
-    ]),
-    GroupModel.distinct("category", filter),
-    GroupModel.distinct("location", filter),
-  ]);
+        { $group: { _id: null, total: { $sum: "$amount" } } },
+      ]),
+      GroupModel.distinct("category", filter),
+      GroupModel.distinct("location", filter),
+    ]);
 
   const totalCollected = Number(totalCollectedAgg?.[0]?.total ?? 0);
 
@@ -376,7 +408,11 @@ export const listAdminGroups = catchAsync(async (req, res, next) => {
         _id: "$contributionType",
         paidAmount: {
           $sum: {
-            $cond: [{ $in: ["$status", ["verified", "completed"]] }, "$amount", 0],
+            $cond: [
+              { $in: ["$status", ["verified", "completed"]] },
+              "$amount",
+              0,
+            ],
           },
         },
       },
@@ -393,7 +429,13 @@ export const listAdminGroups = catchAsync(async (req, res, next) => {
 
   for (const row of ytdSums) {
     const canonical = normalizeContributionType(row._id);
-    if (!canonical || !Object.prototype.hasOwnProperty.call(contributionTypeTotalsYtd, canonical)) {
+    if (
+      !canonical ||
+      !Object.prototype.hasOwnProperty.call(
+        contributionTypeTotalsYtd,
+        canonical,
+      )
+    ) {
       continue;
     }
     contributionTypeTotalsYtd[canonical] += Number(row.paidAmount || 0);
@@ -441,9 +483,12 @@ async function getManageableGroupIds(req) {
 
 export const listMemberApprovals = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
-  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
 
-  const status = String(req.query?.status ?? "pending").trim().toLowerCase();
+  const status = String(req.query?.status ?? "pending")
+    .trim()
+    .toLowerCase();
   if (!["pending", "active", "rejected"].includes(status)) {
     return next(new AppError("Invalid status filter", 400));
   }
@@ -452,9 +497,7 @@ export const listMemberApprovals = catchAsync(async (req, res, next) => {
   const manageableGroupIds = await getManageableGroupIds(req);
 
   const groupScope =
-    manageableGroupIds === null
-      ? null
-      : new Set(manageableGroupIds);
+    manageableGroupIds === null ? null : new Set(manageableGroupIds);
 
   if (groupIdParam && groupScope && !groupScope.has(groupIdParam)) {
     return next(new AppError("You cannot manage this group", 403));
@@ -468,7 +511,10 @@ export const listMemberApprovals = catchAsync(async (req, res, next) => {
   }
 
   const page = Math.max(1, parseInt(String(req.query?.page ?? "1"), 10) || 1);
-  const limit = Math.min(200, Math.max(1, parseInt(String(req.query?.limit ?? "50"), 10) || 50));
+  const limit = Math.min(
+    200,
+    Math.max(1, parseInt(String(req.query?.limit ?? "50"), 10) || 50),
+  );
   const skip = (page - 1) * limit;
 
   const memberships = await GroupMembershipModel.find(filter)
@@ -491,8 +537,15 @@ export const listMemberApprovals = catchAsync(async (req, res, next) => {
       email: profile?.email ?? "",
       phone: profile?.phone ?? "",
       groupName: group?.groupName ?? "Group",
-      applicationDate: (m.requestedAt || m.createdAt || new Date()).toISOString().slice(0, 10),
-      status: m.status === "active" ? "approved" : m.status === "rejected" ? "rejected" : "pending",
+      applicationDate: (m.requestedAt || m.createdAt || new Date())
+        .toISOString()
+        .slice(0, 10),
+      status:
+        m.status === "active"
+          ? "approved"
+          : m.status === "rejected"
+            ? "rejected"
+            : "pending",
       notes: m.reviewNotes ?? null,
     };
   });
@@ -508,7 +561,8 @@ export const listMemberApprovals = catchAsync(async (req, res, next) => {
 
 export const approveMemberApplication = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
-  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
 
   const { membershipId } = req.params;
   const notes = req.body?.notes ? String(req.body.notes).trim() : null;
@@ -517,7 +571,10 @@ export const approveMemberApplication = catchAsync(async (req, res, next) => {
   if (!membership) return next(new AppError("Membership not found", 404));
 
   const manageableGroupIds = await getManageableGroupIds(req);
-  if (manageableGroupIds && !manageableGroupIds.includes(String(membership.groupId))) {
+  if (
+    manageableGroupIds &&
+    !manageableGroupIds.includes(String(membership.groupId))
+  ) {
     return next(new AppError("You cannot manage this group", 403));
   }
 
@@ -551,7 +608,8 @@ export const approveMemberApplication = catchAsync(async (req, res, next) => {
   membership.reviewedBy = req.user.profileId;
   membership.reviewedAt = new Date();
   membership.reviewNotes = notes;
-  membership.requestedAt = membership.requestedAt || membership.createdAt || new Date();
+  membership.requestedAt =
+    membership.requestedAt || membership.createdAt || new Date();
   membership.joinedAt = membership.joinedAt || new Date();
   await membership.save({ validateBeforeSave: true });
 
@@ -568,7 +626,8 @@ export const approveMemberApplication = catchAsync(async (req, res, next) => {
 
 export const rejectMemberApplication = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
-  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
 
   const { membershipId } = req.params;
   const notes = req.body?.notes ? String(req.body.notes).trim() : null;
@@ -577,7 +636,10 @@ export const rejectMemberApplication = catchAsync(async (req, res, next) => {
   if (!membership) return next(new AppError("Membership not found", 404));
 
   const manageableGroupIds = await getManageableGroupIds(req);
-  if (manageableGroupIds && !manageableGroupIds.includes(String(membership.groupId))) {
+  if (
+    manageableGroupIds &&
+    !manageableGroupIds.includes(String(membership.groupId))
+  ) {
     return next(new AppError("You cannot manage this group", 403));
   }
 
@@ -585,7 +647,8 @@ export const rejectMemberApplication = catchAsync(async (req, res, next) => {
   membership.reviewedBy = req.user.profileId;
   membership.reviewedAt = new Date();
   membership.reviewNotes = notes;
-  membership.requestedAt = membership.requestedAt || membership.createdAt || new Date();
+  membership.requestedAt =
+    membership.requestedAt || membership.createdAt || new Date();
   await membership.save({ validateBeforeSave: true });
 
   return sendSuccess(res, {
@@ -597,11 +660,15 @@ export const rejectMemberApplication = catchAsync(async (req, res, next) => {
 
 export const listContributionTracker = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
-  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
 
   if (!hasUserRole(req.user, "admin", "groupCoordinator")) {
     return next(
-      new AppError("Only admins and group coordinators can access contribution tracking", 403),
+      new AppError(
+        "Only admins and group coordinators can access contribution tracking",
+        403,
+      ),
     );
   }
 
@@ -650,7 +717,10 @@ export const listContributionTracker = catchAsync(async (req, res, next) => {
   const historyMonths = [];
   for (let i = sixMonthsBack - 1; i >= 0; i -= 1) {
     const d = new Date(Date.UTC(year, month - 1 - i, 1));
-    historyMonths.push({ year: d.getUTCFullYear(), month: d.getUTCMonth() + 1 });
+    historyMonths.push({
+      year: d.getUTCFullYear(),
+      month: d.getUTCMonth() + 1,
+    });
   }
 
   const typeMatch = getContributionTypeMatch("revolving") || ["revolving"];
@@ -673,9 +743,7 @@ export const listContributionTracker = catchAsync(async (req, res, next) => {
   const contribDocs = await ContributionModel.find(
     {
       groupId: { $in: scopeGroupIds },
-      ...(contributionFilters.length > 0
-        ? { $and: contributionFilters }
-        : {}),
+      ...(contributionFilters.length > 0 ? { $and: contributionFilters } : {}),
     },
     { userId: 1, groupId: 1, year: 1, month: 1, amount: 1, status: 1 },
   ).lean();
@@ -740,15 +808,22 @@ export const listContributionTracker = catchAsync(async (req, res, next) => {
     };
   });
 
-  return sendSuccess(res, { statusCode: 200, results: records.length, data: { contributions: records } });
+  return sendSuccess(res, {
+    statusCode: 200,
+    results: records.length,
+    data: { contributions: records },
+  });
 });
 
 export const sendContributionReminders = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
-  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
 
   if (!hasUserRole(req.user, "groupCoordinator")) {
-    return next(new AppError("Only group coordinators can send reminders", 403));
+    return next(
+      new AppError("Only group coordinators can send reminders", 403),
+    );
   }
 
   const { year, month, error } = parseMonthYearPayload(req);
@@ -762,7 +837,9 @@ export const sendContributionReminders = catchAsync(async (req, res, next) => {
     return next(new AppError("Select at least one delivery method", 400));
   }
 
-  const rawRecipients = Array.isArray(req.body?.recipients) ? req.body.recipients : [];
+  const rawRecipients = Array.isArray(req.body?.recipients)
+    ? req.body.recipients
+    : [];
   const recipients = rawRecipients
     .map((item) => ({
       userId: String(item?.userId || "").trim(),
@@ -781,7 +858,9 @@ export const sendContributionReminders = catchAsync(async (req, res, next) => {
       : recipients;
 
   if (scopedRecipients.length === 0) {
-    return next(new AppError("No recipients are within your managed groups", 403));
+    return next(
+      new AppError("No recipients are within your managed groups", 403),
+    );
   }
 
   const userIds = uniqueStrings(scopedRecipients.map((r) => r.userId));
@@ -800,7 +879,9 @@ export const sendContributionReminders = catchAsync(async (req, res, next) => {
   );
 
   if (activeRecipients.length === 0) {
-    return next(new AppError("No active members found for the selected reminders", 404));
+    return next(
+      new AppError("No active members found for the selected reminders", 404),
+    );
   }
 
   const [profiles, groups] = await Promise.all([
@@ -819,8 +900,20 @@ export const sendContributionReminders = catchAsync(async (req, res, next) => {
 
   const label = formatMonthLabel(year, month);
   const channels = {
-    email: { requested: sendEmailFlag, attempted: 0, sent: 0, failed: 0, skipped: 0 },
-    sms: { requested: sendSmsFlag, attempted: 0, sent: 0, failed: 0, skipped: 0 },
+    email: {
+      requested: sendEmailFlag,
+      attempted: 0,
+      sent: 0,
+      failed: 0,
+      skipped: 0,
+    },
+    sms: {
+      requested: sendSmsFlag,
+      attempted: 0,
+      sent: 0,
+      failed: 0,
+      skipped: 0,
+    },
     notification: {
       requested: sendNotificationFlag,
       attempted: 0,
@@ -896,7 +989,9 @@ export const sendContributionReminders = catchAsync(async (req, res, next) => {
       channels.notification.skipped += 1;
     } else {
       try {
-        const saved = await NotificationModel.insertMany(notifications, { ordered: false });
+        const saved = await NotificationModel.insertMany(notifications, {
+          ordered: false,
+        });
         channels.notification.sent = saved.length;
         channels.notification.failed = notifications.length - saved.length;
         for (const notification of saved) {
@@ -914,7 +1009,9 @@ export const sendContributionReminders = catchAsync(async (req, res, next) => {
         failures.push({
           channel: "notification",
           to: "recipients",
-          error: err ? String(err?.message ?? err) : "Notification creation failed",
+          error: err
+            ? String(err?.message ?? err)
+            : "Notification creation failed",
         });
       }
     }
@@ -940,7 +1037,9 @@ export const sendContributionReminders = catchAsync(async (req, res, next) => {
         failures.push({
           channel: "email",
           to: emailTargets[idx]?.to,
-          error: result.reason ? String(result.reason?.message ?? result.reason) : "Email failed",
+          error: result.reason
+            ? String(result.reason?.message ?? result.reason)
+            : "Email failed",
         });
       }
     });
@@ -964,7 +1063,9 @@ export const sendContributionReminders = catchAsync(async (req, res, next) => {
         failures.push({
           channel: "sms",
           to: smsTargets[idx]?.to,
-          error: result.reason ? String(result.reason?.message ?? result.reason) : "SMS failed",
+          error: result.reason
+            ? String(result.reason?.message ?? result.reason)
+            : "SMS failed",
         });
       }
     });
@@ -983,10 +1084,16 @@ export const sendContributionReminders = catchAsync(async (req, res, next) => {
 
 export const markContributionPaid = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
-  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
 
   if (!hasUserRole(req.user, "groupCoordinator")) {
-    return next(new AppError("Only group coordinators can mark contributions as paid", 403));
+    return next(
+      new AppError(
+        "Only group coordinators can mark contributions as paid",
+        403,
+      ),
+    );
   }
 
   const userId = String(req.body?.userId || "").trim();
@@ -995,9 +1102,9 @@ export const markContributionPaid = catchAsync(async (req, res, next) => {
   const year = Number(req.body?.year);
   const amount = Number(req.body?.amount);
   const contributionTypeRaw = req.body?.contributionType;
-  const paymentMethod = String(
-    req.body?.paymentMethod || "bank_transfer",
-  ).trim().toLowerCase();
+  const paymentMethod = String(req.body?.paymentMethod || "bank_transfer")
+    .trim()
+    .toLowerCase();
   const manualPaymentReference = req.body?.paymentReference
     ? String(req.body.paymentReference).trim()
     : null;
@@ -1005,10 +1112,14 @@ export const markContributionPaid = catchAsync(async (req, res, next) => {
     ? String(req.body.description).trim()
     : "";
 
-  if (!userId || !groupId) return next(new AppError("userId and groupId are required", 400));
-  if (!Number.isFinite(month) || month < 1 || month > 12) return next(new AppError("Invalid month", 400));
-  if (!Number.isFinite(year) || year < 2000 || year > 2100) return next(new AppError("Invalid year", 400));
-  if (!Number.isFinite(amount) || amount <= 0) return next(new AppError("amount must be > 0", 400));
+  if (!userId || !groupId)
+    return next(new AppError("userId and groupId are required", 400));
+  if (!Number.isFinite(month) || month < 1 || month > 12)
+    return next(new AppError("Invalid month", 400));
+  if (!Number.isFinite(year) || year < 2000 || year > 2100)
+    return next(new AppError("Invalid year", 400));
+  if (!Number.isFinite(amount) || amount <= 0)
+    return next(new AppError("amount must be > 0", 400));
   if (!ManualContributionPaymentMethods.has(paymentMethod)) {
     return next(new AppError("Invalid paymentMethod", 400));
   }
@@ -1024,14 +1135,21 @@ export const markContributionPaid = catchAsync(async (req, res, next) => {
     return next(new AppError("You cannot manage this group", 403));
   }
 
-  const membership = await GroupMembershipModel.findOne({ groupId, userId, status: "active" });
-  if (!membership) return next(new AppError("Member is not active in this group", 400));
+  const membership = await GroupMembershipModel.findOne({
+    groupId,
+    userId,
+    status: "active",
+  });
+  if (!membership)
+    return next(new AppError("Member is not active in this group", 400));
 
   const group = await GroupModel.findById(groupId, { groupName: 1 });
   if (!group) return next(new AppError("Group not found", 404));
 
   if (!isContributionAmountValid(normalizedType, amount)) {
-    return next(new AppError("Amount does not meet contribution requirements", 400));
+    return next(
+      new AppError("Amount does not meet contribution requirements", 400),
+    );
   }
 
   const verifiedAt = new Date();
@@ -1103,4 +1221,3 @@ export const markContributionPaid = catchAsync(async (req, res, next) => {
     data: { contribution, transaction },
   });
 });
-

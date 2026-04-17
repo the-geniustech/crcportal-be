@@ -5,13 +5,18 @@ import {
   approveWithdrawal,
   completeWithdrawal,
   createWithdrawalRequest,
+  finalizeManualWithdrawalPayout,
   finalizeWithdrawalOtp,
   resendWithdrawalOtp,
   getMyWithdrawalBalance,
+  initiateManualWithdrawalPayout,
   listMyWithdrawals,
   listWithdrawals,
   markWithdrawalProcessing,
+  cancelManualWithdrawalPayout,
   rejectWithdrawal,
+  resendManualWithdrawalPayoutOtp,
+  verifyWithdrawalTransfer,
 } from "../controllers/withdrawalController.js";
 
 const router = express.Router();
@@ -39,7 +44,28 @@ router.patch(
   markWithdrawalProcessing,
 );
 router.patch("/:id/complete", restrictTo("admin"), completeWithdrawal);
+router.patch("/:id/verify-transfer", restrictTo("admin"), verifyWithdrawalTransfer);
 router.patch("/:id/finalize-otp", restrictTo("admin"), finalizeWithdrawalOtp);
 router.patch("/:id/resend-otp", restrictTo("admin"), resendWithdrawalOtp);
+router.patch(
+  "/:id/initiate-manual-payout",
+  restrictTo("admin"),
+  initiateManualWithdrawalPayout,
+);
+router.patch(
+  "/:id/finalize-manual-otp",
+  restrictTo("admin"),
+  finalizeManualWithdrawalPayout,
+);
+router.patch(
+  "/:id/resend-manual-otp",
+  restrictTo("admin"),
+  resendManualWithdrawalPayoutOtp,
+);
+router.patch(
+  "/:id/cancel-manual-otp",
+  restrictTo("admin"),
+  cancelManualWithdrawalPayout,
+);
 
 export default router;
