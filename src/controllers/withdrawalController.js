@@ -8,8 +8,7 @@ import { GroupMembershipModel } from "../models/GroupMembership.js";
 import { GroupModel } from "../models/Group.js";
 import { UserModel } from "../models/User.js";
 import { computeContributionBalances } from "../utils/finance.js";
-import { sendEmailOtp } from "../services/mail/sendEmailOtp.js";
-import { sendPhoneOtp } from "../services/sms/sendPhoneOtp.js";
+import { sendAdminAuthorizationOtp } from "../services/otp/sendAdminAuthorizationOtp.js";
 import { randomId, sha256 } from "../utils/crypto.js";
 import { normalizeContributionType } from "../utils/contributionPolicy.js";
 import { hasUserRole } from "../utils/roles.js";
@@ -140,21 +139,6 @@ function getAuthenticatedUserId(req) {
 
 function generateOtp() {
   return String(Math.floor(100000 + Math.random() * 900000));
-}
-
-function maskPhoneNumber(phone) {
-  const raw = String(phone || "").trim();
-  if (raw.length <= 4) return raw;
-  return `${raw.slice(0, 4)}${"*".repeat(Math.max(0, raw.length - 6))}${raw.slice(-2)}`;
-}
-
-function maskEmailAddress(email) {
-  const raw = String(email || "").trim().toLowerCase();
-  const atIndex = raw.indexOf("@");
-  if (atIndex <= 1) return raw;
-  const local = raw.slice(0, atIndex);
-  const domain = raw.slice(atIndex);
-  return `${local.slice(0, 1)}${"*".repeat(Math.max(1, local.length - 2))}${local.slice(-1)}${domain}`;
 }
 
 function normalizeManualPayoutMethod(value) {
@@ -364,37 +348,12 @@ function applyPaystackTransferState(withdrawal, status) {
 }
 
 async function sendManualWithdrawalPayoutOtp({ user, otp }) {
-  if (user?.phone) {
-    await sendPhoneOtp({
-      toPhone: user.phone,
-      otp,
-      ttlMinutes: MANUAL_WITHDRAWAL_PAYOUT_OTP_TTL_MINUTES,
-    });
-    return {
-      channel: "phone",
-      recipient: user.phone,
-      maskedRecipient: maskPhoneNumber(user.phone),
-    };
-  }
-
-  if (user?.email) {
-    await sendEmailOtp({
-      toEmail: user.email,
-      otp,
-      ttlMinutes: MANUAL_WITHDRAWAL_PAYOUT_OTP_TTL_MINUTES,
-      purpose: "manual withdrawal payout confirmation",
-    });
-    return {
-      channel: "email",
-      recipient: user.email,
-      maskedRecipient: maskEmailAddress(user.email),
-    };
-  }
-
-  throw new AppError(
-    "Authorized user must have a phone number or email to receive OTP.",
-    400,
-  );
+  return sendAdminAuthorizationOtp({
+    user,
+    otp,
+    ttlMinutes: MANUAL_WITHDRAWAL_PAYOUT_OTP_TTL_MINUTES,
+    purpose: "manual withdrawal payout confirmation",
+  });
 }
 
 async function resolveBankCode({ bankCode, bankName } = {}) {
@@ -807,11 +766,25 @@ async function reconcilePaystackAttemptForManualSwitch(withdrawal, req) {
       };
     }
 
+    appendPayoutEvent(withdrawal, req, {
+      eventType: "paystack_superseded_for_manual_switch",
+      gateway: "paystack",
+      status: verifiedStatus || "active",
+      reference: withdrawal.payoutReference,
+      transferCode: withdrawal.payoutTransferCode,
+      message:
+        "A still-active Paystack payout was intentionally superseded so the withdrawal could be settled manually.",
+      metadata: {
+        verifiedStatus: verifiedStatus || null,
+      },
+    });
     return {
-      canSwitch: false,
-      note: null,
-      reason:
-        "A Paystack payout is still active. Verify or complete that transfer before switching to manual payout.",
+      canSwitch: true,
+      note: buildSupersededPaystackAttemptNote({
+        reference: withdrawal.payoutReference,
+        transferCode: withdrawal.payoutTransferCode,
+        status: verifiedStatus || "active",
+      }),
     };
   } catch (error) {
     if (isMissingOrStalePaystackTransferError(error)) {
@@ -1121,7 +1094,7 @@ export const initiateManualWithdrawalPayout = catchAsync(async (req, res, next) 
   }
 
   const actingUser = await UserModel.findById(getAuthenticatedUserId(req))
-    .select("email phone")
+    .select("email phone emailVerifiedAt phoneVerifiedAt")
     .lean();
   if (!actingUser) {
     return next(new AppError("Authorized user not found", 404));
@@ -1407,7 +1380,7 @@ export const resendManualWithdrawalPayoutOtp = catchAsync(async (req, res, next)
   }
 
   const actingUser = await UserModel.findById(getAuthenticatedUserId(req))
-    .select("email phone")
+    .select("email phone emailVerifiedAt phoneVerifiedAt")
     .lean();
   if (!actingUser) {
     return next(new AppError("Authorized user not found", 404));
