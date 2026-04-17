@@ -2590,6 +2590,9 @@ export const initiateManualLoanDisbursement = catchAsync(
       completedAt: null,
       otpChannel: delivery.channel,
       otpRecipient: delivery.maskedRecipient,
+      otpBackupChannels: Array.isArray(delivery.backupChannelsAttempted)
+        ? delivery.backupChannelsAttempted
+        : [],
       otpSentAt: new Date(),
     };
     req.loanApplication.manualDisbursementOtpHash = sha256(otp);
@@ -2773,6 +2776,9 @@ export const resendManualLoanDisbursementOtp = catchAsync(
       status: "pending_otp",
       otpChannel: delivery.channel,
       otpRecipient: delivery.maskedRecipient,
+      otpBackupChannels: Array.isArray(delivery.backupChannelsAttempted)
+        ? delivery.backupChannelsAttempted
+        : [],
       otpSentAt: new Date(),
     };
 

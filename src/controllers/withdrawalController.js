@@ -1132,6 +1132,9 @@ export const initiateManualWithdrawalPayout = catchAsync(async (req, res, next) 
     completedAt: null,
     otpChannel: delivery.channel,
     otpRecipient: delivery.maskedRecipient,
+    otpBackupChannels: Array.isArray(delivery.backupChannelsAttempted)
+      ? delivery.backupChannelsAttempted
+      : [],
     otpSentAt: new Date(),
   };
   withdrawal.manualPayoutOtpHash = sha256(otp);
@@ -1149,6 +1152,9 @@ export const initiateManualWithdrawalPayout = catchAsync(async (req, res, next) 
       occurredAt: occurredAt.toISOString(),
       externalReference,
       otpRecipient: delivery.maskedRecipient,
+      otpBackupChannels: Array.isArray(delivery.backupChannelsAttempted)
+        ? delivery.backupChannelsAttempted
+        : [],
     },
   });
 
@@ -1402,6 +1408,9 @@ export const resendManualWithdrawalPayoutOtp = catchAsync(async (req, res, next)
     status: "pending_otp",
     otpChannel: delivery.channel,
     otpRecipient: delivery.maskedRecipient,
+    otpBackupChannels: Array.isArray(delivery.backupChannelsAttempted)
+      ? delivery.backupChannelsAttempted
+      : [],
     otpSentAt: new Date(),
   };
   appendPayoutEvent(withdrawal, req, {
@@ -1412,6 +1421,9 @@ export const resendManualWithdrawalPayoutOtp = catchAsync(async (req, res, next)
     message: "A fresh manual payout OTP was sent to the initiating admin.",
     metadata: {
       otpRecipient: delivery.maskedRecipient,
+      otpBackupChannels: Array.isArray(delivery.backupChannelsAttempted)
+        ? delivery.backupChannelsAttempted
+        : [],
     },
   });
 

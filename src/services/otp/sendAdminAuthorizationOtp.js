@@ -113,6 +113,8 @@ export async function sendAdminAuthorizationOtp({
   const failures = [];
   let primaryDelivery = null;
   let primaryIndex = -1;
+  const backupChannelsAttempted = [];
+  const backupChannelsDelivered = [];
 
   for (let index = 0; index < candidates.length; index += 1) {
     const candidate = candidates[index];
@@ -141,6 +143,7 @@ export async function sendAdminAuthorizationOtp({
 
   for (let index = primaryIndex + 1; index < candidates.length; index += 1) {
     const candidate = candidates[index];
+    backupChannelsAttempted.push(candidate.channel);
     try {
       await deliverOtp({
         ...candidate,
@@ -148,6 +151,7 @@ export async function sendAdminAuthorizationOtp({
         ttlMinutes,
         purpose,
       });
+      backupChannelsDelivered.push(candidate.channel);
     } catch (error) {
       const message =
         error instanceof Error && error.message
@@ -159,5 +163,9 @@ export async function sendAdminAuthorizationOtp({
     }
   }
 
-  return primaryDelivery;
+  return {
+    ...primaryDelivery,
+    backupChannelsAttempted,
+    backupChannelsDelivered,
+  };
 }

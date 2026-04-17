@@ -577,14 +577,29 @@ export const updateMyContributionSettings = catchAsync(
       ...parsedUnits,
     };
 
-    profile.contributionSettings = {
+    const updatedContributionSettings = {
       year: currentYear,
       units: nextUnits,
       updatedAt: now,
     };
-    await profile.save({ validateBeforeSave: true });
 
-    const settings = resolveContributionSettings(profile, now);
+    // Persist only the contribution settings slice so unrelated legacy fields
+    // like phone numbers cannot block this update path.
+    const updatedProfile = await ProfileModel.findByIdAndUpdate(
+      profile._id,
+      {
+        $set: {
+          contributionSettings: updatedContributionSettings,
+        },
+      },
+      {
+        new: true,
+        runValidators: true,
+      },
+    );
+    if (!updatedProfile) return next(new AppError("Profile not found", 404));
+
+    const settings = resolveContributionSettings(updatedProfile, now);
 
     return sendSuccess(res, {
       statusCode: 200,

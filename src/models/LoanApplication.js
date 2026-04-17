@@ -120,6 +120,10 @@ const ManualLoanDisbursementSchema = new Schema(
       default: null,
     },
     otpRecipient: { type: String, default: null, trim: true },
+    otpBackupChannels: {
+      type: [{ type: String, enum: ["phone", "email"] }],
+      default: [],
+    },
     otpSentAt: { type: Date, default: null },
   },
   { _id: false },
