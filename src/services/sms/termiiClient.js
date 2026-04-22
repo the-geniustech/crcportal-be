@@ -140,6 +140,24 @@ function buildTermiiAppError({
   return error;
 }
 
+export function normalizeSmsDeliveryStatus(status) {
+  return String(status || "").trim().toLowerCase();
+}
+
+export function isTerminalUndeliveredSmsStatus(status) {
+  return [
+    "dnd active on phone number",
+    "message failed",
+    "failed",
+    "rejected",
+    "expired",
+  ].includes(normalizeSmsDeliveryStatus(status));
+}
+
+export function isDeliveredSmsStatus(status) {
+  return normalizeSmsDeliveryStatus(status) === "delivered";
+}
+
 export async function sendSms({ to, message, channel }) {
   const apiKey = process.env.TERMII_API_KEY;
   const senderId = process.env.TERMII_SENDER_ID;
@@ -373,4 +391,34 @@ export async function lookupSmsHistory(messageId) {
   }
 
   return null;
+}
+
+export async function waitForSmsDeliveryStatus(
+  messageId,
+  { timeoutMs = 8_000, intervalMs = 1_500 } = {},
+) {
+  const trimmedMessageId = String(messageId || "").trim();
+  if (!trimmedMessageId) return null;
+
+  const startedAt = Date.now();
+  let lastEntry = null;
+
+  while (Date.now() - startedAt <= timeoutMs) {
+    const historyEntry = await lookupSmsHistory(trimmedMessageId);
+    if (historyEntry) {
+      lastEntry = historyEntry;
+      const status = String(historyEntry.status || "").trim();
+      if (
+        isDeliveredSmsStatus(status) ||
+        isTerminalUndeliveredSmsStatus(status)
+      ) {
+        return historyEntry;
+      }
+    }
+
+    if (Date.now() - startedAt >= timeoutMs) break;
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+
+  return lastEntry;
 }

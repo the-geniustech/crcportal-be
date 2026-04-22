@@ -13,6 +13,13 @@ const MemberSequenceSchema = new Schema(
 const MemberSequenceModel = model("MemberSequence", MemberSequenceSchema);
 const MEMBER_SEQUENCE_KEY = "group_member";
 
+function isMemberSequenceDuplicateKeyError(error) {
+  return (
+    error?.code === 11000 &&
+    String(error?.message || "").includes(MEMBER_SEQUENCE_KEY)
+  );
+}
+
 export function formatGroupMemberSerial({
   groupNumber,
   memberNumber,
@@ -22,34 +29,52 @@ export function formatGroupMemberSerial({
   return `CRC/G${groupPart}/${memberPart}`;
 }
 
-export async function ensureGroupMemberSequence(groupId) {
-  const maxMember = await GroupMembershipModel.findOne(
+export async function ensureGroupMemberSequence(groupId, { session = null } = {}) {
+  let maxMemberQuery = GroupMembershipModel.findOne(
     { memberNumber: { $type: "number" } },
     { memberNumber: 1 },
   )
-    .sort({ memberNumber: -1 })
-    .lean();
+    .sort({ memberNumber: -1 });
+  if (session) {
+    maxMemberQuery = maxMemberQuery.session(session);
+  }
+  const maxMember = await maxMemberQuery.lean();
   const maxNumber = Number(maxMember?.memberNumber ?? 0);
-  const update = maxNumber > 0 ? { $set: { value: maxNumber } } : { $setOnInsert: { value: 0 } };
-  await MemberSequenceModel.updateOne(
-    {
-      key: MEMBER_SEQUENCE_KEY,
-      ...(maxNumber > 0
-        ? { $or: [{ value: { $exists: false } }, { value: { $lt: maxNumber } }] }
-        : {}),
-    },
-    update,
-    { upsert: true },
-  );
+  const options = { upsert: true, ...(session ? { session } : {}) };
+  try {
+    await MemberSequenceModel.updateOne(
+      { key: MEMBER_SEQUENCE_KEY },
+      { $max: { value: maxNumber } },
+      options,
+    );
+  } catch (error) {
+    if (!isMemberSequenceDuplicateKeyError(error)) {
+      throw error;
+    }
+    await MemberSequenceModel.updateOne(
+      { key: MEMBER_SEQUENCE_KEY },
+      { $max: { value: maxNumber } },
+      session ? { session } : {},
+    );
+  }
   return maxNumber;
 }
 
-export async function reserveGroupMemberNumbers(groupId, count) {
+export async function reserveGroupMemberNumbers(
+  groupId,
+  count,
+  { session = null } = {},
+) {
   const total = Number(count ?? 0);
   if (!Number.isFinite(total) || total <= 0) {
-    const group = groupId
-      ? await GroupModel.findById(groupId, { groupNumber: 1 }).lean()
-      : null;
+    let groupQuery =
+      groupId
+        ? GroupModel.findById(groupId, { groupNumber: 1 })
+        : null;
+    if (groupQuery && session) {
+      groupQuery = groupQuery.session(session);
+    }
+    const group = groupQuery ? await groupQuery.lean() : null;
     return {
       groupNumber: Number(group?.groupNumber ?? 0),
       start: null,
@@ -57,16 +82,48 @@ export async function reserveGroupMemberNumbers(groupId, count) {
     };
   }
 
-  await ensureGroupMemberSequence(groupId);
-  const sequence = await MemberSequenceModel.findOneAndUpdate(
-    { key: MEMBER_SEQUENCE_KEY },
-    { $inc: { value: total } },
-    { new: true, upsert: true, setDefaultsOnInsert: true },
-  ).lean();
+  await ensureGroupMemberSequence(groupId, { session });
+  const sequenceUpdate = { $inc: { value: total } };
+  const baseOptions = {
+    new: true,
+    upsert: true,
+    setDefaultsOnInsert: true,
+    ...(session ? { session } : {}),
+  };
+  let sequence = null;
+  try {
+    let sequenceQuery = MemberSequenceModel.findOneAndUpdate(
+      { key: MEMBER_SEQUENCE_KEY },
+      sequenceUpdate,
+      baseOptions,
+    );
+    if (session) {
+      sequenceQuery = sequenceQuery.session(session);
+    }
+    sequence = await sequenceQuery.lean();
+  } catch (error) {
+    if (!isMemberSequenceDuplicateKeyError(error)) {
+      throw error;
+    }
+    let retryQuery = MemberSequenceModel.findOneAndUpdate(
+      { key: MEMBER_SEQUENCE_KEY },
+      sequenceUpdate,
+      { new: true, ...(session ? { session } : {}) },
+    );
+    if (session) {
+      retryQuery = retryQuery.session(session);
+    }
+    sequence = await retryQuery.lean();
+  }
 
-  const group = groupId
-    ? await GroupModel.findById(groupId, { groupNumber: 1 }).lean()
-    : null;
+  let groupQuery =
+    groupId
+      ? GroupModel.findById(groupId, { groupNumber: 1 })
+      : null;
+  if (groupQuery && session) {
+    groupQuery = groupQuery.session(session);
+  }
+  const group = groupQuery ? await groupQuery.lean() : null;
 
   if (!sequence) return { groupNumber: null, start: null, end: null };
 
@@ -75,7 +132,11 @@ export async function reserveGroupMemberNumbers(groupId, count) {
   return { groupNumber: Number(group?.groupNumber ?? 0), start, end };
 }
 
-export async function assignGroupMemberSerial({ membership, group }) {
+export async function assignGroupMemberSerial({
+  membership,
+  group,
+  session = null,
+}) {
   if (!membership || !group) return membership;
   if (membership.status !== "active") return membership;
 
@@ -84,7 +145,7 @@ export async function assignGroupMemberSerial({ membership, group }) {
   const joinedAt = membership.joinedAt || new Date();
 
   if (!memberNumber) {
-    const reserved = await reserveGroupMemberNumbers(group._id, 1);
+    const reserved = await reserveGroupMemberNumbers(group._id, 1, { session });
     if (reserved.start) memberNumber = reserved.start;
     if (!groupNumber && reserved.groupNumber) {
       groupNumber = reserved.groupNumber;
@@ -109,6 +170,9 @@ export async function assignGroupMemberSerial({ membership, group }) {
   membership.memberSerial = serial;
   if (!membership.joinedAt) membership.joinedAt = joinedAt;
 
-  await membership.save({ validateBeforeSave: true });
+  await membership.save({
+    validateBeforeSave: true,
+    ...(session ? { session } : {}),
+  });
   return membership;
 }

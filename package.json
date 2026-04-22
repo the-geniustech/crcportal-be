@@ -39,8 +39,12 @@
     "seed:membership-doc": "node src/scripts/seedMembershipDocData.js",
     "seed:contributions:parse": "node src/scripts/contribution-ingestion/parseContributionXlsx.js",
     "seed:contributions": "node src/scripts/contribution-ingestion/seedContributionData.js",
+    "move:user-group": "node src/scripts/moveUserBetweenGroups.js",
+    "delete:user-contributions": "node src/scripts/deleteUserContributions.js -- --userId 3ef7589a772a2cf94ecf2220 --profileId 08b4dd38db1745a4e4ba58c9",
+    "delete:user-withdrawals": "node src/scripts/deleteUserWithdrawals.js -- --userId 4e5e48c970a7fd7d07a7d01e --profileId 5ff9e8264e8d2eaf141a787f",
+    "delete:user-loans": "node src/scripts/deleteUserLoans.js -- --userId 4e5e48c970a7fd7d07a7d01e --profileId 5ff9e8264e8d2eaf141a787f",
     "parse:migration": "node src/scripts/contribution-ingestion/parseContributionXlsx.js --year 2026",
     "seed:migration": "node src/scripts/contribution-ingestion/seedContributionData.js --inputDir src/seed-data/contributions/champions-wise-investment",
-    "normalize:phones:dry": "node src/scripts/normalizePhones.js --dry-run"
+    "normalize:phones": "node src/scripts/normalizePhones.js"
   }
 }
