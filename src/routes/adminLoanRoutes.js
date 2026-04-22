@@ -188,3 +188,23 @@ router.post(
 );
 
 export default router;
+
+/*
+Act as a senior full-stack engineer with 30+ years of experience building scalable SaaS platforms, so let's continue creating/building professional tailored scripts for the project.
+- Create a script that takes in this type attached loan tracking (per group) file and seed the members loan applications into the database, ensuring all the necessary validations and error handling are in place.
+
+Notes about the attached loan tracking file (.xlsx):
+- The file
+
+Ensure all the requirements are consistent with backend <=> frontend flows and implemented in an highly professional way and industry standard of doing things.
+
+You can improvice whenever needed, just ensure you don't digress from the context of this project and you're always highly professional as much as possible.
+*/
+
+/*
+Act as a senior full-stack engineer with 30+ years of experience building scalable SaaS platforms, so let's continue creating/building professional tailored Loan system/flows in the project.
+-
+Ensure all the requirements are consistent with backend <=> frontend flows and implemented in an highly professional way and industry standard of doing things.
+
+You can improvice whenever needed, just ensure you don't digress from the context of this project and you're always highly professional as much as possible.
+*/

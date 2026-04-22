@@ -499,9 +499,17 @@ export const listWithdrawals = catchAsync(async (req, res) => {
     typeof req.query?.userId === "string" && req.query.userId.trim()
       ? req.query.userId.trim()
       : null;
+  const groupIdParam =
+    typeof req.query?.groupId === "string" && req.query.groupId.trim()
+      ? req.query.groupId.trim()
+      : null;
 
   const manageableGroupIds = await getManageableGroupIds(req);
   if (manageableGroupIds) {
+    if (groupIdParam && !manageableGroupIds.includes(groupIdParam)) {
+      throw new AppError("You cannot manage withdrawals for this group", 403);
+    }
+
     const managedUserIds = await getManagedUserIds(manageableGroupIds);
     if (managedUserIds.length === 0) {
       return sendSuccess(res, {
@@ -511,7 +519,15 @@ export const listWithdrawals = catchAsync(async (req, res) => {
       });
     }
 
-    if (userIdParam) {
+    if (groupIdParam) {
+      filter.groupId = groupIdParam;
+      if (userIdParam) {
+        if (!managedUserIds.includes(userIdParam)) {
+          throw new AppError("You cannot manage withdrawals for this member", 403);
+        }
+        filter.userId = userIdParam;
+      }
+    } else if (userIdParam) {
       if (!managedUserIds.includes(userIdParam)) {
         throw new AppError("You cannot manage withdrawals for this member", 403);
       }
@@ -526,8 +542,13 @@ export const listWithdrawals = catchAsync(async (req, res) => {
         { groupId: null, userId: { $in: managedUserIds } },
       ];
     }
-  } else if (userIdParam) {
-    filter.userId = userIdParam;
+  } else {
+    if (userIdParam) {
+      filter.userId = userIdParam;
+    }
+    if (groupIdParam) {
+      filter.groupId = groupIdParam;
+    }
   }
 
   const withdrawals = await WithdrawalRequestModel.find(filter).sort({ createdAt: -1 });
