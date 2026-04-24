@@ -263,6 +263,104 @@ export async function sendSms({ to, message, channel }) {
   };
 }
 
+export async function sendVoiceOtpCall({ to, code }) {
+  const apiKey = process.env.TERMII_API_KEY;
+  const baseUrl = getTermiiBaseUrl();
+  const normalized = toNigerianE164(to);
+  const numericCode = String(code || "").trim();
+
+  if (!normalized) {
+    throw new AppError("Invalid recipient phone number.", 400);
+  }
+  if (!/^\d{4,8}$/.test(numericCode)) {
+    throw new AppError(
+      "Voice OTP fallback requires a numeric code between 4 and 8 digits.",
+      400,
+    );
+  }
+  if (!apiKey) {
+    throw new AppError(
+      "SMS is not configured correctly on the server. Missing TERMII_API_KEY.",
+      500,
+    );
+  }
+
+  let res;
+  try {
+    res = await fetch(`${baseUrl}/api/sms/otp/call`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "User-Agent": process.env.APP_NAME || "crc-backend",
+      },
+      body: JSON.stringify({
+        api_key: apiKey,
+        phone_number: normalized.replace(/^\+/, ""),
+        code: numericCode,
+      }),
+    });
+  } catch (error) {
+    logTermiiFailure({
+      channel: "voice_call",
+      to: normalized,
+      statusCode: null,
+      payload: null,
+      error,
+    });
+    throw new AppError(
+      `Unable to reach the Termii voice OTP gateway. ${
+        error instanceof Error && error.message
+          ? error.message
+          : "Please try again shortly."
+      }`,
+      502,
+    );
+  }
+
+  const rawBody = await res.text().catch(() => "");
+  const payload = parseTermiiPayload(rawBody);
+  const providerMessage = formatTermiiErrorMessage(payload);
+
+  if (!res.ok) {
+    logTermiiFailure({
+      channel: "voice_call",
+      to: normalized,
+      statusCode: res.status,
+      payload,
+    });
+    throw buildTermiiAppError({
+      channel: "voice_call",
+      statusCode: res.status,
+      payload,
+      providerMessage,
+    });
+  }
+
+  const providerCode = String(payload?.code || "")
+    .trim()
+    .toLowerCase();
+  if (providerCode && providerCode !== "ok") {
+    logTermiiFailure({
+      channel: "voice_call",
+      to: normalized,
+      statusCode: res.status,
+      payload,
+    });
+    throw buildTermiiAppError({
+      channel: "voice_call",
+      statusCode: res.status,
+      payload,
+      providerMessage,
+    });
+  }
+
+  return {
+    ...(payload && typeof payload === "object" ? payload : {}),
+    channel: "voice_call",
+    to: normalized,
+  };
+}
+
 export async function lookupPhoneDndStatus(phoneNumber) {
   const apiKey = process.env.TERMII_API_KEY;
   const baseUrl = getTermiiBaseUrl();

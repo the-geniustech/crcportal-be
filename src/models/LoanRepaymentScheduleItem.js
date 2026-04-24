@@ -14,9 +14,13 @@ export const LoanRepaymentScheduleItemSchema = new Schema(
 
     dueDate: { type: Date, required: true, index: true },
 
+    openingPrincipalBalance: { type: Number, default: null, min: 0 },
     principalAmount: { type: Number, required: true, min: 0 },
     interestAmount: { type: Number, required: true, min: 0 },
     totalAmount: { type: Number, required: true, min: 0 },
+    paidPrincipalAmount: { type: Number, default: 0, min: 0 },
+    paidInterestAmount: { type: Number, default: 0, min: 0 },
+    isProjected: { type: Boolean, default: false, index: true },
 
     status: {
       type: String,
@@ -44,4 +48,3 @@ export const LoanRepaymentScheduleItemModel = model(
   "LoanRepaymentScheduleItem",
   LoanRepaymentScheduleItemSchema,
 );
-

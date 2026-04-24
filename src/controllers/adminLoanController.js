@@ -28,7 +28,10 @@ import {
 import {
   applyLoanRepayment,
   buildLoanNextPaymentMap,
+  getLoanRemainingBreakdown,
+  getLoanRepaymentToDate,
   getLoanScheduleOutstandingAmount,
+  syncLoanRepaymentState,
 } from "../services/loanRepaymentService.js";
 import {
   getLoanInterestConfig,
@@ -276,9 +279,15 @@ function resetLoanForResubmission(loan, { notes } = {}) {
   loan.disbursedAt = null;
   loan.disbursedBy = null;
   loan.repaymentStartDate = null;
+  loan.nextInterestAccrualDate = null;
   loan.monthlyPayment = null;
   loan.totalRepayable = null;
   loan.remainingBalance = 0;
+  loan.principalOutstanding = 0;
+  loan.accruedInterestBalance = 0;
+  loan.totalPrincipalPaid = 0;
+  loan.totalInterestPaid = 0;
+  loan.totalInterestAccrued = 0;
   loan.payoutReference = null;
   loan.payoutGateway = null;
   loan.payoutTransferCode = null;
@@ -462,6 +471,14 @@ async function findLoanRepaymentTransaction(loanDoc, repaymentId) {
 }
 
 async function buildAdminLoanRepaymentHistoryData(loanDoc) {
+  if (
+    loanDoc &&
+    typeof loanDoc.save === "function" &&
+    ["disbursed", "defaulted"].includes(String(loanDoc.status || ""))
+  ) {
+    await syncLoanRepaymentState(loanDoc, { asOf: new Date() });
+  }
+
   const loan =
     typeof loanDoc?.toObject === "function" ? loanDoc.toObject() : loanDoc;
 
@@ -619,7 +636,8 @@ async function buildAdminLoanRepaymentHistoryData(loanDoc) {
     loan.totalRepayable ?? loan.approvedAmount ?? loan.loanAmount ?? 0,
   );
   const remainingBalance = Number(loan.remainingBalance ?? 0);
-  const repaidSoFar = Math.max(0, totalRepayable - remainingBalance);
+  const repaidSoFar = getLoanRepaymentToDate(loan);
+  const remainingBreakdown = getLoanRemainingBreakdown(loan);
   const nextPayment = nextPaymentMap.get(String(loan._id)) || null;
   const totalCollected = repayments.reduce(
     (sum, repayment) => sum + Number(repayment.amount || 0),
@@ -641,6 +659,8 @@ async function buildAdminLoanRepaymentHistoryData(loanDoc) {
       totalRepayable,
       remainingBalance,
       repaidSoFar,
+      principalOutstanding: remainingBreakdown.principalOutstanding,
+      accruedInterestBalance: remainingBreakdown.accruedInterestBalance,
       disbursedAt: loan.disbursedAt || null,
       repaymentStartDate: loan.repaymentStartDate || null,
       nextPaymentAmount: Number(nextPayment?.amountDue ?? 0),
@@ -866,8 +886,7 @@ export const listAdminLoanApplications = catchAsync(async (req, res, next) => {
     LoanApplicationModel.find(filter)
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit)
-      .lean(),
+      .limit(limit),
     LoanApplicationModel.countDocuments(filter),
     LoanApplicationModel.aggregate([
       {
@@ -885,6 +904,17 @@ export const listAdminLoanApplications = catchAsync(async (req, res, next) => {
       },
     ]),
   ]);
+
+  const activeApplications = applications.filter((application) =>
+    ["disbursed", "defaulted"].includes(String(application.status || "")),
+  );
+  if (activeApplications.length > 0) {
+    await Promise.all(
+      activeApplications.map((application) =>
+        syncLoanRepaymentState(application, { asOf: new Date() }),
+      ),
+    );
+  }
 
   const profileIds = applications.map((a) => a.userId).filter(Boolean);
   const profiles = await ProfileModel.find(
@@ -918,7 +948,7 @@ export const listAdminLoanApplications = catchAsync(async (req, res, next) => {
   const enriched = applications.map((a) => {
     const latest = latestEditMap.get(String(a._id));
     return {
-      ...a,
+      ...(typeof a.toObject === "function" ? a.toObject() : a),
       applicant: profileById.get(String(a.userId)) || null,
       nextPaymentDueDate: nextPaymentMap.get(String(a._id))?.dueDate ?? null,
       nextPaymentAmount: nextPaymentMap.get(String(a._id))?.amountDue ?? null,
@@ -993,8 +1023,7 @@ export const listAdminLoanTracker = catchAsync(async (req, res, next) => {
   }
 
   const applications = await LoanApplicationModel.find(filter)
-    .sort({ disbursedAt: -1, createdAt: -1 })
-    .lean();
+    .sort({ disbursedAt: -1, createdAt: -1 });
 
   if (applications.length === 0) {
     return sendSuccess(res, {
@@ -1013,6 +1042,17 @@ export const listAdminLoanTracker = catchAsync(async (req, res, next) => {
         },
       },
     });
+  }
+
+  const syncCandidates = applications.filter((application) =>
+    ["disbursed", "defaulted"].includes(String(application.status || "")),
+  );
+  if (syncCandidates.length > 0) {
+    await Promise.all(
+      syncCandidates.map((application) =>
+        syncLoanRepaymentState(application, { asOf: new Date() }),
+      ),
+    );
   }
 
   const profileIds = applications.map((application) => application.userId).filter(Boolean);
@@ -1083,7 +1123,8 @@ export const listAdminLoanTracker = catchAsync(async (req, res, next) => {
         application.totalRepayable ?? application.approvedAmount ?? application.loanAmount ?? 0,
       );
       const remainingBalance = Number(application.remainingBalance ?? 0);
-      const repaidSoFar = Math.max(0, totalRepayable - remainingBalance);
+      const repaidSoFar = getLoanRepaymentToDate(application);
+      const remainingBreakdown = getLoanRemainingBreakdown(application);
       const trackerStatus =
         remainingBalance <= 0 || application.status === "completed"
           ? "completed"
@@ -1107,6 +1148,8 @@ export const listAdminLoanTracker = catchAsync(async (req, res, next) => {
         totalRepayable,
         remainingBalance,
         repaidSoFar,
+        principalOutstanding: remainingBreakdown.principalOutstanding,
+        accruedInterestBalance: remainingBreakdown.accruedInterestBalance,
         interestRate: Number(
           application.approvedInterestRate ?? application.interestRate ?? 0,
         ),

@@ -6,7 +6,11 @@ import { LoanApplicationModel } from "../models/LoanApplication.js";
 import { LoanRepaymentScheduleItemModel } from "../models/LoanRepaymentScheduleItem.js";
 import { GuarantorNotificationModel } from "../models/GuarantorNotification.js";
 import { ProfileModel } from "../models/Profile.js";
-import { getLoanScheduleOutstandingAmount } from "../services/loanRepaymentService.js";
+import {
+  buildLoanNextPaymentMap,
+  getLoanRepaymentToDate,
+  syncLoanRepaymentState,
+} from "../services/loanRepaymentService.js";
 
 function mapLoanStatus(appStatus) {
   if (appStatus === "completed") return "completed";
@@ -26,6 +30,14 @@ export const listMyGuarantorRequests = catchAsync(async (req, res, next) => {
 
   const loanIds = records.map((r) => r.loanApplicationId);
   const loans = await LoanApplicationModel.find({ _id: { $in: loanIds } });
+  const activeLoans = loans.filter((loan) =>
+    ["disbursed", "defaulted"].includes(String(loan.status || "")),
+  );
+  if (activeLoans.length > 0) {
+    await Promise.all(
+      activeLoans.map((loan) => syncLoanRepaymentState(loan, { asOf: new Date() })),
+    );
+  }
   const loanById = new Map(loans.map((l) => [String(l._id), l]));
 
   const borrowerIds = loans.map((l) => l.userId);
@@ -111,6 +123,7 @@ export const listMyGuarantorCommitments = catchAsync(async (req, res, next) => {
   const borrowerIds = loans.map((l) => l.userId);
   const borrowers = await ProfileModel.find({ _id: { $in: borrowerIds } }).select("fullName");
   const borrowerById = new Map(borrowers.map((p) => [String(p._id), p]));
+  const nextPaymentMap = await buildLoanNextPaymentMap(loans);
 
   const commitments = [];
   for (const r of records) {
@@ -121,14 +134,10 @@ export const listMyGuarantorCommitments = catchAsync(async (req, res, next) => {
     const loanAmount = loan.approvedAmount ?? loan.loanAmount ?? 0;
     const totalRepayable = loan.totalRepayable ?? loanAmount;
     const remainingBalance = loan.remainingBalance ?? 0;
-    const totalPaid = Math.max(0, Number(totalRepayable) - Number(remainingBalance));
+    const totalPaid = getLoanRepaymentToDate(loan);
     const progressPercentage =
       totalRepayable > 0 ? Math.round((totalPaid / totalRepayable) * 100) : 0;
-
-    const nextPayment = await LoanRepaymentScheduleItemModel.findOne({
-      loanApplicationId: loan._id,
-      status: { $in: ["pending", "upcoming", "overdue"] },
-    }).sort({ installmentNumber: 1 });
+    const nextPayment = nextPaymentMap.get(String(loan._id)) || null;
 
     const missedPayments = await LoanRepaymentScheduleItemModel.countDocuments({
       loanApplicationId: loan._id,
@@ -150,9 +159,7 @@ export const listMyGuarantorCommitments = catchAsync(async (req, res, next) => {
       disbursedDate: loan.disbursedAt,
       remainingBalance,
       nextPaymentDate: nextPayment?.dueDate || null,
-      nextPaymentAmount: nextPayment
-        ? getLoanScheduleOutstandingAmount(nextPayment)
-        : null,
+      nextPaymentAmount: nextPayment ? Number(nextPayment.amountDue ?? 0) : null,
       missedPayments,
       totalPaid,
       progressPercentage,

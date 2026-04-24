@@ -20,6 +20,9 @@ import { createNotification } from "../services/notificationService.js";
 import {
   applyLoanRepayment,
   buildLoanNextPaymentMap,
+  getLoanRemainingBreakdown,
+  getLoanRepaymentToDate,
+  syncLoanRepaymentState,
 } from "../services/loanRepaymentService.js";
 import { sendAdminAuthorizationOtp } from "../services/otp/sendAdminAuthorizationOtp.js";
 import { randomId, sha256 } from "../utils/crypto.js";
@@ -84,19 +87,22 @@ function addMonths(date, months) {
   return d;
 }
 
+function roundCurrency(value) {
+  return Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
+}
+
 function withRepaymentToDate(loan) {
   const plain =
     loan && typeof loan.toObject === "function" ? loan.toObject() : loan;
   if (!plain) return plain;
-  const totalRepayable = Number(plain.totalRepayable ?? 0);
-  const remainingBalance = Number(plain.remainingBalance ?? 0);
-  const repaymentToDate =
-    Number.isFinite(totalRepayable) &&
-    totalRepayable > 0 &&
-    Number.isFinite(remainingBalance)
-      ? Math.max(0, totalRepayable - remainingBalance)
-      : null;
-  return { ...plain, repaymentToDate };
+  const repaymentToDate = getLoanRepaymentToDate(plain);
+  const remaining = getLoanRemainingBreakdown(plain);
+  return {
+    ...plain,
+    repaymentToDate,
+    principalOutstanding: remaining.principalOutstanding,
+    accruedInterestBalance: remaining.accruedInterestBalance,
+  };
 }
 
 function normalizeLoanType(raw) {
@@ -785,10 +791,19 @@ async function applyLoanDisbursement({
   loan.repaymentStartDate = repaymentStartDate;
   loan.interestRateType = rateType;
   loan.monthlyPayment = monthlyPayment;
-  loan.totalRepayable = totalRepayable;
-  loan.remainingBalance = totalRepayable;
+  loan.totalRepayable = principal;
+  loan.remainingBalance = principal;
+  loan.principalOutstanding = principal;
+  loan.accruedInterestBalance = 0;
+  loan.totalPrincipalPaid = 0;
+  loan.totalInterestPaid = 0;
+  loan.totalInterestAccrued = 0;
+  loan.nextInterestAccrualDate = repaymentStartDate;
 
   await loan.save();
+  await syncLoanRepaymentState(loan, {
+    asOf: new Date(),
+  });
   await upsertLoanDisbursementTransaction({
     loan,
     principal,
@@ -1257,83 +1272,60 @@ function buildRepaymentSchedule({
   months,
   startDate,
 }) {
-  const P = Number(principal);
-  const n = Math.max(1, Number(months) | 0);
+  const P = Math.max(0, roundCurrency(principal));
+  const n = Math.max(1, Math.floor(Number(months) || 0));
   const rate = Math.max(0, Number(ratePct) || 0);
-  const normalizedType = rateType || "annual";
+  const normalizedType = String(rateType || "annual").trim().toLowerCase();
+  const monthlyRate =
+    normalizedType === "monthly"
+      ? rate / 100
+      : normalizedType === "total"
+        ? rate / 100 / n
+        : rate / 100 / 12;
 
   const items = [];
-
-  if (normalizedType === "total") {
-    const totalInterest = Math.round(P * (rate / 100));
-    const basePayment = (P + totalInterest) / n;
-    let remainingPrincipal = P;
-    let remainingInterest = totalInterest;
-
-    for (let i = 1; i <= n; i += 1) {
-      const interest =
-        i === n ? remainingInterest : Math.round(totalInterest / n);
-      const principalPaid =
-        i === n ? remainingPrincipal : Math.round(basePayment - interest);
-      const total = principalPaid + interest;
-
-      remainingPrincipal = Math.max(0, remainingPrincipal - principalPaid);
-      remainingInterest = Math.max(0, remainingInterest - interest);
-
-      const dueDate = addMonths(startDate, i - 1);
-
-      items.push({
-        installmentNumber: i,
-        dueDate,
-        principalAmount: Math.round(principalPaid),
-        interestAmount: Math.round(interest),
-        totalAmount: Math.round(total),
-        status: i === 1 ? "pending" : "upcoming",
-      });
-    }
-
-    const totalRepayable = items.reduce((sum, it) => sum + it.totalAmount, 0);
-    const monthlyPayment = items[0]?.totalAmount ?? Math.round(basePayment);
-
-    return { items, totalRepayable, monthlyPayment };
-  }
-
-  const monthlyRate =
-    normalizedType === "monthly" ? rate / 100 : rate / 100 / 12;
-
-  const payment =
-    monthlyRate === 0
-      ? P / n
-      : (P * monthlyRate * Math.pow(1 + monthlyRate, n)) /
-        (Math.pow(1 + monthlyRate, n) - 1);
-
-  let balance = P;
+  let remainingPrincipal = P;
 
   for (let i = 1; i <= n; i += 1) {
-    const interest = monthlyRate === 0 ? 0 : balance * monthlyRate;
-    let principalPaid = payment - interest;
-
-    if (i === n) {
-      principalPaid = balance;
-    }
-
-    const total = principalPaid + interest;
-    balance = Math.max(0, balance - principalPaid);
-
+    const cyclesRemaining = Math.max(1, n - i + 1);
+    const openingPrincipalBalance = roundCurrency(remainingPrincipal);
+    const principalAmount =
+      i === n
+        ? openingPrincipalBalance
+        : roundCurrency(openingPrincipalBalance / cyclesRemaining);
+    const interestAmount = roundCurrency(openingPrincipalBalance * monthlyRate);
+    const totalAmount = roundCurrency(principalAmount + interestAmount);
     const dueDate = addMonths(startDate, i - 1);
 
     items.push({
       installmentNumber: i,
       dueDate,
-      principalAmount: Math.round(principalPaid),
-      interestAmount: Math.round(interest),
-      totalAmount: Math.round(total),
-      status: i === 1 ? "pending" : "upcoming",
+      openingPrincipalBalance,
+      principalAmount,
+      interestAmount,
+      totalAmount,
+      paidPrincipalAmount: 0,
+      paidInterestAmount: 0,
+      paidAmount: 0,
+      isProjected: true,
+      status: "upcoming",
+      paidAt: null,
+      transactionId: null,
+      reference: null,
     });
+
+    remainingPrincipal = Math.max(
+      0,
+      roundCurrency(remainingPrincipal - principalAmount),
+    );
   }
 
-  const totalRepayable = items.reduce((sum, it) => sum + it.totalAmount, 0);
-  const monthlyPayment = items[0]?.totalAmount ?? Math.round(payment);
+  const projectedInterest = items.reduce(
+    (sum, item) => sum + Number(item.interestAmount || 0),
+    0,
+  );
+  const totalRepayable = roundCurrency(P + projectedInterest);
+  const monthlyPayment = roundCurrency(items[0]?.totalAmount ?? P);
 
   return { items, totalRepayable, monthlyPayment };
 }
@@ -2169,8 +2161,15 @@ export const listMyLoanApplications = catchAsync(async (req, res, next) => {
   const apps = await LoanApplicationModel.find({
     userId: req.user.profileId,
   })
-    .sort({ createdAt: -1 })
-    .lean();
+    .sort({ createdAt: -1 });
+  const activeApps = apps.filter((app) =>
+    ["disbursed", "defaulted"].includes(String(app.status || "")),
+  );
+  if (activeApps.length > 0) {
+    await Promise.all(
+      activeApps.map((app) => syncLoanRepaymentState(app, { asOf: new Date() })),
+    );
+  }
   const nextPaymentMap = await buildLoanNextPaymentMap(apps);
   const editRequests = await LoanApplicationEditRequestModel.find({
     loanApplicationId: { $in: apps.map((app) => app._id) },
@@ -2255,10 +2254,19 @@ export const listLoanApplications = catchAsync(async (req, res) => {
     LoanApplicationModel.find(filter)
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit)
-      .lean(),
+      .limit(limit),
     LoanApplicationModel.countDocuments(filter),
   ]);
+  const activeApplications = applications.filter((app) =>
+    ["disbursed", "defaulted"].includes(String(app.status || "")),
+  );
+  if (activeApplications.length > 0) {
+    await Promise.all(
+      activeApplications.map((app) =>
+        syncLoanRepaymentState(app, { asOf: new Date() }),
+      ),
+    );
+  }
   const nextPaymentMap = await buildLoanNextPaymentMap(applications);
   const enriched = applications.map((app) => {
     const base = withRepaymentToDate(app);
@@ -2284,6 +2292,10 @@ export const listLoanApplications = catchAsync(async (req, res) => {
 export const getLoanApplication = catchAsync(async (req, res, next) => {
   if (!req.loanApplication)
     return next(new AppError("Missing loan context", 500));
+
+  if (["disbursed", "defaulted"].includes(String(req.loanApplication.status || ""))) {
+    await syncLoanRepaymentState(req.loanApplication, { asOf: new Date() });
+  }
 
   const [guarantors, schedule, editRequests] = await Promise.all([
     LoanGuarantorModel.find({
@@ -3212,9 +3224,13 @@ export const listLoanSchedule = catchAsync(async (req, res, next) => {
   if (!req.loanApplication)
     return next(new AppError("Missing loan context", 500));
 
+  if (["disbursed", "defaulted"].includes(String(req.loanApplication.status || ""))) {
+    await syncLoanRepaymentState(req.loanApplication, { asOf: new Date() });
+  }
+
   const schedule = await LoanRepaymentScheduleItemModel.find({
     loanApplicationId: req.loanApplication._id,
-  }).sort({ installmentNumber: 1 });
+  }).sort({ dueDate: 1, installmentNumber: 1 });
 
   return sendSuccess(res, {
     statusCode: 200,

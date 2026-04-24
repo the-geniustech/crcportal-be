@@ -3,8 +3,7 @@ import catchAsync from "../utils/catchAsync.js";
 import sendSuccess from "../utils/sendSuccess.js";
 import { ContributionModel } from "../models/Contribution.js";
 import { LoanApplicationModel } from "../models/LoanApplication.js";
-import { LoanRepaymentScheduleItemModel } from "../models/LoanRepaymentScheduleItem.js";
-import { getLoanScheduleOutstandingAmount } from "../services/loanRepaymentService.js";
+import { buildLoanNextPaymentMap, syncLoanRepaymentState } from "../services/loanRepaymentService.js";
 
 const PaidContributionStatuses = ["completed", "verified"];
 
@@ -57,36 +56,46 @@ export const getDashboardSummary = catchAsync(async (req, res, next) => {
     userId: profileId,
     status: { $in: ["disbursed", "defaulted"] },
   })
-    .select("_id remainingBalance loanCode groupName")
-    .lean();
+    .select(
+      "_id remainingBalance loanCode groupName status repaymentStartDate nextInterestAccrualDate principalOutstanding accruedInterestBalance totalPrincipalPaid totalInterestPaid totalInterestAccrued monthlyPayment",
+    );
+
+  if (activeLoans.length > 0) {
+    await Promise.all(
+      activeLoans.map((loan) => syncLoanRepaymentState(loan, { asOf: new Date() })),
+    );
+  }
 
   const activeLoanOutstanding = activeLoans.reduce(
     (sum, loan) => sum + Number(loan.remainingBalance ?? 0),
     0,
   );
 
-  const activeLoanIds = activeLoans.map((loan) => loan._id);
   let nextPayment = null;
 
-  if (activeLoanIds.length > 0) {
-    const scheduleItem = await LoanRepaymentScheduleItemModel.findOne({
-      loanApplicationId: { $in: activeLoanIds },
-      status: { $in: ["pending", "upcoming", "overdue"] },
-    })
-      .sort({ dueDate: 1 })
-      .lean();
+  if (activeLoans.length > 0) {
+    const nextPaymentMap = await buildLoanNextPaymentMap(activeLoans);
+    const firstNextPayment = Array.from(nextPaymentMap.entries())
+      .map(([loanId, item]) => ({
+        loanId,
+        ...item,
+      }))
+      .sort(
+        (a, b) =>
+          new Date(a.dueDate || 0).getTime() - new Date(b.dueDate || 0).getTime(),
+      )[0];
 
-    if (scheduleItem) {
+    if (firstNextPayment) {
       const loanMeta = activeLoans.find(
-        (loan) => String(loan._id) === String(scheduleItem.loanApplicationId),
+        (loan) => String(loan._id) === String(firstNextPayment.loanId),
       );
       nextPayment = {
-        loanId: scheduleItem.loanApplicationId,
+        loanId: firstNextPayment.loanId,
         loanCode: loanMeta?.loanCode ?? null,
         groupName: loanMeta?.groupName ?? null,
-        dueDate: scheduleItem.dueDate,
-        amount: getLoanScheduleOutstandingAmount(scheduleItem),
-        status: scheduleItem.status,
+        dueDate: firstNextPayment.dueDate,
+        amount: Number(firstNextPayment.amountDue ?? 0),
+        status: firstNextPayment.status,
       };
     }
   }

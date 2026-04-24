@@ -6,7 +6,6 @@ import { ContributionModel } from "../models/Contribution.js";
 import { GroupMembershipModel } from "../models/GroupMembership.js";
 import { GroupModel } from "../models/Group.js";
 import { LoanApplicationModel } from "../models/LoanApplication.js";
-import { LoanRepaymentScheduleItemModel } from "../models/LoanRepaymentScheduleItem.js";
 import { TransactionModel } from "../models/Transaction.js";
 import { RecurringPaymentModel } from "../models/RecurringPayment.js";
 
@@ -17,7 +16,7 @@ import {
 } from "../services/paystack.js";
 import {
   applyLoanRepayment,
-  getLoanScheduleOutstandingAmount,
+  syncLoanRepaymentState,
 } from "../services/loanRepaymentService.js";
 import {
   calculateContributionUnits,
@@ -561,23 +560,26 @@ export const initializePaystackPayment = catchAsync(async (req, res, next) => {
       return next(new AppError("loanApplicationId is required", 400));
     const loan = await LoanApplicationModel.findById(loanApplicationId);
     if (!loan) return next(new AppError("Loan application not found", 404));
+    if (String(loan.userId) !== String(userId)) {
+      return next(new AppError("You do not have access to this loan", 403));
+    }
+    if (!["disbursed", "defaulted"].includes(String(loan.status))) {
+      return next(new AppError("Loan is not active", 400));
+    }
 
-    const nextItem = await LoanRepaymentScheduleItemModel.findOne({
-      loanApplicationId: loan._id,
-      status: { $in: ["pending", "upcoming", "overdue"] },
-    }).sort({ installmentNumber: 1 });
+    await syncLoanRepaymentState(loan, { asOf: new Date() });
 
-    if (!nextItem)
+    const remainingBalance = Number(loan.remainingBalance ?? 0);
+    if (!Number.isFinite(remainingBalance) || remainingBalance <= 0) {
       return next(new AppError("No pending repayments found", 400));
-
-    // Keep the member self-service flow aligned to the current amount due.
-    const nextItemDue = getLoanScheduleOutstandingAmount(nextItem);
-    if (
-      Math.round(Number(parsedAmount) * 100) !==
-      Math.round(nextItemDue * 100)
-    ) {
-      const message = `Amount must equal the next amount due (NGN ${nextItemDue.toLocaleString()})`;
-      return next(new AppError(message, 400));
+    }
+    if (parsedAmount > remainingBalance) {
+      return next(
+        new AppError(
+          `Amount must not exceed the remaining repayment balance (NGN ${remainingBalance.toLocaleString()}).`,
+          400,
+        ),
+      );
     }
 
     loanName = loan.loanCode || null;
@@ -825,46 +827,34 @@ export const initializePaystackBulkPayment = catchAsync(
       const application = await LoanApplicationModel.findById(loanId);
       if (!application)
         return next(new AppError("Loan application not found", 404));
+      if (String(application.userId) !== String(userId)) {
+        return next(new AppError("You do not have access to this loan", 403));
+      }
       if (!["disbursed", "defaulted"].includes(application.status)) {
         return next(new AppError("Loan is not active", 400));
       }
+      await syncLoanRepaymentState(application, { asOf: new Date() });
 
-      const scheduleItems = await LoanRepaymentScheduleItemModel.find({
-        loanApplicationId: loanId,
-        status: { $in: ["pending", "upcoming", "overdue"] },
-      })
-        .sort({ installmentNumber: 1 })
-        .limit(items.length);
-
-      if (scheduleItems.length < items.length) {
-        return next(
-          new AppError(
-            "Not enough pending installments for bulk repayment",
-            400,
-          ),
-        );
-      }
-
-      const expectedTotal = scheduleItems.reduce(
-        (sum, item) => sum + getLoanScheduleOutstandingAmount(item),
-        0,
-      );
       const providedTotal = items.reduce(
         (sum, item) => sum + Number(item.amount || 0),
         0,
       );
-
-      if (Math.round(expectedTotal * 100) !== Math.round(providedTotal * 100)) {
+      const remainingBalance = Number(application.remainingBalance ?? 0);
+      if (!Number.isFinite(remainingBalance) || remainingBalance <= 0) {
+        return next(
+          new AppError("No pending repayments found", 400),
+        );
+      }
+      if (providedTotal > remainingBalance) {
         return next(
           new AppError(
-            "Bulk repayment amount does not match scheduled installments",
+            `Bulk repayment amount must not exceed the remaining repayment balance (NGN ${remainingBalance.toLocaleString()}).`,
             400,
           ),
         );
       }
 
-      bulkLoanScheduleItemIds = scheduleItems.map((item) => item._id);
-      totalAmount = expectedTotal;
+      totalAmount = providedTotal;
       loanName = application.loanCode || null;
     }
 
