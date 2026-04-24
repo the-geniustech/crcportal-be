@@ -58,6 +58,15 @@ Admin
 
 - `GET /api/v1/users` (Bearer `accessToken`, role `admin`)
 - `PATCH /api/v1/users/:id/role` (Bearer `accessToken`, role `admin`)
+- `GET /api/v1/admin/audit-logs` (Bearer `accessToken`, role `admin`)
+- `GET /api/v1/admin/audit-logs/export` (Bearer `accessToken`, role `admin`, CSV export)
+
+## Audit Log Ops
+
+- Audit trail records are stored in the `AuditLog` model and currently cover privileged member-management and role-elevation events.
+- Indexes are optimized for the current admin review flows: `createdAt`, `action + createdAt`, `entityType + entityId + createdAt`, `targetUserId + createdAt`, and `groupId + createdAt`.
+- Retention expectation: keep audit logs in the primary database for at least `12 months` so admin investigations and role-change reviews remain operationally available.
+- There is currently no automatic TTL or purge job for audit logs. If the team later introduces archival/purge automation, archive first and only purge records older than the agreed retention window.
 
 ## Environment
 

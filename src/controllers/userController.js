@@ -1,4 +1,5 @@
-﻿import { ProfileModel } from "../models/Profile.js";
+﻿import mongoose from "mongoose";
+import { ProfileModel } from "../models/Profile.js";
 import { UserModel } from "../models/User.js";
 import { GroupMembershipModel } from "../models/GroupMembership.js";
 import AppError from "../utils/AppError.js";
@@ -18,6 +19,11 @@ import {
   pickPrimaryRole,
 } from "../utils/roles.js";
 import { normalizeNigerianPhone } from "../utils/phone.js";
+import {
+  AuditActions,
+  AuditEntityTypes,
+  createAuditLog,
+} from "../services/auditLog.js";
 
 function pick(obj, allowedKeys) {
   const out = {};
@@ -654,29 +660,86 @@ export const updateUserRole = catchAsync(async (req, res, next) => {
     );
   }
 
-  const user = await UserModel.findById(id);
-  if (!user) return next(new AppError("User not found", 404));
+  const session = await mongoose.startSession();
+  let responseUser = null;
 
-  const finalRoles = hasRolesArray
-    ? Array.from(new Set(normalized))
-    : Array.from(new Set([...normalizeUserRoles(user), ...normalized]));
-  user.roles = finalRoles;
-  user.role = pickPrimaryRole(finalRoles);
-  await user.save({ validateBeforeSave: false });
+  try {
+    await session.withTransaction(async () => {
+      const user = await UserModel.findById(id).session(session);
+      if (!user) {
+        throw new AppError("User not found", 404);
+      }
+
+      const beforeRoles = [...normalizeUserRoles(user)].sort();
+      const beforePrimaryRole = pickPrimaryRole(beforeRoles);
+      const finalRoles = hasRolesArray
+        ? Array.from(new Set(normalized))
+        : Array.from(new Set([...beforeRoles, ...normalized]));
+
+      user.roles = finalRoles;
+      user.role = pickPrimaryRole(finalRoles);
+      await user.save({ session, validateBeforeSave: false });
+
+      const afterRoles = [...normalizeUserRoles(user)].sort();
+      const afterPrimaryRole = pickPrimaryRole(afterRoles);
+      const addedRoles = afterRoles.filter((entry) => !beforeRoles.includes(entry));
+      const removedRoles = beforeRoles.filter((entry) => !afterRoles.includes(entry));
+      const promotedToAdmin =
+        !beforeRoles.includes("admin") && afterRoles.includes("admin");
+
+      if (
+        promotedToAdmin ||
+        addedRoles.length > 0 ||
+        removedRoles.length > 0 ||
+        beforePrimaryRole !== afterPrimaryRole
+      ) {
+        await createAuditLog(
+          {
+            req,
+            action: promotedToAdmin
+              ? AuditActions.ADMIN_USER_PROMOTE_ADMIN
+              : AuditActions.ADMIN_USER_ROLE_UPDATE,
+            entityType: AuditEntityTypes.USER,
+            entityId: user._id,
+            targetUserId: user._id,
+            targetProfileId: user.profileId,
+            summary: promotedToAdmin
+              ? `Granted admin access to ${user.email || user.phone || String(user._id)}.`
+              : `Updated roles for ${user.email || user.phone || String(user._id)}.`,
+            metadata: {
+              requestedRole: hasRolesArray ? null : role ?? null,
+              requestedRoles: hasRolesArray ? normalized : null,
+              beforeRoles,
+              afterRoles,
+              addedRoles,
+              removedRoles,
+              beforePrimaryRole,
+              afterPrimaryRole,
+            },
+          },
+          session,
+        );
+      }
+
+      responseUser = {
+        id: user._id,
+        email: user.email,
+        phone: user.phone,
+        role: afterPrimaryRole,
+        roles: afterRoles,
+        profileId: user.profileId,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      };
+    });
+  } finally {
+    await session.endSession();
+  }
 
   return sendSuccess(res, {
     statusCode: 200,
     data: {
-      user: {
-        id: user._id,
-        email: user.email,
-        phone: user.phone,
-        role: pickPrimaryRole(normalizeUserRoles(user)),
-        roles: normalizeUserRoles(user),
-        profileId: user.profileId,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
-      },
+      user: responseUser,
     },
   });
 });

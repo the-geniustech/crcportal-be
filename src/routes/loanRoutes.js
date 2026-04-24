@@ -42,6 +42,11 @@ import {
 } from "../middlewares/loanContext.js";
 import { uploadMultiple, uploadSingle } from "../middlewares/upload.js";
 import { cloudinaryUploadSingle } from "../middlewares/cloudinaryUpload.js";
+import {
+  getLoanDocumentLabel,
+  normalizeLoanDocumentType,
+  sanitizeLoanDocumentList,
+} from "../utils/loanDocuments.js";
 
 const router = express.Router();
 
@@ -57,7 +62,7 @@ const loanDocumentFileFilter = (req, file, cb) => {
 
 const shouldHandleMultipart = (req) => req.is("multipart/form-data");
 
-const loanDocumentsUpload = uploadMultiple("documents", 10, {
+const loanDocumentsUpload = uploadMultiple("documents", 3, {
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: loanDocumentFileFilter,
 });
@@ -96,6 +101,14 @@ const normalizeLoanDocuments = (req, res, next) => {
   const existingDocs = Array.isArray(req.body?.documents)
     ? req.body.documents
     : [];
+  const requestedDocumentTypesRaw = parseJsonField(
+    req.body.documentTypes ?? req.body.documentType,
+  );
+  const requestedDocumentTypes = Array.isArray(requestedDocumentTypesRaw)
+    ? requestedDocumentTypesRaw
+    : requestedDocumentTypesRaw
+      ? [requestedDocumentTypesRaw]
+      : [];
   const uploads = Array.isArray(req.body?.documentUploads)
     ? req.body.documentUploads
     : req.body?.documentUploads
@@ -109,6 +122,15 @@ const normalizeLoanDocuments = (req, res, next) => {
 
   const mapped = uploads.map((upload, index) => {
     const file = files[index];
+    const normalizedDocumentType = normalizeLoanDocumentType(
+      requestedDocumentTypes[index],
+    );
+    if (!normalizedDocumentType) {
+      throw new AppError(
+        "documentType is required for each uploaded loan document",
+        400,
+      );
+    }
     const inferredType =
       file?.mimetype ??
       (upload?.resourceType === "raw"
@@ -118,7 +140,8 @@ const normalizeLoanDocuments = (req, res, next) => {
           : "application/octet-stream");
 
     return {
-      name: file?.originalname ?? upload?.originalFilename ?? "document",
+      documentType: normalizedDocumentType,
+      name: getLoanDocumentLabel(normalizedDocumentType) || "Document",
       type: inferredType,
       size: file?.size ?? upload?.bytes ?? 0,
       status: "uploaded",
@@ -126,7 +149,7 @@ const normalizeLoanDocuments = (req, res, next) => {
     };
   });
 
-  req.body.documents = [...existingDocs, ...mapped];
+  req.body.documents = sanitizeLoanDocumentList([...existingDocs, ...mapped]);
 
   return next();
 };

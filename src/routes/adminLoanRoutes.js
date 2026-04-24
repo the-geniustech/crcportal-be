@@ -200,11 +200,3 @@ Ensure all the requirements are consistent with backend <=> frontend flows and i
 
 You can improvice whenever needed, just ensure you don't digress from the context of this project and you're always highly professional as much as possible.
 */
-
-/*
-Act as a senior full-stack engineer with 30+ years of experience building scalable SaaS platforms, so let's continue creating/building professional tailored Loan system/flows in the project.
--
-Ensure all the requirements are consistent with backend <=> frontend flows and implemented in an highly professional way and industry standard of doing things.
-
-You can improvice whenever needed, just ensure you don't digress from the context of this project and you're always highly professional as much as possible.
-*/

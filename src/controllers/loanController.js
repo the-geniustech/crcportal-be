@@ -42,6 +42,10 @@ import {
 } from "../services/paystack.js";
 import { hasUserRole } from "../utils/roles.js";
 import { normalizeNigerianPhone } from "../utils/phone.js";
+import { computeContributionBalances } from "../utils/finance.js";
+import {
+  sanitizeLoanDocumentList,
+} from "../utils/loanDocuments.js";
 
 function pick(obj, allowedKeys) {
   const out = {};
@@ -841,7 +845,7 @@ function sanitizeDraftPayload(body = {}) {
     throw new AppError("interestRate is not allowed for this loan type", 400);
   }
 
-  payload.documents = Array.isArray(payload.documents) ? payload.documents : [];
+  payload.documents = sanitizeLoanDocumentList(payload.documents);
   payload.guarantors = normalizeGuarantorList(payload.guarantors);
 
   if (payload.draftStep !== undefined && payload.draftStep !== null) {
@@ -944,16 +948,7 @@ function sanitizeEditPayload(body = {}) {
   }
 
   if (Object.prototype.hasOwnProperty.call(payload, "documents")) {
-    const docs = Array.isArray(payload.documents) ? payload.documents : [];
-    payload.documents = docs
-      .filter((doc) => doc && typeof doc === "object")
-      .map((doc) => ({
-        name: String(doc.name || "document"),
-        type: String(doc.type || "application/octet-stream"),
-        size: Number(doc.size || 0),
-        status: String(doc.status || "uploaded"),
-        url: doc.url ? String(doc.url) : null,
-      }));
+    payload.documents = sanitizeLoanDocumentList(payload.documents);
   }
 
   if (Object.prototype.hasOwnProperty.call(payload, "guarantors")) {
@@ -1386,7 +1381,7 @@ export const getLoanEligibility = catchAsync(async (req, res, next) => {
 
   const [
     groupsJoined,
-    contributionAgg,
+    contributionBalances,
     previousLoans,
     defaultedLoans,
     overdueContributions,
@@ -1396,15 +1391,7 @@ export const getLoanEligibility = catchAsync(async (req, res, next) => {
       userId: req.user.profileId,
       status: "active",
     }),
-    ContributionModel.aggregate([
-      {
-        $match: {
-          userId: profile._id,
-          status: { $in: ["completed", "verified"] },
-        },
-      },
-      { $group: { _id: null, sum: { $sum: "$amount" } } },
-    ]),
+    computeContributionBalances(profile._id),
     LoanApplicationModel.countDocuments({
       userId: req.user.profileId,
       status: { $in: ["disbursed", "completed", "defaulted"] },
@@ -1426,7 +1413,12 @@ export const getLoanEligibility = catchAsync(async (req, res, next) => {
     ).lean(),
   ]);
 
-  const totalContributions = Number(contributionAgg?.[0]?.sum ?? 0);
+  const contributionBalance = Number(
+    contributionBalances?.availableBalance ?? 0,
+  );
+  const totalContributions = Number(
+    contributionBalances?.totalContributions ?? 0,
+  );
   const activeLoanIds = activeLoans.map((l) => l._id);
   const overdueRepayments =
     activeLoanIds.length === 0
@@ -1443,7 +1435,8 @@ export const getLoanEligibility = catchAsync(async (req, res, next) => {
         });
 
   const eligibility = {
-    savingsBalance: totalContributions,
+    savingsBalance: contributionBalance,
+    contributionBalance,
     totalContributions,
     membershipDuration,
     groupsJoined,
@@ -1548,6 +1541,11 @@ export const createLoanApplication = catchAsync(async (req, res, next) => {
   if (Object.prototype.hasOwnProperty.call(payload, "guarantors")) {
     payload.guarantors = normalizeGuarantorList(payload.guarantors);
   }
+  if (Object.prototype.hasOwnProperty.call(payload, "documents")) {
+    payload.documents = sanitizeLoanDocumentList(payload.documents, {
+      requireAll: false,
+    });
+  }
 
   const loanTypeRaw = String(payload.loanType || "")
     .trim()
@@ -1630,6 +1628,9 @@ export const createLoanApplication = catchAsync(async (req, res, next) => {
   );
   payload.interestRate = resolvedInterest.rate;
   payload.interestRateType = resolvedInterest.rateType;
+  payload.documents = sanitizeLoanDocumentList(payload.documents, {
+    requireAll: true,
+  });
 
   const requestedBankAccountId =
     req.body?.bankAccountId ||
@@ -1654,17 +1655,9 @@ export const createLoanApplication = catchAsync(async (req, res, next) => {
   }
 
   const now = new Date();
-  const [contributionAgg, overdueContribs, defaultedLoans, activeLoans] =
+  const [contributionBalances, overdueContribs, defaultedLoans, activeLoans] =
     await Promise.all([
-      ContributionModel.aggregate([
-        {
-          $match: {
-            userId: req.user.profileId,
-            status: { $in: ["completed", "verified"] },
-          },
-        },
-        { $group: { _id: null, sum: { $sum: "$amount" } } },
-      ]),
+      computeContributionBalances(req.user.profileId),
       ContributionModel.countDocuments({
         userId: req.user.profileId,
         status: "overdue",
@@ -1682,15 +1675,30 @@ export const createLoanApplication = catchAsync(async (req, res, next) => {
       ).lean(),
     ]);
 
-  const totalContributions = Number(contributionAgg?.[0]?.sum ?? 0);
+  const contributionBalance = Number(
+    contributionBalances?.availableBalance ?? 0,
+  );
+  const totalContributions = Number(
+    contributionBalances?.totalContributions ?? 0,
+  );
+  const minimumContributionRequired = Number(payload.loanAmount) * 0.1;
+
+  if (contributionBalance < minimumContributionRequired) {
+    return next(
+      new AppError(
+        `Contribution balance must be at least 10% of the requested amount. Available balance: ₦${contributionBalance.toLocaleString()}; required minimum: ₦${minimumContributionRequired.toLocaleString()}. Pending withdrawals are excluded from this balance.`,
+        400,
+      ),
+    );
+  }
 
   if (
     payload.loanType === "revolving" &&
-    Number(payload.loanAmount) > totalContributions
+    Number(payload.loanAmount) > contributionBalance * 10
   ) {
     return next(
       new AppError(
-        "Revolving loans cannot exceed your total contributions",
+        "Revolving loans cannot exceed 10x your available contribution balance",
         400,
       ),
     );
@@ -2196,6 +2204,7 @@ export const listMyLoanApplications = catchAsync(async (req, res, next) => {
             changes: editRequest.changes ?? [],
             documents: Array.isArray(editRequest.payload?.documents)
               ? editRequest.payload.documents.map((doc) => ({
+                  documentType: doc.documentType ?? null,
                   name: doc.name,
                   type: doc.type,
                   size: doc.size,
@@ -2307,6 +2316,7 @@ export const getLoanApplication = catchAsync(async (req, res, next) => {
         changes: reqItem.changes ?? [],
         documents: Array.isArray(reqItem.payload?.documents)
           ? reqItem.payload.documents.map((doc) => ({
+              documentType: doc.documentType ?? null,
               name: doc.name,
               type: doc.type,
               size: doc.size,

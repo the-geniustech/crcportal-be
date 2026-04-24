@@ -3,6 +3,7 @@ import {
   LoanFacilityTypes,
   LoanInterestRateTypes,
 } from "../utils/loanPolicy.js";
+import { LoanDocumentTypes } from "../utils/loanDocuments.js";
 import {
   normalizeNigerianPhoneValue,
   isNormalizedNigerianPhone,
@@ -27,6 +28,12 @@ export const LoanApplicationStatuses = [
 
 const LoanDocumentSchema = new Schema(
   {
+    documentType: {
+      type: String,
+      enum: LoanDocumentTypes,
+      default: null,
+      trim: true,
+    },
     name: { type: String, required: true, trim: true },
     type: { type: String, required: true, trim: true },
     size: { type: Number, required: true, min: 0 },

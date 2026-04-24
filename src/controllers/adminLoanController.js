@@ -933,6 +933,7 @@ export const listAdminLoanApplications = catchAsync(async (req, res, next) => {
             changes: latest.changes ?? [],
             documents: Array.isArray(latest.payload?.documents)
               ? latest.payload.documents.map((doc) => ({
+                  documentType: doc.documentType ?? null,
                   name: doc.name,
                   type: doc.type,
                   size: doc.size,

@@ -36,6 +36,18 @@ import {
   exportContributionInterestSharing,
   updateContributionInterestSettings,
 } from "../controllers/adminContributionInterestController.js";
+import {
+  createAdminMember,
+  deleteAdminMember,
+  exportAdminMembers,
+  getAdminMemberDetails,
+  listAdminMembers,
+  updateAdminMember,
+} from "../controllers/adminMemberController.js";
+import {
+  exportAdminAuditLogs,
+  listAdminAuditLogs,
+} from "../controllers/adminAuditLogController.js";
 
 const router = express.Router();
 
@@ -44,19 +56,44 @@ router.use(restrictTo("admin", "groupCoordinator"));
 
 router.get(
   "/member-approvals",
-  restrictTo("groupCoordinator"),
+  restrictTo("admin", "groupCoordinator"),
   listMemberApprovals,
 );
 router.patch(
   "/member-approvals/:membershipId/approve",
-  restrictTo("groupCoordinator"),
+  restrictTo("admin", "groupCoordinator"),
   approveMemberApplication,
 );
 router.patch(
   "/member-approvals/:membershipId/reject",
-  restrictTo("groupCoordinator"),
+  restrictTo("admin", "groupCoordinator"),
   rejectMemberApplication,
 );
+
+router.get("/members", restrictTo("admin", "groupCoordinator"), listAdminMembers);
+router.get(
+  "/members/export",
+  restrictTo("admin", "groupCoordinator"),
+  exportAdminMembers,
+);
+router.post("/members", restrictTo("admin", "groupCoordinator"), createAdminMember);
+router.get(
+  "/members/:membershipId",
+  restrictTo("admin", "groupCoordinator"),
+  getAdminMemberDetails,
+);
+router.patch(
+  "/members/:membershipId",
+  restrictTo("admin", "groupCoordinator"),
+  updateAdminMember,
+);
+router.delete(
+  "/members/:membershipId",
+  restrictTo("admin", "groupCoordinator"),
+  deleteAdminMember,
+);
+router.get("/audit-logs/export", restrictTo("admin"), exportAdminAuditLogs);
+router.get("/audit-logs", restrictTo("admin"), listAdminAuditLogs);
 
 router.get("/groups", listAdminGroups);
 
