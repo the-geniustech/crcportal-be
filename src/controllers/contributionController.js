@@ -23,8 +23,114 @@ import {
   roundMoney,
 } from "../utils/contributionInterest.js";
 import { generateGroupContributionLedgerPdfBuffer } from "../services/pdf/groupContributionLedgerPdf.js";
+import { generateGroupContributionLedgerWorkbookBuffer } from "../services/groupContributionLedgerWorkbook.js";
 
 const PaidContributionStatuses = new Set(["completed", "verified"]);
+const contributionLedgerCollator = new Intl.Collator("en", {
+  numeric: true,
+  sensitivity: "base",
+});
+
+const normalizeContributionLedgerSort = (value) => {
+  const raw = String(value || "")
+    .trim()
+    .toLowerCase();
+  const allowed = new Set([
+    "name_asc",
+    "name_desc",
+    "serial_asc",
+    "serial_desc",
+    "ytd_desc",
+    "ytd_asc",
+    "arrears_desc",
+    "arrears_asc",
+  ]);
+  return allowed.has(raw) ? raw : "name_asc";
+};
+
+const filterContributionLedgerRows = (rows, searchQuery) => {
+  const query = String(searchQuery || "")
+    .trim()
+    .toLowerCase();
+  if (!query) return rows;
+  return rows.filter((row) => {
+    const haystack = [row.memberName || "", row.memberSerial || ""]
+      .join(" ")
+      .toLowerCase();
+    return haystack.includes(query);
+  });
+};
+
+const sortContributionLedgerRows = (rows, sortBy) => {
+  return [...rows].sort((left, right) => {
+    switch (sortBy) {
+      case "name_desc":
+        return contributionLedgerCollator.compare(
+          right.memberName || "",
+          left.memberName || "",
+        );
+      case "serial_asc":
+        return contributionLedgerCollator.compare(
+          left.memberSerial || "",
+          right.memberSerial || "",
+        );
+      case "serial_desc":
+        return contributionLedgerCollator.compare(
+          right.memberSerial || "",
+          left.memberSerial || "",
+        );
+      case "ytd_desc":
+        return Number(right.ytdTotal || 0) - Number(left.ytdTotal || 0);
+      case "ytd_asc":
+        return Number(left.ytdTotal || 0) - Number(right.ytdTotal || 0);
+      case "arrears_desc":
+        return Number(right.arrears || 0) - Number(left.arrears || 0);
+      case "arrears_asc":
+        return Number(left.arrears || 0) - Number(right.arrears || 0);
+      case "name_asc":
+      default:
+        return contributionLedgerCollator.compare(
+          left.memberName || "",
+          right.memberName || "",
+        );
+    }
+  });
+};
+
+const summarizeContributionLedgerRows = (rows, monthsToDate) => {
+  const monthTotals = Array.from({ length: 12 }).map((_, index) =>
+    rows.reduce((sum, row) => sum + Number(row.months?.[index] || 0), 0),
+  );
+  const ytdTotal = monthTotals
+    .slice(0, monthsToDate)
+    .reduce((sum, value) => sum + value, 0);
+  const expectedYtd = rows.reduce(
+    (sum, row) => sum + Number(row.expectedYtd || 0),
+    0,
+  );
+  const arrears = Math.max(expectedYtd - ytdTotal, 0);
+  const unitsTotal = rows.reduce(
+    (sum, row) => sum + (Number(row.units ?? 0) || 0),
+    0,
+  );
+  return {
+    monthTotals,
+    ytdTotal: roundMoney(ytdTotal),
+    expectedYtd: roundMoney(expectedYtd),
+    arrears: roundMoney(arrears),
+    unitsTotal,
+    status: arrears > 0 ? "ARREARS" : "ON TRACK",
+    collectionRate: expectedYtd > 0 ? Math.round((ytdTotal / expectedYtd) * 100) : 0,
+  };
+};
+
+const csvEscape = (value) => {
+  const raw = String(value ?? "");
+  if (/[",\n]/.test(raw)) {
+    return `"${raw.replace(/"/g, '""')}"`;
+  }
+  return raw;
+};
 
 function resolveGroupContributionTargets(group) {
   const baseMonthly = Number(group?.monthlyContribution ?? 0);
@@ -689,6 +795,16 @@ export const downloadGroupContributionLedgerPdf = catchAsync(
     const year = Number.isFinite(Number(req.query?.year))
       ? Number(req.query?.year)
       : now.getFullYear();
+    const format = String(req.query?.format || "pdf")
+      .trim()
+      .toLowerCase();
+    if (!["pdf", "csv", "xlsx"].includes(format)) {
+      return next(new AppError("Invalid export format", 400));
+    }
+    const searchQuery = String(req.query?.search || "").trim();
+    const sortBy = normalizeContributionLedgerSort(
+      req.query?.sortBy || req.query?.sort,
+    );
     const rawType = req.query?.contributionType
       ? String(req.query.contributionType)
       : "revolving";
@@ -951,8 +1067,131 @@ export const downloadGroupContributionLedgerPdf = catchAsync(
           : expectedMonthly;
     }
 
+    rows = sortContributionLedgerRows(
+      filterContributionLedgerRows(rows, searchQuery),
+      sortBy,
+    );
+    if (rows.length === 0) {
+      return next(
+        new AppError("No contribution records matched the current filters.", 400),
+      );
+    }
+
+    const exportTotals = summarizeContributionLedgerRows(rows, monthsToDate);
+    monthTotals = exportTotals.monthTotals;
+    ytdTotal = exportTotals.ytdTotal;
+    expectedYtd = exportTotals.expectedYtd;
+    arrears = exportTotals.arrears;
+    unitsTotal = exportTotals.unitsTotal;
+    collectionRate = exportTotals.collectionRate;
+    averageExpectedMonthly =
+      rows.length && monthsToDate
+        ? roundMoney(
+            (isInterestView ? ytdTotal : expectedYtd) /
+              (rows.length * monthsToDate),
+          )
+        : 0;
+
     const contributionTypeConfig = getContributionTypeConfig(normalizedType);
     const interestLabel = contributionTypeConfig?.label || "Contribution";
+    const safeGroupName = String(group.groupName || "group")
+      .toLowerCase()
+      .replace(/\s+/g, "-");
+    const filenameBase = `contribution-ledger-${safeGroupName}-${
+      isInterestView ? `interest-${normalizedType}` : normalizedType
+    }-${year}`;
+
+    if (format === "csv") {
+      const headers = [
+        "S/N",
+        "Member Serial",
+        "Member Name",
+        "Units",
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+        "YTD Total",
+        "Expected YTD",
+        "Arrears",
+        "Status",
+      ];
+
+      const body = rows.map((row, index) => [
+        index + 1,
+        row.memberSerial ?? "-",
+        row.memberName,
+        row.units ?? "-",
+        ...row.months.map((value) => (value > 0 ? roundMoney(value) : "-")),
+        roundMoney(row.ytdTotal),
+        roundMoney(row.expectedYtd),
+        roundMoney(row.arrears),
+        row.status,
+      ]);
+
+      const totalsRow = [
+        "Totals",
+        "-",
+        `${rows.length} members`,
+        unitsTotal > 0 ? unitsTotal : "-",
+        ...monthTotals.map((value) => (value > 0 ? roundMoney(value) : "-")),
+        ytdTotal,
+        expectedYtd,
+        arrears,
+        exportTotals.status,
+      ];
+
+      const csv = `\uFEFF${[headers, ...body, totalsRow]
+        .map((row) => row.map((value) => csvEscape(value)).join(","))
+        .join("\n")}`;
+
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${filenameBase}.csv"`,
+      );
+      return res.status(200).send(csv);
+    }
+
+    if (format === "xlsx") {
+      const workbookBuffer =
+        await generateGroupContributionLedgerWorkbookBuffer({
+          groupName: group.groupName || "Group",
+          contributionTypeLabel: isInterestView
+            ? `Interest Earned (${interestLabel})`
+            : contributionTypeConfig?.label || "Contribution",
+          year,
+          generatedAt: now,
+          monthsToDate,
+          rows,
+          totals: {
+            monthTotals,
+            unitsTotal,
+            ytdTotal,
+            expectedYtd,
+            arrears,
+            status: exportTotals.status,
+          },
+        });
+
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      );
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${filenameBase}.xlsx"`,
+      );
+      return res.status(200).send(workbookBuffer);
+    }
 
     const pdfBuffer = await generateGroupContributionLedgerPdfBuffer({
       groupName: group.groupName || "Group",
@@ -976,7 +1215,7 @@ export const downloadGroupContributionLedgerPdf = catchAsync(
         status: arrears > 0 ? "ARREARS" : "ON TRACK",
       },
       summary: {
-        members: memberRows.length,
+        members: rows.length,
         expectedTotal: expectedYtd,
         collectedTotal: ytdTotal,
         arrears,
@@ -984,9 +1223,7 @@ export const downloadGroupContributionLedgerPdf = catchAsync(
       },
     });
 
-    const filename = `contribution-ledger-${String(group.groupName || "group")
-      .toLowerCase()
-      .replace(/\s+/g, "-")}-${isInterestView ? `interest-${normalizedType}` : normalizedType}-${year}.pdf`;
+    const filename = `${filenameBase}.pdf`;
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);

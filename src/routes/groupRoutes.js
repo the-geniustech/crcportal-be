@@ -15,7 +15,10 @@ import {
   updateGroup,
   updateGroupMember,
 } from "../controllers/groupController.js";
-import { listGroupLoans } from "../controllers/groupLoanController.js";
+import {
+  exportGroupLoanLedger,
+  listGroupLoans,
+} from "../controllers/groupLoanController.js";
 import {
   createGroupContribution,
   downloadGroupContributionLedgerPdf,
@@ -255,6 +258,13 @@ router.get(
   loadMyGroupMembership,
   requireGroupReadAccess(),
   listGroupLoans,
+);
+router.get(
+  "/:groupId/loans/export",
+  loadGroup,
+  loadMyGroupMembership,
+  requireGroupReadAccess(),
+  exportGroupLoanLedger,
 );
 router.post(
   "/:groupId/meetings",
