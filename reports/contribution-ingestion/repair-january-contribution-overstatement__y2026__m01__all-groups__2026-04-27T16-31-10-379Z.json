@@ -1,0 +1,131 @@
+{
+  "ok": 1,
+  "result": {
+    "year": 2026,
+    "month": 1,
+    "correctedAt": "2026-04-27T16:30:50.115Z",
+    "scope": {
+      "requestedGroupNumbers": [],
+      "foundGroupNumbers": [],
+      "missingGroupNumbers": []
+    },
+    "diagnostics": {
+      "total": 862,
+      "repairable": 732,
+      "totalDelta": -32315000,
+      "statusCounts": {
+        "uncorrected": 732,
+        "clean_without_marker": 87,
+        "corrected": 37,
+        "ambiguous": 5,
+        "mismatch": 1
+      }
+    },
+    "repairPlan": {
+      "contributions": 732,
+      "transactions": 732,
+      "groupMembers": 732,
+      "groups": 26,
+      "contributionSettings": 856,
+      "skipped": 6
+    },
+    "skippedRecords": [
+      {
+        "contributionId": "22844f14fbcb01dccedb91de",
+        "transactionId": "5ffeb19d9e52a035200cd560",
+        "userId": "2c9c3b89852d18d854a51a94",
+        "groupId": "767afcf8d419258aad6ac939",
+        "status": "ambiguous",
+        "currentAmount": 90000,
+        "expectedAmount": null,
+        "groupExpectedAmount": 30000,
+        "siblingExpectedAmount": 30000,
+        "settingExpectedAmount": 60000,
+        "reason": "conflicting_expected_sources",
+        "expectedSource": null
+      },
+      {
+        "contributionId": "34dc22b0c548d62d6ef8f8e8",
+        "transactionId": "a9d5b2409ad0ae09b04651d2",
+        "userId": "2024b93844e7c9bc27dc3a13",
+        "groupId": "f13266e9a87019f9d50f8c6c",
+        "status": "ambiguous",
+        "currentAmount": 350000,
+        "expectedAmount": null,
+        "groupExpectedAmount": 150000,
+        "siblingExpectedAmount": 150000,
+        "settingExpectedAmount": 202500,
+        "reason": "conflicting_expected_sources",
+        "expectedSource": null
+      },
+      {
+        "contributionId": "41b0ad325dbbe9afbee1f748",
+        "transactionId": "8b96f99f5456aa6d74d73d02",
+        "userId": "d45d55f6ec5cd2ad86816a49",
+        "groupId": "77ca5ab5eadbd846565ccfe8",
+        "status": "ambiguous",
+        "currentAmount": 30000,
+        "expectedAmount": null,
+        "groupExpectedAmount": 20000,
+        "siblingExpectedAmount": 10000,
+        "settingExpectedAmount": 20000,
+        "reason": "conflicting_expected_sources",
+        "expectedSource": null
+      },
+      {
+        "contributionId": "43b0545f2f03a43b13c3c1bc",
+        "transactionId": "aa12aa88557843336c7706b4",
+        "userId": "5852ed4c8059cc6e969dbf80",
+        "groupId": "77ca5ab5eadbd846565ccfe8",
+        "status": "mismatch",
+        "currentAmount": 200000,
+        "expectedAmount": 500000,
+        "groupExpectedAmount": 500000,
+        "siblingExpectedAmount": 500000,
+        "settingExpectedAmount": 500000,
+        "reason": null,
+        "expectedSource": "group_non_january_unit_median"
+      },
+      {
+        "contributionId": "e681b26cb267bf6660afbb31",
+        "transactionId": "1265ffc44a8768278b600ba7",
+        "userId": "43e247a384159b03a1b2729e",
+        "groupId": "77ca5ab5eadbd846565ccfe8",
+        "status": "ambiguous",
+        "currentAmount": 40000,
+        "expectedAmount": null,
+        "groupExpectedAmount": 50000,
+        "siblingExpectedAmount": 60000,
+        "settingExpectedAmount": 50000,
+        "reason": "conflicting_expected_sources",
+        "expectedSource": null
+      },
+      {
+        "contributionId": "eb83223efe408e01b4641acf",
+        "transactionId": "974d3150d4996fb8a723707e",
+        "userId": "9469a9363219873cbe89be27",
+        "groupId": "97bb1fde9f730a3d0fde7e67",
+        "status": "ambiguous",
+        "currentAmount": 30000,
+        "expectedAmount": null,
+        "groupExpectedAmount": 10000,
+        "siblingExpectedAmount": 20000,
+        "settingExpectedAmount": 10000,
+        "reason": "conflicting_expected_sources",
+        "expectedSource": null
+      }
+    ],
+    "dryRun": false,
+    "repairOutcome": {
+      "status": "applied",
+      "message": "January contribution repair changes were applied successfully to the selected database scope."
+    },
+    "applied": {
+      "repairedContributions": 732,
+      "repairedTransactions": 732,
+      "repairedGroupMembers": 732,
+      "repairedGroups": 26,
+      "repairedContributionSettings": 856
+    }
+  }
+}

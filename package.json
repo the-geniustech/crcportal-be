@@ -39,6 +39,8 @@
     "seed:membership-doc": "node src/scripts/seedMembershipDocData.js",
     "seed:contributions:parse": "node src/scripts/contribution-ingestion/parseContributionXlsx.js",
     "seed:contributions": "node src/scripts/contribution-ingestion/seedContributionData.js",
+    "audit:january-contributions": "node src/scripts/contribution-ingestion/auditJanuaryContributionOverstatement.js",
+    "repair:january-contributions": "node src/scripts/contribution-ingestion/repairJanuaryContributionOverstatement.js",
     "move:user-group": "node src/scripts/moveUserBetweenGroups.js",
     "delete:user-contributions": "node src/scripts/deleteUserContributions.js -- --userId 3ef7589a772a2cf94ecf2220 --profileId 08b4dd38db1745a4e4ba58c9",
     "delete:user-withdrawals": "node src/scripts/deleteUserWithdrawals.js -- --userId 4e5e48c970a7fd7d07a7d01e --profileId 5ff9e8264e8d2eaf141a787f",

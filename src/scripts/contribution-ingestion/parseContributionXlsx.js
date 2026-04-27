@@ -2,6 +2,7 @@ import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
 import { parseContributionWorkbook } from "./parser/xlsxParser.js";
+import { applyJanuaryContributionRepair } from "./repairers/januaryContributionRepair.js";
 import { transformContributionSheet } from "./transformers/transformContributionSheet.js";
 // import { transformContributionSheet } from "";
 /*
@@ -113,7 +114,7 @@ const parsed = await parseContributionWorkbook({
   headerRowIndex,
 });
 
-const transformed = transformContributionSheet(parsed, {
+const transformedRaw = transformContributionSheet(parsed, {
   year: args.year ? Number(args.year) : undefined,
   groupName: args.groupName,
   groupNumber: args.groupNumber ? Number(args.groupNumber) : undefined,
@@ -130,6 +131,15 @@ const transformed = transformContributionSheet(parsed, {
   groupStatus: args.groupStatus,
   verifiedAt: args.verifiedAt,
 });
+const januaryRepair = applyJanuaryContributionRepair(transformedRaw, {
+  year: args.year ? Number(args.year) : transformedRaw.meta?.year,
+  month: 1,
+  halveJanuary: true,
+  markRepaired: true,
+  correctedAt: new Date().toISOString(),
+  source: "parseContributionXlsx",
+});
+const transformed = januaryRepair.bundle;
 
 const groupSlug = slugify(transformed.meta.groupName || "group");
 const outputDir =
@@ -200,6 +210,7 @@ console.log(
         contributions: transformed.contributions.length,
         transactions: transformed.transactions?.length ?? 0,
         contributionSettings: transformed.contributionSettings.length,
+        januaryRepair: januaryRepair.summary,
         warnings: transformed.meta.warnings,
       },
     },
