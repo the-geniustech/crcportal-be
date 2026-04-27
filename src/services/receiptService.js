@@ -29,6 +29,61 @@ function formatDateLabel(value) {
   }).format(date);
 }
 
+function toMoney(value) {
+  const numeric = Number(value || 0);
+  return Number.isFinite(numeric) ? numeric : 0;
+}
+
+function normalizeLoanRepaymentBreakdown(metadata, type) {
+  if (type !== "loan_repayment" || !metadata || typeof metadata !== "object") {
+    return null;
+  }
+
+  const principalPaid = toMoney(metadata.principalPaid);
+  const interestPaid = toMoney(metadata.interestPaid);
+  const remainingBalanceAfterPayment = toMoney(
+    metadata.remainingBalanceAfterPayment,
+  );
+  const remainingPrincipalAfterPayment = toMoney(
+    metadata.remainingPrincipalAfterPayment,
+  );
+  const remainingInterestAfterPayment = toMoney(
+    metadata.remainingInterestAfterPayment,
+  );
+  const settledInstallmentCount = Math.max(
+    0,
+    Math.trunc(Number(metadata.settledInstallmentCount || 0) || 0),
+  );
+
+  const hasBreakdown =
+    principalPaid > 0 ||
+    interestPaid > 0 ||
+    remainingBalanceAfterPayment > 0 ||
+    remainingPrincipalAfterPayment > 0 ||
+    remainingInterestAfterPayment > 0 ||
+    settledInstallmentCount > 0;
+
+  if (!hasBreakdown) return null;
+
+  return {
+    principalPaid,
+    interestPaid,
+    remainingBalanceAfterPayment,
+    remainingPrincipalAfterPayment,
+    remainingInterestAfterPayment,
+    settledInstallmentCount,
+    interestOnly: interestPaid > 0 && principalPaid <= 0,
+  };
+}
+
+function buildLoanRepaymentNote(repaymentBreakdown) {
+  if (!repaymentBreakdown) return null;
+  if (repaymentBreakdown.interestOnly) {
+    return "This repayment covered accrued interest only. Principal outstanding stays unchanged until accrued interest is fully cleared.";
+  }
+  return "Interest accrues only for elapsed months on the remaining principal until the loan is fully repaid.";
+}
+
 export const receiptTypeLabels = {
   deposit: "Savings Deposit",
   loan_disbursement: "Loan Disbursement",
@@ -49,6 +104,9 @@ export const receiptOrganizationInfo = {
 
 export function buildReceiptPayload({ tx, profile }) {
   const dateValue = tx?.date?.toISOString?.() || tx?.date;
+  const metadata =
+    tx?.metadata && typeof tx.metadata === "object" ? tx.metadata : null;
+  const repaymentBreakdown = normalizeLoanRepaymentBreakdown(metadata, tx?.type);
   return {
     organization: receiptOrganizationInfo,
     receipt: {
@@ -64,6 +122,8 @@ export function buildReceiptPayload({ tx, profile }) {
       groupName: tx?.groupName,
       loanName: tx?.loanName,
       gateway: tx?.gateway,
+      repaymentBreakdown,
+      repaymentNote: buildLoanRepaymentNote(repaymentBreakdown),
       issuedAt: new Date().toISOString(),
       issuedAtLabel: formatDateLabel(new Date().toISOString()),
     },
@@ -78,6 +138,7 @@ export function buildReceiptPayload({ tx, profile }) {
 export function buildReceiptEmailText(payload) {
   const receipt = payload?.receipt || {};
   const member = payload?.member || {};
+  const breakdown = receipt?.repaymentBreakdown || null;
   return [
     "CRC Payment Receipt",
     `Reference: ${receipt.reference || "-"}`,
@@ -89,6 +150,33 @@ export function buildReceiptEmailText(payload) {
     receipt.groupName ? `Group: ${receipt.groupName}` : null,
     receipt.loanName ? `Loan: ${receipt.loanName}` : null,
     receipt.channel ? `Channel: ${receipt.channel}` : null,
+    breakdown ? "" : null,
+    breakdown ? "Repayment Allocation" : null,
+    breakdown
+      ? `Interest Covered: ${formatCurrency(breakdown.interestPaid)}`
+      : null,
+    breakdown
+      ? `Principal Covered: ${formatCurrency(breakdown.principalPaid)}`
+      : null,
+    breakdown
+      ? `Remaining Interest: ${formatCurrency(
+          breakdown.remainingInterestAfterPayment,
+        )}`
+      : null,
+    breakdown
+      ? `Remaining Principal: ${formatCurrency(
+          breakdown.remainingPrincipalAfterPayment,
+        )}`
+      : null,
+    breakdown
+      ? `Remaining Total: ${formatCurrency(
+          breakdown.remainingBalanceAfterPayment,
+        )}`
+      : null,
+    breakdown?.settledInstallmentCount > 0
+      ? `Installments Settled: ${breakdown.settledInstallmentCount}`
+      : null,
+    receipt.repaymentNote ? `Note: ${receipt.repaymentNote}` : null,
     "",
     `Member: ${member.name || "Member"}`,
     member.email ? `Email: ${member.email}` : null,
@@ -108,6 +196,7 @@ export function buildReceiptEmailText(payload) {
 export function buildReceiptEmailHtml(payload) {
   const receipt = payload?.receipt || {};
   const member = payload?.member || {};
+  const breakdown = receipt?.repaymentBreakdown || null;
   return `
     <div style="font-family: Arial, sans-serif; background: #f9fafb; padding: 24px;">
       <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb;">
@@ -139,6 +228,32 @@ export function buildReceiptEmailHtml(payload) {
             <div style="font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.08em;">Description</div>
             <div style="font-size: 14px; color: #111827; margin-top: 4px;">${receipt.description || "-"}</div>
           </div>
+          ${
+            breakdown
+              ? `
+            <div style="margin-top: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px;">
+              <div style="font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px;">Repayment Allocation</div>
+              <table style="width: 100%; font-size: 13px; color: #111827;">
+                <tr><td style="padding: 6px 0; color: #6b7280;">Interest Covered</td><td style="padding: 6px 0; font-weight: 600;">${formatCurrencyHtml(breakdown.interestPaid)}</td></tr>
+                <tr><td style="padding: 6px 0; color: #6b7280;">Principal Covered</td><td style="padding: 6px 0; font-weight: 600;">${formatCurrencyHtml(breakdown.principalPaid)}</td></tr>
+                <tr><td style="padding: 6px 0; color: #6b7280;">Remaining Interest</td><td style="padding: 6px 0; font-weight: 600;">${formatCurrencyHtml(breakdown.remainingInterestAfterPayment)}</td></tr>
+                <tr><td style="padding: 6px 0; color: #6b7280;">Remaining Principal</td><td style="padding: 6px 0; font-weight: 600;">${formatCurrencyHtml(breakdown.remainingPrincipalAfterPayment)}</td></tr>
+                <tr><td style="padding: 6px 0; color: #6b7280;">Remaining Total</td><td style="padding: 6px 0; font-weight: 600;">${formatCurrencyHtml(breakdown.remainingBalanceAfterPayment)}</td></tr>
+                ${
+                  breakdown.settledInstallmentCount > 0
+                    ? `<tr><td style="padding: 6px 0; color: #6b7280;">Installments Settled</td><td style="padding: 6px 0; font-weight: 600;">${breakdown.settledInstallmentCount}</td></tr>`
+                    : ""
+                }
+              </table>
+              ${
+                receipt.repaymentNote
+                  ? `<div style="margin-top: 12px; padding: 10px 12px; border-radius: 8px; border: 1px solid ${breakdown.interestOnly ? "#fcd34d" : "#e2e8f0"}; background: ${breakdown.interestOnly ? "#fffbeb" : "#ffffff"}; color: ${breakdown.interestOnly ? "#92400e" : "#475569"}; font-size: 12px; line-height: 1.5;">${receipt.repaymentNote}</div>`
+                  : ""
+              }
+            </div>
+          `
+              : ""
+          }
           <div style="margin-top: 16px;">
             <div style="font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.08em;">Member</div>
             <div style="font-size: 14px; color: #111827; margin-top: 4px;">${member.name || "Member"}</div>

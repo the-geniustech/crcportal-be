@@ -106,6 +106,7 @@ export async function generateReceiptPdfBuffer(payload) {
   const receipt = payload.receipt || {};
   const organization = payload.organization || {};
   const member = payload.member || {};
+  const breakdown = receipt.repaymentBreakdown || null;
 
   const doc = new PDFDocument({
     size: "A4",
@@ -193,6 +194,53 @@ export async function generateReceiptPdfBuffer(payload) {
       .fontSize(10.5)
       .fillColor("#111827")
       .text(receipt.description || "Payment received.");
+
+    if (breakdown) {
+      doc.moveDown(1.0);
+      drawSectionTitle(doc, "Repayment Allocation");
+      drawLabelValueTable(
+        doc,
+        [
+          {
+            label: "Interest Covered",
+            value: formatCurrency(breakdown.interestPaid),
+          },
+          {
+            label: "Principal Covered",
+            value: formatCurrency(breakdown.principalPaid),
+          },
+          {
+            label: "Remaining Interest",
+            value: formatCurrency(breakdown.remainingInterestAfterPayment),
+          },
+          {
+            label: "Remaining Principal",
+            value: formatCurrency(breakdown.remainingPrincipalAfterPayment),
+          },
+          {
+            label: "Remaining Total",
+            value: formatCurrency(breakdown.remainingBalanceAfterPayment),
+          },
+          ...(breakdown.settledInstallmentCount > 0
+            ? [
+                {
+                  label: "Installments Settled",
+                  value: String(breakdown.settledInstallmentCount),
+                },
+              ]
+            : []),
+        ],
+        contentWidth,
+      );
+
+      if (receipt.repaymentNote) {
+        doc
+          .font("Helvetica")
+          .fontSize(9.5)
+          .fillColor(breakdown.interestOnly ? "#92400E" : "#475569")
+          .text(receipt.repaymentNote);
+      }
+    }
 
     doc.moveDown(1.0);
     drawSectionTitle(doc, "Member Details");
