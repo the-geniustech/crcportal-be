@@ -25,6 +25,10 @@ import {
   isContributionAmountValid,
   normalizeContributionType,
 } from "../utils/contributionPolicy.js";
+import {
+  applyRecurringContributionSchedulePayment,
+  attachRecurringContributionSchedule,
+} from "../utils/recurringContributionLink.js";
 
 function generateReference(prefix = "CRC") {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 11).toUpperCase()}`;
@@ -72,17 +76,27 @@ async function updateRecurringPaymentStats({
   paymentType,
   groupId,
   loanId,
+  contributionType,
+  recurringPaymentId,
   amount,
   count = 1,
   paidAt,
 } = {}) {
   if (!userId || !paymentType) return;
 
-  const query = { userId, paymentType, isActive: true };
   if (paymentType === "group_contribution") {
-    if (!groupId) return;
-    query.groupId = groupId;
+    return applyRecurringContributionSchedulePayment({
+      recurringPaymentId,
+      userId,
+      groupId,
+      contributionType,
+      amount,
+      count,
+      paidAt,
+    });
   }
+
+  const query = { userId, paymentType, isActive: true };
   if (paymentType === "loan_repayment") {
     if (!loanId) return;
     query.loanId = loanId;
@@ -241,6 +255,8 @@ async function finalizeGroupContribution({ transaction, paystackData }) {
           userId: transaction.userId,
           paymentType: "group_contribution",
           groupId: contribution.groupId,
+          contributionType: contribution.contributionType,
+          recurringPaymentId: contribution.recurringPaymentId || null,
           amount: Number(contribution.amount ?? 0),
           count: 1,
           paidAt,
@@ -291,6 +307,8 @@ async function finalizeGroupContribution({ transaction, paystackData }) {
     userId: transaction.userId,
     paymentType: "group_contribution",
     groupId: contribution.groupId,
+    contributionType: contribution.contributionType,
+    recurringPaymentId: contribution.recurringPaymentId || null,
     amount,
     count: 1,
     paidAt,
@@ -534,7 +552,7 @@ export const initializePaystackPayment = catchAsync(async (req, res, next) => {
       );
     }
 
-    const contribution = await ContributionModel.create({
+    const contribution = new ContributionModel({
       groupId,
       userId,
       month: contributionMonth,
@@ -546,6 +564,14 @@ export const initializePaystackPayment = catchAsync(async (req, res, next) => {
       paymentMethod: "paystack",
       notes: description || null,
     });
+    const recurringSchedule = await attachRecurringContributionSchedule({
+      contribution,
+      userId,
+      groupId,
+      contributionType: canonicalType,
+      amount: parsedAmount,
+    });
+    await contribution.save({ validateBeforeSave: true });
     contributionId = contribution._id;
 
     metadata.contributionId = contribution._id;
@@ -553,6 +579,7 @@ export const initializePaystackPayment = catchAsync(async (req, res, next) => {
     metadata.year = contributionYear;
     metadata.contributionType = canonicalType;
     metadata.groupName = groupName;
+    metadata.recurringPaymentId = recurringSchedule?._id || null;
   }
 
   if (paymentType === "loan_repayment") {
@@ -780,7 +807,7 @@ export const initializePaystackBulkPayment = catchAsync(
           );
         }
 
-        const contribution = await ContributionModel.create({
+        const contribution = new ContributionModel({
           groupId: item.groupId,
           userId,
           month,
@@ -792,11 +819,23 @@ export const initializePaystackBulkPayment = catchAsync(
           paymentMethod: "paystack",
           notes: description || item.description || null,
         });
+        const recurringSchedule = await attachRecurringContributionSchedule({
+          contribution,
+          userId,
+          groupId: item.groupId,
+          contributionType: canonicalType,
+          amount: Number(item.amount || 0),
+        });
+        await contribution.save({ validateBeforeSave: true });
         contributionIds.push(contribution._id);
         groupNames.set(
           String(item.groupId),
           membership.groupId?.groupName || null,
         );
+        item.contributionId = String(contribution._id);
+        item.recurringPaymentId = recurringSchedule?._id
+          ? String(recurringSchedule._id)
+          : null;
         totalAmount += Number(item.amount || 0);
       }
 
@@ -867,6 +906,17 @@ export const initializePaystackBulkPayment = catchAsync(
       bulk: true,
       bulkItems: items,
       bulkContributionIds: contributionIds,
+      bulkContributionLinks: items
+        .filter((item) => item.contributionId)
+        .map((item) => ({
+          contributionId: item.contributionId,
+          recurringPaymentId: item.recurringPaymentId || null,
+          groupId: item.groupId || null,
+          contributionType: item.contributionType || null,
+          month: item.month ?? null,
+          year: item.year ?? null,
+          amount: Number(item.amount || 0),
+        })),
       bulkLoanScheduleItemIds,
     };
 

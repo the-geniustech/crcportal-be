@@ -7,6 +7,7 @@ import {
   listAdminGroups,
   listContributionTracker,
   listContributionTrackerEntries,
+  markContributionUnpaid,
   listMemberApprovals,
   markContributionPaid,
   rejectMemberApplication,
@@ -126,6 +127,11 @@ router.post(
   "/contributions/mark-paid",
   restrictTo("groupCoordinator"),
   markContributionPaid,
+);
+router.post(
+  "/contributions/mark-unpaid",
+  restrictTo("groupCoordinator"),
+  markContributionUnpaid,
 );
 router.patch(
   "/contributions/:contributionId",

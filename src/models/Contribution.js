@@ -34,6 +34,12 @@ export const ContributionSchema = new Schema(
 
     paymentReference: { type: String, default: null, trim: true },
     paymentMethod: { type: String, default: null, trim: true },
+    recurringPaymentId: {
+      type: ObjectId,
+      ref: "RecurringPayment",
+      default: null,
+      index: true,
+    },
 
     verifiedBy: { type: ObjectId, ref: "Profile", default: null },
     verifiedAt: { type: Date, default: null },
