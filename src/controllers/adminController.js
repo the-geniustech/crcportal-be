@@ -27,6 +27,7 @@ import {
 } from "../utils/contributionPolicy.js";
 import { sendEmail } from "../services/mail/resendClient.js";
 import { sendSms } from "../services/sms/termiiClient.js";
+import { generateAdminContributionTrackerWorkbookBuffer } from "../services/adminContributionTrackerWorkbook.js";
 import { emitToUser } from "../socket.js";
 
 function clamp(n, min, max) {
@@ -83,6 +84,15 @@ function parseMonthYearPayload(req) {
   return { year, month };
 }
 
+function parseContributionTypeQuery(req, fallback = "revolving") {
+  const raw = String(req.query?.contributionType ?? fallback).trim();
+  const contributionType = normalizeContributionType(raw);
+  if (!contributionType) {
+    return { error: "Invalid contributionType" };
+  }
+  return { contributionType };
+}
+
 function dueDateUtc(year, month1to12, day = 4) {
   const nextMonthIndex = month1to12;
   return new Date(Date.UTC(year, nextMonthIndex, day, 23, 59, 59, 999));
@@ -115,6 +125,202 @@ function applyContributionMetrics(contribution, amount) {
     contribution.contributionType,
     safeAmount,
   );
+}
+
+const PaidContributionStatuses = new Set(["completed", "verified"]);
+const MonthlyTrackedContributionTypes = new Set([
+  "revolving",
+  "endwell",
+  "festive",
+]);
+const ContributionTrackerSortLabels = {
+  member_name_asc: "Member name (A-Z)",
+  member_name_desc: "Member name (Z-A)",
+  group_name_asc: "Group name (A-Z)",
+  group_name_desc: "Group name (Z-A)",
+  expected_desc: "Expected amount (high-low)",
+  expected_asc: "Expected amount (low-high)",
+  paid_desc: "Paid amount (high-low)",
+  paid_asc: "Paid amount (low-high)",
+  status: "Status",
+  defaulted_desc: "Months defaulted (high-low)",
+};
+const ContributionTypeLabels = {
+  revolving: "Revolving Contribution",
+  special: "Special Contribution",
+  endwell: "Endwell Contribution",
+  festive: "Festive Contribution",
+};
+
+function shouldCountTowardSavings(status) {
+  return status === "completed" || status === "verified";
+}
+
+function mapContributionStatusToTxStatus(status) {
+  if (status === "completed" || status === "verified") return "success";
+  if (status === "pending") return "pending";
+  if (status === "overdue") return "failed";
+  return "pending";
+}
+
+function normalizeContributionTrackerSort(value) {
+  const raw = String(value || "").trim().toLowerCase();
+  if (Object.prototype.hasOwnProperty.call(ContributionTrackerSortLabels, raw)) {
+    return raw;
+  }
+  return "member_name_asc";
+}
+
+function getContributionTrackerSortLabel(value) {
+  const normalized = normalizeContributionTrackerSort(value);
+  return ContributionTrackerSortLabels[normalized];
+}
+
+function getContributionTrackerTypeLabel(value) {
+  const canonical = normalizeContributionType(value) || "revolving";
+  return ContributionTypeLabels[canonical] || "Contribution";
+}
+
+function getStatusSortRank(status) {
+  switch (status) {
+    case "paid":
+      return 0;
+    case "partial":
+      return 1;
+    case "pending":
+      return 2;
+    case "defaulted":
+      return 3;
+    default:
+      return 9;
+  }
+}
+
+function formatContributionTrackerPeriodLabel(year, month) {
+  const date = new Date(Date.UTC(year, month - 1, 1));
+  return date.toLocaleDateString("en-NG", {
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function formatContributionTrackerTimestamp(value) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return new Intl.DateTimeFormat("en-NG", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function csvEscape(value) {
+  const raw = String(value ?? "");
+  if (/[",\n]/.test(raw)) {
+    return `"${raw.replace(/"/g, '""')}"`;
+  }
+  return raw;
+}
+
+function filterContributionTrackerRecords(records, { search, status } = {}) {
+  const searchQuery = String(search || "")
+    .trim()
+    .toLowerCase();
+  const normalizedStatus = String(status || "all")
+    .trim()
+    .toLowerCase();
+
+  return records.filter((record) => {
+    const matchesSearch =
+      !searchQuery ||
+      String(record.memberName || "")
+        .toLowerCase()
+        .includes(searchQuery) ||
+      String(record.groupName || "")
+        .toLowerCase()
+        .includes(searchQuery) ||
+      String(record.memberSerial || "")
+        .toLowerCase()
+        .includes(searchQuery);
+    const matchesStatus =
+      normalizedStatus === "all" || record.status === normalizedStatus;
+    return matchesSearch && matchesStatus;
+  });
+}
+
+function sortContributionTrackerRecords(records, sort) {
+  const normalizedSort = normalizeContributionTrackerSort(sort);
+  const list = [...records];
+  list.sort((a, b) => {
+    const memberA = String(a.memberName || "").localeCompare(
+      String(b.memberName || ""),
+      "en",
+      { sensitivity: "base" },
+    );
+    const groupA = String(a.groupName || "").localeCompare(
+      String(b.groupName || ""),
+      "en",
+      { sensitivity: "base" },
+    );
+
+    switch (normalizedSort) {
+      case "member_name_desc":
+        return -memberA || groupA;
+      case "group_name_asc":
+        return groupA || memberA;
+      case "group_name_desc":
+        return -groupA || memberA;
+      case "expected_desc":
+        return (
+          Number(b.expectedAmount || 0) - Number(a.expectedAmount || 0) ||
+          memberA
+        );
+      case "expected_asc":
+        return (
+          Number(a.expectedAmount || 0) - Number(b.expectedAmount || 0) ||
+          memberA
+        );
+      case "paid_desc":
+        return Number(b.paidAmount || 0) - Number(a.paidAmount || 0) || memberA;
+      case "paid_asc":
+        return Number(a.paidAmount || 0) - Number(b.paidAmount || 0) || memberA;
+      case "status":
+        return (
+          getStatusSortRank(a.status) - getStatusSortRank(b.status) || memberA
+        );
+      case "defaulted_desc":
+        return (
+          Number(b.monthsDefaulted || 0) - Number(a.monthsDefaulted || 0) ||
+          memberA
+        );
+      case "member_name_asc":
+      default:
+        return memberA || groupA;
+    }
+  });
+  return list;
+}
+
+function summarizeContributionTrackerRecords(records) {
+  const totalExpected = records.reduce(
+    (sum, record) => sum + Number(record.expectedAmount || 0),
+    0,
+  );
+  const totalPaid = records.reduce(
+    (sum, record) => sum + Number(record.paidAmount || 0),
+    0,
+  );
+  const defaulters = records.filter((record) => record.status === "defaulted").length;
+  const collectionRate = totalExpected > 0 ? (totalPaid / totalExpected) * 100 : 0;
+  return {
+    totalExpected,
+    totalPaid,
+    defaulters,
+    collectionRate,
+  };
 }
 
 async function updateRecurringPaymentStats({
@@ -481,6 +687,198 @@ async function getManageableGroupIds(req) {
   return coordinatorMemberships.map((m) => String(m.groupId));
 }
 
+async function buildContributionTrackerRecords({
+  req,
+  year,
+  month,
+  contributionType,
+  groupIdParam = null,
+}) {
+  const manageableGroupIds = await getManageableGroupIds(req);
+
+  let groupIds = null;
+  if (manageableGroupIds === null) {
+    groupIds = groupIdParam ? [groupIdParam] : null;
+  } else {
+    if (groupIdParam && !manageableGroupIds.includes(groupIdParam)) {
+      throw new AppError("You cannot manage this group", 403);
+    }
+    groupIds = groupIdParam ? [groupIdParam] : manageableGroupIds;
+  }
+
+  const membershipFilter = { status: "active" };
+  if (groupIds) membershipFilter.groupId = { $in: groupIds };
+
+  const memberships = await GroupMembershipModel.find(
+    membershipFilter,
+    {
+      userId: 1,
+      groupId: 1,
+      joinedAt: 1,
+      memberSerial: 1,
+      memberNumber: 1,
+    },
+  ).lean();
+
+  if (memberships.length === 0) {
+    return {
+      records: [],
+      groupLabel: groupIdParam ? "Selected group" : "All groups",
+    };
+  }
+
+  const memberProfiles = await ProfileModel.find(
+    { _id: { $in: memberships.map((membership) => membership.userId) } },
+    { fullName: 1, email: 1, phone: 1, contributionSettings: 1 },
+  ).lean();
+  const profileById = new Map(
+    memberProfiles.map((profile) => [String(profile._id), profile]),
+  );
+
+  const groups = await GroupModel.find(
+    {
+      _id: {
+        $in: [...new Set(memberships.map((membership) => String(membership.groupId)))],
+      },
+    },
+    { groupName: 1, monthlyContribution: 1 },
+  ).lean();
+  const groupById = new Map(groups.map((group) => [String(group._id), group]));
+
+  const scopeGroupIds = groupIds ?? groups.map((group) => String(group._id));
+  const isMonthlyTrackedType = MonthlyTrackedContributionTypes.has(contributionType);
+
+  const historyMonths = [];
+  if (isMonthlyTrackedType) {
+    const sixMonthsBack = 6;
+    for (let i = sixMonthsBack - 1; i >= 0; i -= 1) {
+      const date = new Date(Date.UTC(year, month - 1 - i, 1));
+      historyMonths.push({
+        year: date.getUTCFullYear(),
+        month: date.getUTCMonth() + 1,
+      });
+    }
+  } else {
+    historyMonths.push({ year, month });
+  }
+
+  const typeMatch = getContributionTypeMatch(contributionType) || [contributionType];
+  const contributionTypeFilter =
+    contributionType === "revolving"
+      ? {
+          $or: [
+            { contributionType: { $in: typeMatch } },
+            { contributionType: { $exists: false } },
+            { contributionType: null },
+          ],
+        }
+      : { contributionType: { $in: typeMatch } };
+
+  const contribDocs = await ContributionModel.find(
+    {
+      groupId: { $in: scopeGroupIds },
+      ...(historyMonths.length > 0
+        ? {
+            $or: historyMonths.map((item) => ({
+              year: item.year,
+              month: item.month,
+            })),
+          }
+        : {}),
+      ...contributionTypeFilter,
+    },
+    {
+      userId: 1,
+      groupId: 1,
+      year: 1,
+      month: 1,
+      amount: 1,
+      status: 1,
+    },
+  ).lean();
+
+  const paidByKey = new Map();
+  for (const contribution of contribDocs) {
+    const key = `${String(contribution.userId)}|${String(contribution.groupId)}|${Number(contribution.year)}|${Number(contribution.month)}`;
+    if (!PaidContributionStatuses.has(String(contribution.status))) continue;
+    paidByKey.set(
+      key,
+      Number(paidByKey.get(key) || 0) + Number(contribution.amount || 0),
+    );
+  }
+
+  const due = dueDateUtc(year, month);
+  const now = new Date();
+
+  const records = memberships.map((membership) => {
+    const userId = String(membership.userId);
+    const groupId = String(membership.groupId);
+    const group = groupById.get(groupId);
+    const profile = profileById.get(userId);
+    const expectedAmount = isMonthlyTrackedType
+      ? resolveExpectedContributionAmount({
+          settings: profile?.contributionSettings,
+          year,
+          groupMonthlyContribution: group?.monthlyContribution,
+          type: contributionType,
+        })
+      : 0;
+    const currentKey = `${userId}|${groupId}|${year}|${month}`;
+    const paidAmount = Number(paidByKey.get(currentKey) || 0);
+
+    let status = "pending";
+    let monthsDefaulted = 0;
+
+    if (!isMonthlyTrackedType) {
+      status = paidAmount > 0 ? "paid" : "pending";
+    } else {
+      status =
+        paidAmount >= expectedAmount && expectedAmount > 0
+          ? "paid"
+          : paidAmount > 0
+            ? "partial"
+            : now.getTime() > due.getTime()
+              ? "defaulted"
+              : "pending";
+
+      const joinedAt = membership.joinedAt ? new Date(membership.joinedAt) : null;
+      for (const item of historyMonths) {
+        const monthDue = dueDateUtc(item.year, item.month);
+        if (monthDue.getTime() > now.getTime()) continue;
+        if (joinedAt && monthDue.getTime() < joinedAt.getTime()) continue;
+        const historyKey = `${userId}|${groupId}|${item.year}|${item.month}`;
+        const paid = Number(paidByKey.get(historyKey) || 0);
+        if (paid <= 0) monthsDefaulted += 1;
+      }
+    }
+
+    return {
+      id: `${userId}|${groupId}|${year}|${month}`,
+      userId,
+      groupId,
+      contributionType,
+      memberName: profile?.fullName ?? "Member",
+      memberSerial: membership.memberSerial ?? null,
+      groupName: group?.groupName ?? "Group",
+      expectedAmount,
+      paidAmount,
+      dueDate: isMonthlyTrackedType ? due.toISOString().slice(0, 10) : null,
+      status,
+      monthsDefaulted: clamp(monthsDefaulted, 0, 12),
+    };
+  });
+
+  let groupLabel = "All groups";
+  if (groupIds?.length === 1) {
+    groupLabel = groupById.get(groupIds[0])?.groupName || "Selected group";
+  }
+
+  return {
+    records,
+    groupLabel,
+  };
+}
+
 export const listMemberApprovals = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
   if (!req.user.profileId)
@@ -674,144 +1072,542 @@ export const listContributionTracker = catchAsync(async (req, res, next) => {
 
   const { year, month, error } = parseMonthYear(req);
   if (error) return next(new AppError(error, 400));
+  const parsedType = parseContributionTypeQuery(req);
+  if (parsedType.error) return next(new AppError(parsedType.error, 400));
+
+  const groupIdParam = req.query?.groupId ? String(req.query.groupId) : null;
+  const { records } = await buildContributionTrackerRecords({
+    req,
+    year,
+    month,
+    contributionType: parsedType.contributionType,
+    groupIdParam,
+  });
+  const sort = normalizeContributionTrackerSort(req.query?.sort);
+  const sortedRecords = sortContributionTrackerRecords(records, sort);
+
+  return sendSuccess(res, {
+    statusCode: 200,
+    results: sortedRecords.length,
+    data: {
+      year,
+      month,
+      contributionType: parsedType.contributionType,
+      contributions: sortedRecords,
+    },
+  });
+});
+
+export const exportContributionTracker = catchAsync(async (req, res, next) => {
+  if (!req.user) return next(new AppError("Not authenticated", 401));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
+
+  if (!hasUserRole(req.user, "admin", "groupCoordinator")) {
+    return next(
+      new AppError(
+        "Only admins and group coordinators can export contribution tracking",
+        403,
+      ),
+    );
+  }
+
+  const { year, month, error } = parseMonthYear(req);
+  if (error) return next(new AppError(error, 400));
+
+  const parsedType = parseContributionTypeQuery(req);
+  if (parsedType.error) return next(new AppError(parsedType.error, 400));
+
+  const format = String(req.query?.format || "csv")
+    .trim()
+    .toLowerCase();
+  if (!["csv", "xlsx"].includes(format)) {
+    return next(new AppError("Invalid export format", 400));
+  }
+
+  const groupIdParam = req.query?.groupId ? String(req.query.groupId) : null;
+  const status = req.query?.status ? String(req.query.status) : "all";
+  const search = req.query?.search ? String(req.query.search) : "";
+  const sort = normalizeContributionTrackerSort(req.query?.sort);
+
+  const { records, groupLabel } = await buildContributionTrackerRecords({
+    req,
+    year,
+    month,
+    contributionType: parsedType.contributionType,
+    groupIdParam,
+  });
+
+  const filteredRecords = sortContributionTrackerRecords(
+    filterContributionTrackerRecords(records, { search, status }),
+    sort,
+  );
+  const summary = summarizeContributionTrackerRecords(filteredRecords);
+  const contributionTypeLabel = getContributionTrackerTypeLabel(
+    parsedType.contributionType,
+  );
+  const periodLabel = formatContributionTrackerPeriodLabel(year, month);
+  const generatedAt = new Date();
+  const statusLabel =
+    String(status || "all")
+      .trim()
+      .toLowerCase() === "all"
+      ? "All statuses"
+      : String(status || "all");
+  const searchLabel = String(search || "").trim() || "All records";
+  const sortLabel = getContributionTrackerSortLabel(sort);
+  const filenameBase = `admin-contribution-tracker-${String(
+    parsedType.contributionType,
+  )}-${year}-${String(month).padStart(2, "0")}`;
+
+  if (format === "csv") {
+    const rows = [
+      ["Contribution Tracker Export"],
+      ["Contribution Type", contributionTypeLabel],
+      ["Period", periodLabel],
+      ["Generated", formatContributionTrackerTimestamp(generatedAt)],
+      ["Group Filter", groupLabel],
+      ["Status Filter", statusLabel],
+      ["Search", searchLabel],
+      ["Sorted By", sortLabel],
+      [],
+      ["Summary"],
+      ["Records", filteredRecords.length],
+      ["Collection Rate", `${summary.collectionRate.toFixed(1)}%`],
+      ["Total Expected", summary.totalExpected],
+      ["Total Collected", summary.totalPaid],
+      ["Defaulters", summary.defaulters],
+      [],
+      [
+        "S/N",
+        "Member Serial",
+        "Member Name",
+        "Group",
+        "Expected",
+        "Paid",
+        "Due Date",
+        "Status",
+        "Months Defaulted",
+      ],
+      ...filteredRecords.map((record, index) => [
+        index + 1,
+        record.memberSerial ?? "-",
+        record.memberName,
+        record.groupName,
+        Number(record.expectedAmount || 0),
+        Number(record.paidAmount || 0),
+        record.dueDate || "Anytime",
+        record.status,
+        Number(record.monthsDefaulted || 0),
+      ]),
+    ];
+
+    const csv = `\uFEFF${rows
+      .map((row) => row.map((value) => csvEscape(value)).join(","))
+      .join("\n")}`;
+
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${filenameBase}.csv"`,
+    );
+    return res.status(200).send(csv);
+  }
+
+  const workbookBuffer = await generateAdminContributionTrackerWorkbookBuffer({
+    contributionTypeLabel,
+    periodLabel,
+    generatedAt,
+    groupLabel,
+    statusLabel,
+    searchLabel,
+    sortLabel,
+    records: filteredRecords,
+    summary,
+  });
+
+  res.setHeader(
+    "Content-Type",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  );
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="${filenameBase}.xlsx"`,
+  );
+  return res.status(200).send(workbookBuffer);
+});
+
+export const listContributionTrackerEntries = catchAsync(async (req, res, next) => {
+  if (!req.user) return next(new AppError("Not authenticated", 401));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
+
+  if (!hasUserRole(req.user, "admin", "groupCoordinator")) {
+    return next(
+      new AppError(
+        "Only admins and group coordinators can view contribution entries",
+        403,
+      ),
+    );
+  }
+
+  const { year, month, error } = parseMonthYear(req);
+  if (error) return next(new AppError(error, 400));
+
+  const parsedType = parseContributionTypeQuery(req);
+  if (parsedType.error) return next(new AppError(parsedType.error, 400));
+
+  const userId = String(req.query?.userId || "").trim();
+  const groupId = String(req.query?.groupId || "").trim();
+  if (!userId || !groupId) {
+    return next(new AppError("userId and groupId are required", 400));
+  }
 
   const manageableGroupIds = await getManageableGroupIds(req);
-  const groupIdParam = req.query?.groupId ? String(req.query.groupId) : null;
-
-  let groupIds = null;
-  if (manageableGroupIds === null) {
-    groupIds = groupIdParam ? [groupIdParam] : null;
-  } else {
-    if (groupIdParam && !manageableGroupIds.includes(groupIdParam)) {
-      return next(new AppError("You cannot manage this group", 403));
-    }
-    groupIds = groupIdParam ? [groupIdParam] : manageableGroupIds;
+  if (manageableGroupIds && !manageableGroupIds.includes(groupId)) {
+    return next(new AppError("You cannot manage this group", 403));
   }
 
-  const membershipFilter = { status: "active" };
-  if (groupIds) membershipFilter.groupId = { $in: groupIds };
+  const typeMatch = getContributionTypeMatch(parsedType.contributionType) || [
+    parsedType.contributionType,
+  ];
+  const contributionTypeFilter =
+    parsedType.contributionType === "revolving"
+      ? {
+          $or: [
+            { contributionType: { $in: typeMatch } },
+            { contributionType: { $exists: false } },
+            { contributionType: null },
+          ],
+        }
+      : { contributionType: { $in: typeMatch } };
 
-  const memberships = await GroupMembershipModel.find(membershipFilter, {
-    userId: 1,
-    groupId: 1,
-    joinedAt: 1,
-    memberSerial: 1,
-    memberNumber: 1,
-  }).lean();
-
-  const memberProfiles = await ProfileModel.find(
-    { _id: { $in: memberships.map((m) => m.userId) } },
-    { fullName: 1, email: 1, phone: 1, contributionSettings: 1 },
-  ).lean();
-  const profileById = new Map(memberProfiles.map((p) => [String(p._id), p]));
-
-  const groups = await GroupModel.find(
-    { _id: { $in: [...new Set(memberships.map((m) => String(m.groupId)))] } },
-    { groupName: 1, monthlyContribution: 1 },
-  ).lean();
-  const groupById = new Map(groups.map((g) => [String(g._id), g]));
-
-  const scopeGroupIds = groupIds ?? groups.map((g) => String(g._id));
-
-  const sixMonthsBack = 6;
-  const historyMonths = [];
-  for (let i = sixMonthsBack - 1; i >= 0; i -= 1) {
-    const d = new Date(Date.UTC(year, month - 1 - i, 1));
-    historyMonths.push({
-      year: d.getUTCFullYear(),
-      month: d.getUTCMonth() + 1,
-    });
-  }
-
-  const typeMatch = getContributionTypeMatch("revolving") || ["revolving"];
-  const contributionTypeFilter = {
-    $or: [
-      { contributionType: { $in: typeMatch } },
-      { contributionType: { $exists: false } },
-      { contributionType: null },
-    ],
-  };
-  const historyFilters = historyMonths.map((hm) => ({
-    year: hm.year,
-    month: hm.month,
-  }));
-  const contributionFilters = [contributionTypeFilter];
-  if (historyFilters.length > 0) {
-    contributionFilters.push({ $or: historyFilters });
-  }
-
-  const contribDocs = await ContributionModel.find(
+  const entries = await ContributionModel.find(
     {
-      groupId: { $in: scopeGroupIds },
-      ...(contributionFilters.length > 0 ? { $and: contributionFilters } : {}),
-    },
-    { userId: 1, groupId: 1, year: 1, month: 1, amount: 1, status: 1 },
-  ).lean();
-
-  const paidByKey = new Map();
-  for (const c of contribDocs) {
-    const k = `${String(c.userId)}|${String(c.groupId)}|${Number(c.year)}|${Number(c.month)}`;
-    const isPaid = ["verified", "completed"].includes(String(c.status));
-    if (!isPaid) continue;
-    paidByKey.set(k, Number(paidByKey.get(k) || 0) + Number(c.amount || 0));
-  }
-
-  const due = dueDateUtc(year, month);
-  const now = new Date();
-  const records = memberships.map((m) => {
-    const userId = String(m.userId);
-    const groupId = String(m.groupId);
-    const g = groupById.get(groupId);
-    const p = profileById.get(userId);
-
-    const expectedAmount = resolveExpectedContributionAmount({
-      settings: p?.contributionSettings,
-      year,
-      groupMonthlyContribution: g?.monthlyContribution,
-      type: "revolving",
-    });
-    const currentKey = `${userId}|${groupId}|${year}|${month}`;
-    const paidAmount = Number(paidByKey.get(currentKey) || 0);
-
-    const status =
-      paidAmount >= expectedAmount && expectedAmount > 0
-        ? "paid"
-        : paidAmount > 0
-          ? "partial"
-          : now.getTime() > due.getTime()
-            ? "defaulted"
-            : "pending";
-
-    let monthsDefaulted = 0;
-    const joinedAt = m.joinedAt ? new Date(m.joinedAt) : null;
-    for (const hm of historyMonths) {
-      const monthDue = dueDateUtc(hm.year, hm.month);
-      if (monthDue.getTime() > now.getTime()) continue;
-      if (joinedAt && monthDue.getTime() < joinedAt.getTime()) continue;
-      const k = `${userId}|${groupId}|${hm.year}|${hm.month}`;
-      const paid = Number(paidByKey.get(k) || 0);
-      if (paid <= 0) monthsDefaulted += 1;
-    }
-
-    return {
-      id: `${userId}|${groupId}|${year}|${month}`,
       userId,
       groupId,
-      memberName: p?.fullName ?? "Member",
-      memberSerial: m.memberSerial ?? null,
-      groupName: g?.groupName ?? "Group",
-      expectedAmount,
-      paidAmount,
-      dueDate: due.toISOString().slice(0, 10),
-      status,
-      monthsDefaulted: clamp(monthsDefaulted, 0, 12),
+      year,
+      month,
+      ...contributionTypeFilter,
+    },
+    {
+      amount: 1,
+      month: 1,
+      year: 1,
+      status: 1,
+      paymentMethod: 1,
+      paymentReference: 1,
+      notes: 1,
+      units: 1,
+      interestAmount: 1,
+      contributionType: 1,
+      createdAt: 1,
+      updatedAt: 1,
+      verifiedAt: 1,
+    },
+  )
+    .sort({ createdAt: -1, _id: -1 })
+    .lean();
+
+  const contributionIds = entries.map((entry) => entry._id);
+  const transactions = contributionIds.length
+    ? await TransactionModel.find(
+        { "metadata.contributionId": { $in: contributionIds } },
+        {
+          reference: 1,
+          amount: 1,
+          status: 1,
+          channel: 1,
+          description: 1,
+          date: 1,
+          metadata: 1,
+        },
+      ).lean()
+    : [];
+
+  const transactionByContributionId = new Map();
+  transactions.forEach((transaction) => {
+    const contributionId = transaction?.metadata?.contributionId
+      ? String(transaction.metadata.contributionId)
+      : null;
+    if (!contributionId || transactionByContributionId.has(contributionId)) return;
+    transactionByContributionId.set(contributionId, transaction);
+  });
+
+  const normalizedEntries = entries.map((entry) => {
+    const transaction = transactionByContributionId.get(String(entry._id)) || null;
+    return {
+      id: String(entry._id),
+      amount: Number(entry.amount || 0),
+      month: Number(entry.month || month),
+      year: Number(entry.year || year),
+      status: entry.status || "pending",
+      paymentMethod: entry.paymentMethod || null,
+      paymentReference: entry.paymentReference || null,
+      notes: entry.notes || null,
+      units: Number(entry.units || 0),
+      interestAmount: Number(entry.interestAmount || 0),
+      contributionType:
+        normalizeContributionType(entry.contributionType) ||
+        parsedType.contributionType,
+      createdAt: entry.createdAt || null,
+      updatedAt: entry.updatedAt || null,
+      verifiedAt: entry.verifiedAt || null,
+      transaction: transaction
+        ? {
+            id: String(transaction._id),
+            reference: transaction.reference || null,
+            amount: Number(transaction.amount || 0),
+            status: transaction.status || null,
+            channel: transaction.channel || null,
+            description: transaction.description || null,
+            date: transaction.date || null,
+          }
+        : null,
     };
   });
 
   return sendSuccess(res, {
     statusCode: 200,
-    results: records.length,
-    data: { contributions: records },
+    results: normalizedEntries.length,
+    data: {
+      year,
+      month,
+      contributionType: parsedType.contributionType,
+      entries: normalizedEntries,
+    },
+  });
+});
+
+export const updateTrackedContribution = catchAsync(async (req, res, next) => {
+  if (!req.user) return next(new AppError("Not authenticated", 401));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
+
+  if (!hasUserRole(req.user, "admin", "groupCoordinator")) {
+    return next(
+      new AppError(
+        "Only admins and group coordinators can edit contributions",
+        403,
+      ),
+    );
+  }
+
+  const { contributionId } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(contributionId)) {
+    return next(new AppError("Invalid contributionId", 400));
+  }
+
+  const existing = await ContributionModel.findById(contributionId);
+  if (!existing) return next(new AppError("Contribution not found", 404));
+
+  const manageableGroupIds = await getManageableGroupIds(req);
+  if (
+    manageableGroupIds &&
+    !manageableGroupIds.includes(String(existing.groupId))
+  ) {
+    return next(new AppError("You cannot manage this contribution", 403));
+  }
+
+  const updates = pick(req.body || {}, [
+    "amount",
+    "month",
+    "year",
+    "paymentMethod",
+    "paymentReference",
+    "notes",
+  ]);
+  if (Object.keys(updates).length === 0) {
+    return next(new AppError("No editable contribution fields provided", 400));
+  }
+
+  if (Object.prototype.hasOwnProperty.call(updates, "month")) {
+    const nextMonth = Number(updates.month);
+    if (!Number.isFinite(nextMonth) || nextMonth < 1 || nextMonth > 12) {
+      return next(new AppError("Invalid month", 400));
+    }
+    updates.month = nextMonth;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(updates, "year")) {
+    const nextYear = Number(updates.year);
+    if (!Number.isFinite(nextYear) || nextYear < 2000 || nextYear > 2100) {
+      return next(new AppError("Invalid year", 400));
+    }
+    updates.year = nextYear;
+  }
+
+  const normalizedType = normalizeContributionType(existing.contributionType) || "revolving";
+  const nextAmount = Object.prototype.hasOwnProperty.call(updates, "amount")
+    ? Number(updates.amount)
+    : Number(existing.amount);
+  if (!Number.isFinite(nextAmount) || nextAmount <= 0) {
+    return next(new AppError("Updated amount must be greater than zero", 400));
+  }
+  if (!isContributionAmountValid(normalizedType, nextAmount)) {
+    return next(
+      new AppError(
+        "Updated amount does not meet contribution requirements",
+        400,
+      ),
+    );
+  }
+
+  let updatedContribution = null;
+  let updatedTransaction = null;
+  const executeUpdate = async (session = null) => {
+    const contributionQuery = ContributionModel.findById(contributionId);
+    if (session) contributionQuery.session(session);
+    const contribution = await contributionQuery;
+    if (!contribution) {
+      throw new AppError("Contribution not found", 404);
+    }
+
+    const groupQuery = GroupModel.findById(contribution.groupId);
+    if (session) groupQuery.session(session);
+    const group = await groupQuery;
+    if (!group) {
+      throw new AppError("Group not found", 404);
+    }
+
+    const membershipQuery = GroupMembershipModel.findOne({
+      userId: contribution.userId,
+      groupId: contribution.groupId,
+    });
+    if (session) membershipQuery.session(session);
+    const membership = await membershipQuery;
+    if (!membership) {
+      throw new AppError("Group membership not found", 404);
+    }
+
+    const previousAmount = Number(contribution.amount || 0);
+    const delta = nextAmount - previousAmount;
+
+    contribution.amount = nextAmount;
+    if (Object.prototype.hasOwnProperty.call(updates, "month")) {
+      contribution.month = updates.month;
+    }
+    if (Object.prototype.hasOwnProperty.call(updates, "year")) {
+      contribution.year = updates.year;
+    }
+    if (Object.prototype.hasOwnProperty.call(updates, "paymentMethod")) {
+      contribution.paymentMethod = updates.paymentMethod || null;
+    }
+    if (Object.prototype.hasOwnProperty.call(updates, "paymentReference")) {
+      contribution.paymentReference = updates.paymentReference || null;
+    }
+    if (Object.prototype.hasOwnProperty.call(updates, "notes")) {
+      contribution.notes = updates.notes || null;
+    }
+    applyContributionMetrics(contribution, nextAmount);
+    await contribution.save({ session: session || undefined, validateBeforeSave: true });
+
+    if (shouldCountTowardSavings(contribution.status) && delta !== 0) {
+      await Promise.all([
+        GroupModel.updateOne(
+          { _id: group._id },
+          { $inc: { totalSavings: delta } },
+          session ? { session } : undefined,
+        ),
+        GroupMembershipModel.updateOne(
+          { _id: membership._id },
+          { $inc: { totalContributed: delta } },
+          session ? { session } : undefined,
+        ),
+      ]);
+    }
+
+    const transactionQuery = TransactionModel.findOne({
+      "metadata.contributionId": contribution._id,
+    });
+    if (session) transactionQuery.session(session);
+    const transaction = await transactionQuery;
+
+    const transactionDescription =
+      contribution.notes ||
+      transaction?.description ||
+      `Group contribution - ${group.groupName}`;
+
+    if (transaction) {
+      transaction.amount = nextAmount;
+      transaction.status = mapContributionStatusToTxStatus(contribution.status);
+      transaction.channel = contribution.paymentMethod || null;
+      transaction.description = transactionDescription;
+      transaction.groupId = contribution.groupId;
+      transaction.groupName = group.groupName;
+      transaction.metadata = {
+        ...(transaction.metadata || {}),
+        contributionId: contribution._id,
+        month: contribution.month,
+        year: contribution.year,
+        contributionType: normalizedType,
+        manualPaymentReference: contribution.paymentReference || null,
+        editedBy: req.user.profileId,
+        editedAt: new Date(),
+      };
+      await transaction.save({ session: session || undefined, validateBeforeSave: true });
+      updatedTransaction = transaction;
+    } else {
+      const createdTransaction = await TransactionModel.create(
+        [
+          {
+            userId: contribution.userId,
+            reference: generateReference("CRC-EDIT"),
+            amount: nextAmount,
+            type: "group_contribution",
+            status: mapContributionStatusToTxStatus(contribution.status),
+            description: transactionDescription,
+            channel: contribution.paymentMethod || null,
+            groupId: contribution.groupId,
+            groupName: group.groupName,
+            metadata: {
+              paymentType: "group_contribution",
+              contributionId: contribution._id,
+              month: contribution.month,
+              year: contribution.year,
+              contributionType: normalizedType,
+              manualPaymentReference: contribution.paymentReference || null,
+              editedBy: req.user.profileId,
+              editedAt: new Date(),
+              createdByReconciliation: true,
+            },
+            gateway: "manual",
+          },
+        ],
+        session ? { session } : undefined,
+      );
+      updatedTransaction = createdTransaction[0] || null;
+    }
+
+    updatedContribution = contribution;
+  };
+
+  const session = await mongoose.startSession();
+  try {
+    await session.withTransaction(async () => {
+      await executeUpdate(session);
+    });
+  } catch (error) {
+    const message = String(error?.message || "");
+    if (
+      message.includes("Transaction numbers are only allowed") ||
+      message.includes("Transaction support is not available")
+    ) {
+      await executeUpdate();
+    } else {
+      throw error;
+    }
+  } finally {
+    await session.endSession();
+  }
+
+  return sendSuccess(res, {
+    statusCode: 200,
+    message: "Contribution updated successfully",
+    data: {
+      contribution: updatedContribution,
+      transaction: updatedTransaction,
+    },
   });
 });
 

@@ -3,12 +3,15 @@ import express from "express";
 import { protect, restrictTo } from "../controllers/authController.js";
 import {
   approveMemberApplication,
+  exportContributionTracker,
   listAdminGroups,
   listContributionTracker,
+  listContributionTrackerEntries,
   listMemberApprovals,
   markContributionPaid,
   rejectMemberApplication,
   sendContributionReminders,
+  updateTrackedContribution,
 } from "../controllers/adminController.js";
 import { getAdminFinancialReports } from "../controllers/adminFinancialReportsController.js";
 import {
@@ -104,6 +107,16 @@ router.get(
   restrictTo("admin", "groupCoordinator"),
   listContributionTracker,
 );
+router.get(
+  "/contributions/tracker/export",
+  restrictTo("admin", "groupCoordinator"),
+  exportContributionTracker,
+);
+router.get(
+  "/contributions/tracker/entries",
+  restrictTo("admin", "groupCoordinator"),
+  listContributionTrackerEntries,
+);
 router.post(
   "/contributions/remind",
   restrictTo("groupCoordinator"),
@@ -113,6 +126,11 @@ router.post(
   "/contributions/mark-paid",
   restrictTo("groupCoordinator"),
   markContributionPaid,
+);
+router.patch(
+  "/contributions/:contributionId",
+  restrictTo("admin", "groupCoordinator"),
+  updateTrackedContribution,
 );
 router.get(
   "/contributions/tracking",
