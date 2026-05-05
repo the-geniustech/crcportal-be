@@ -17,6 +17,7 @@ import { GroupMembershipModel } from "../models/GroupMembership.js";
 import { ContributionModel } from "../models/Contribution.js";
 import { TransactionModel } from "../models/Transaction.js";
 import { createNotification } from "../services/notificationService.js";
+import { upsertLoanFormPayment } from "../services/formPaymentService.js";
 import {
   applyLoanRepayment,
   buildLoanNextPaymentMap,
@@ -1859,6 +1860,8 @@ export const createLoanApplication = catchAsync(async (req, res, next) => {
       remainingBalance: 0,
     });
   }
+
+  await upsertLoanFormPayment({ application, group });
 
   const guarantorOps = [];
   for (const g of memberGuarantors) {

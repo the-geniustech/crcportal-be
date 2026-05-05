@@ -32,6 +32,12 @@ export {
   LoanApplicationModel,
   LoanApplicationSchema,
 } from "./LoanApplication.js";
+export {
+  FormPaymentModel,
+  FormPaymentSchema,
+  FormPaymentStatuses,
+  FormPaymentTypes,
+} from "./FormPayment.js";
 export { LoanGuarantorModel, LoanGuarantorSchema } from "./LoanGuarantor.js";
 export {
   LoanRepaymentScheduleItemModel,

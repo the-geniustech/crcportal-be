@@ -7,9 +7,11 @@ export const AuditActions = {
   ADMIN_MEMBER_DELETE: "admin.member.delete",
   ADMIN_USER_PROMOTE_ADMIN: "admin.user.promote_admin",
   ADMIN_USER_ROLE_UPDATE: "admin.user.role.update",
+  ADMIN_FORM_PAYMENT_UPDATE: "admin.form_payment.update",
 };
 
 export const AuditEntityTypes = {
+  FORM_PAYMENT: "formPayment",
   GROUP_MEMBERSHIP: "groupMembership",
   USER: "user",
 };

@@ -17,6 +17,7 @@ import {
 import { UserModel } from "../models/User.js";
 import { normalizeUserRoles, pickPrimaryRole } from "../utils/roles.js";
 import { normalizeNigerianPhone } from "../utils/phone.js";
+import { upsertMembershipFormPayment } from "../services/formPaymentService.js";
 
 function pick(obj, allowedKeys) {
   const out = {};
@@ -394,6 +395,7 @@ export const joinGroup = catchAsync(async (req, res, next) => {
   }
 
   if (existing && existing.status === "pending") {
+    await upsertMembershipFormPayment({ membership: existing, group });
     return sendSuccess(res, {
       statusCode: 200,
       message: "Membership request already submitted",
@@ -426,6 +428,8 @@ export const joinGroup = catchAsync(async (req, res, next) => {
     },
     { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true },
   );
+
+  await upsertMembershipFormPayment({ membership, group });
 
   return sendSuccess(res, {
     statusCode: 200,

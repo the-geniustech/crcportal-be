@@ -52,6 +52,12 @@ import {
   exportAdminAuditLogs,
   listAdminAuditLogs,
 } from "../controllers/adminAuditLogController.js";
+import {
+  exportAdminFormPayments,
+  getAdminFormPaymentDetails,
+  listAdminFormPayments,
+  updateAdminFormPayment,
+} from "../controllers/adminFormPaymentController.js";
 
 const router = express.Router();
 
@@ -98,6 +104,23 @@ router.delete(
 );
 router.get("/audit-logs/export", restrictTo("admin"), exportAdminAuditLogs);
 router.get("/audit-logs", restrictTo("admin"), listAdminAuditLogs);
+
+router.get("/form-payments", restrictTo("admin"), listAdminFormPayments);
+router.get(
+  "/form-payments/export",
+  restrictTo("admin"),
+  exportAdminFormPayments,
+);
+router.get(
+  "/form-payments/:paymentId",
+  restrictTo("admin"),
+  getAdminFormPaymentDetails,
+);
+router.patch(
+  "/form-payments/:paymentId",
+  restrictTo("admin"),
+  updateAdminFormPayment,
+);
 
 router.get("/groups", listAdminGroups);
 

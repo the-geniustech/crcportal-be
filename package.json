@@ -37,6 +37,8 @@
     "seed:group-votes": "node src/scripts/seedGroupVotesAndReminders.js",
     "seed:membership-doc:generate": "node src/scripts/parseMembershipDoc.js",
     "seed:membership-doc": "node src/scripts/seedMembershipDocData.js",
+    "backfill:membership-form-payments": "node src/scripts/backfillMembershipFormPayments.js",
+    "sync:form-payment-transactions": "node src/scripts/syncFormPaymentTransactions.js",
     "seed:contributions:parse": "node src/scripts/contribution-ingestion/parseContributionXlsx.js",
     "seed:contributions": "node src/scripts/contribution-ingestion/seedContributionData.js",
     "audit:january-contributions": "node src/scripts/contribution-ingestion/auditJanuaryContributionOverstatement.js",

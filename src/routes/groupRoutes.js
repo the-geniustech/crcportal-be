@@ -20,6 +20,10 @@ import {
   listGroupLoans,
 } from "../controllers/groupLoanController.js";
 import {
+  exportGroupFormPayments,
+  listGroupFormPayments,
+} from "../controllers/groupFormPaymentController.js";
+import {
   createGroupContribution,
   downloadGroupContributionLedgerPdf,
   downloadGroupContributionReportPdf,
@@ -156,6 +160,20 @@ router.get(
   loadMyGroupMembership,
   requireGroupReadAccess(),
   getGroupContributionInterestLedger,
+);
+router.get(
+  "/:groupId/form-payments/export",
+  loadGroup,
+  loadMyGroupMembership,
+  requireGroupReadAccess(),
+  exportGroupFormPayments,
+);
+router.get(
+  "/:groupId/form-payments",
+  loadGroup,
+  loadMyGroupMembership,
+  requireGroupReadAccess(),
+  listGroupFormPayments,
 );
 router.post(
   "/:groupId/contributions",
