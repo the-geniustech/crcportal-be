@@ -456,6 +456,47 @@ async function reconcileContributionTransactionsAfterDeletion({
   return { deletedTransactions, updatedTransactions };
 }
 
+async function collectContributionTransactionAuditSnapshot({
+  contributionIds,
+  session = null,
+} = {}) {
+  if (!Array.isArray(contributionIds) || contributionIds.length === 0) {
+    return [];
+  }
+
+  const query = TransactionModel.find(
+    {
+      $or: [
+        { "metadata.contributionId": { $in: contributionIds } },
+        { "metadata.bulkContributionIds": { $in: contributionIds } },
+      ],
+    },
+    {
+      reference: 1,
+      amount: 1,
+      status: 1,
+      channel: 1,
+      metadata: 1,
+    },
+  );
+  if (session) query.session(session);
+
+  const transactions = await query.lean();
+  return transactions.map((transaction) => ({
+    id: String(transaction._id),
+    reference: transaction.reference || null,
+    amount: Number(transaction.amount || 0),
+    status: transaction.status || null,
+    channel: transaction.channel || null,
+    contributionId: transaction.metadata?.contributionId
+      ? String(transaction.metadata.contributionId)
+      : null,
+    bulkContributionIds: Array.isArray(transaction.metadata?.bulkContributionIds)
+      ? transaction.metadata.bulkContributionIds.map((value) => String(value))
+      : [],
+  }));
+}
+
 async function updateRecurringPaymentStats({
   userId,
   paymentType,
@@ -2211,10 +2252,10 @@ export const markContributionUnpaid = catchAsync(async (req, res, next) => {
   if (!req.user.profileId)
     return next(new AppError("User profile not found", 400));
 
-  if (!hasUserRole(req.user, "groupCoordinator")) {
+  if (!hasUserRole(req.user, "admin", "groupCoordinator")) {
     return next(
       new AppError(
-        "Only group coordinators can mark contributions as unpaid",
+        "Only admins and group coordinators can mark contributions as unpaid",
         403,
       ),
     );
@@ -2225,6 +2266,7 @@ export const markContributionUnpaid = catchAsync(async (req, res, next) => {
   const month = Number(req.body?.month);
   const year = Number(req.body?.year);
   const contributionTypeRaw = req.body?.contributionType;
+  const reversalReason = String(req.body?.reason || "").trim();
 
   if (!userId || !groupId) {
     return next(new AppError("userId and groupId are required", 400));
@@ -2260,6 +2302,10 @@ export const markContributionUnpaid = catchAsync(async (req, res, next) => {
       : { contributionType: { $in: typeMatch } };
 
   const executeDelete = async (session = null) => {
+    const groupQuery = GroupModel.findById(groupId, { groupName: 1 });
+    if (session) groupQuery.session(session);
+    const group = await groupQuery;
+
     const contributionQuery = ContributionModel.find({
       userId,
       groupId,
@@ -2279,6 +2325,15 @@ export const markContributionUnpaid = catchAsync(async (req, res, next) => {
       .reduce((sum, contribution) => sum + Number(contribution.amount || 0), 0);
 
     const deletedContributionIds = contributions.map((contribution) => contribution._id);
+    const deletedAmount = contributions.reduce(
+      (sum, contribution) => sum + Number(contribution.amount || 0),
+      0,
+    );
+    const auditTransactionSnapshot =
+      await collectContributionTransactionAuditSnapshot({
+        contributionIds: deletedContributionIds,
+        session,
+      });
     const recurringScheduleIds = await resolveContributionRecurringScheduleIds(
       contributions,
       session,
@@ -2309,6 +2364,46 @@ export const markContributionUnpaid = catchAsync(async (req, res, next) => {
       session,
     });
 
+    const createdAuditTransactions = await TransactionModel.create(
+      [
+        {
+          userId,
+          reference: generateReference("CRC-UNP"),
+          amount: 0,
+          type: "group_contribution",
+          status: "success",
+          description: `Contribution reversal audit - ${getContributionTrackerTypeLabel(normalizedType)} (${formatContributionTrackerPeriodLabel(year, month)})`,
+          channel: "system",
+          groupId,
+          groupName: group?.groupName || null,
+          metadata: {
+            paymentType: "group_contribution",
+            action: "mark_unpaid",
+            month,
+            year,
+            contributionType: normalizedType,
+            deletedContributionIds: deletedContributionIds.map((id) => String(id)),
+            deletedContributionReferences: contributions
+              .map((contribution) => contribution.paymentReference || null)
+              .filter(Boolean),
+            deletedContributionCount: contributions.length,
+            deletedAmount,
+            countedAmount,
+            deletedTransactions: transactionStats.deletedTransactions,
+            updatedTransactions: transactionStats.updatedTransactions,
+            recurringSchedulesRebuilt: recurringScheduleIds.size,
+            deletedTransactionSnapshot: auditTransactionSnapshot,
+            reversalReason: reversalReason || null,
+            reversedBy: req.user.profileId,
+            reversedAt: new Date().toISOString(),
+          },
+          gateway: "manual",
+        },
+      ],
+      session ? { session } : undefined,
+    );
+    const auditTransaction = createdAuditTransactions?.[0] || null;
+
     for (const recurringPaymentId of recurringScheduleIds) {
       await rebuildRecurringContributionSchedule({
         recurringPaymentId,
@@ -2318,14 +2413,17 @@ export const markContributionUnpaid = catchAsync(async (req, res, next) => {
 
     return {
       deletedContributions: contributions.length,
-      deletedAmount: contributions.reduce(
-        (sum, contribution) => sum + Number(contribution.amount || 0),
-        0,
-      ),
+      deletedAmount,
       countedAmount,
       deletedTransactions: transactionStats.deletedTransactions,
       updatedTransactions: transactionStats.updatedTransactions,
       recurringSchedulesRebuilt: recurringScheduleIds.size,
+      auditTransaction: auditTransaction
+        ? {
+            id: String(auditTransaction._id),
+            reference: auditTransaction.reference || null,
+          }
+        : null,
     };
   };
 

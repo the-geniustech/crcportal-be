@@ -80,13 +80,21 @@ router.patch(
   rejectMemberApplication,
 );
 
-router.get("/members", restrictTo("admin", "groupCoordinator"), listAdminMembers);
+router.get(
+  "/members",
+  restrictTo("admin", "groupCoordinator"),
+  listAdminMembers,
+);
 router.get(
   "/members/export",
   restrictTo("admin", "groupCoordinator"),
   exportAdminMembers,
 );
-router.post("/members", restrictTo("admin", "groupCoordinator"), createAdminMember);
+router.post(
+  "/members",
+  restrictTo("admin", "groupCoordinator"),
+  createAdminMember,
+);
 router.get(
   "/members/:membershipId",
   restrictTo("admin", "groupCoordinator"),
@@ -153,7 +161,7 @@ router.post(
 );
 router.post(
   "/contributions/mark-unpaid",
-  restrictTo("groupCoordinator"),
+  restrictTo("admin", "groupCoordinator"),
   markContributionUnpaid,
 );
 router.patch(
