@@ -1962,10 +1962,5 @@ export const emailAdminLoanApplicationPdf = catchAsync(
 );
 
 /*
-You're still acting as a senior full-stack engineer with 30+ years of experience building scalable SaaS platforms, now let's quickly work on seeding the existing loan data.
-- This is the existing loan data excel file `backend\src\seed-data\loan\CRC_Existing_Loan_Data.xlsx`, now create a seed script that can read this excel file and populate the database with the loan applications, ensuring to create any related records such as guarantors, documents, etc. as needed based on the data in the excel file.
 
-Ensure all the requirements are consistent with backend <=> frontend flows and implemented in an highly professional way and industry standard of doing things.
-
-You can improvice whenever needed, just ensure you don't digress from the context of this project and you're always highly professional as much as possible.
 */
