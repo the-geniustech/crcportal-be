@@ -1,5 +1,8 @@
 import { Schema, ObjectId, model } from "./_shared.js";
-import { ContributionTypes } from "../utils/contributionPolicy.js";
+import {
+  ContributionTypes,
+  ContributionUnitBase,
+} from "../utils/contributionPolicy.js";
 
 export const ContributionStatuses = [
   "pending",
@@ -16,7 +19,26 @@ export const ContributionSchema = new Schema(
     month: { type: Number, required: true, min: 1, max: 12, index: true },
     year: { type: Number, required: true, min: 2000, index: true },
 
-    amount: { type: Number, required: true, min: 0 },
+    amount: {
+      type: Number,
+      required: true,
+      min: [
+        ContributionUnitBase,
+        "Contribution amount must be a positive multiple of NGN 1,000",
+      ],
+      validate: {
+        validator(value) {
+          const amount = Number(value);
+          return (
+            Number.isFinite(amount) &&
+            amount > 0 &&
+            amount % ContributionUnitBase === 0
+          );
+        },
+        message:
+          "Contribution amount must be a positive multiple of NGN 1,000",
+      },
+    },
     contributionType: {
       type: String,
       enum: ContributionTypes,

@@ -1,0 +1,704 @@
+[
+  {
+    "seedKey": "profile-setting-festival-89489a324007fbe0a8fcaba7-2026",
+    "profileId": "89489a324007fbe0a8fcaba7",
+    "profileSeedKey": "profile-89489a324007fbe0a8fcaba7",
+    "groupId": "f13266e9a87019f9d50f8c6c",
+    "groupSeedKey": "group-02",
+    "membershipId": "8e66f911291c2d2f3150a1c4",
+    "membershipSeedKey": "membership-8e66f911291c2d2f3150a1c4",
+    "memberSerial": "CRC/G2/0386",
+    "memberName": "Adebiyi Florence",
+    "type": "festival",
+    "contributionType": "festive",
+    "year": 2026,
+    "units": 5,
+    "expectedMonthlyAmount": 5000,
+    "monthsWithContributions": [
+      1,
+      2,
+      3
+    ],
+    "sourceFiles": [
+      "Group2_Golden_Champions_Festival.xlsx"
+    ],
+    "currentContributionSettings": {
+      "year": 2026,
+      "units": 25,
+      "updatedAt": "2026-04-11T15:15:14.465Z"
+    },
+    "nextContributionSettings": {
+      "year": 2026,
+      "units": {
+        "revolving": 25,
+        "endwell": null,
+        "festive": 5
+      },
+      "updatedAt": "2026-06-02T13:43:48.139Z"
+    },
+    "updateFilter": {
+      "_id": "89489a324007fbe0a8fcaba7"
+    },
+    "updateDocument": {
+      "$set": {
+        "contributionSettings": {
+          "year": 2026,
+          "units": {
+            "revolving": 25,
+            "endwell": null,
+            "festive": 5
+          },
+          "updatedAt": "2026-06-02T13:43:48.139Z"
+        }
+      }
+    }
+  },
+  {
+    "seedKey": "profile-setting-festival-15b270e37381b76fb9879d58-2026",
+    "profileId": "15b270e37381b76fb9879d58",
+    "profileSeedKey": "profile-15b270e37381b76fb9879d58",
+    "groupId": "f13266e9a87019f9d50f8c6c",
+    "groupSeedKey": "group-02",
+    "membershipId": "783fef80a36c333a3fccce9c",
+    "membershipSeedKey": "membership-783fef80a36c333a3fccce9c",
+    "memberSerial": "CRC/G2/0365",
+    "memberName": "Adekunle Adijat",
+    "type": "festival",
+    "contributionType": "festive",
+    "year": 2026,
+    "units": 5,
+    "expectedMonthlyAmount": 5000,
+    "monthsWithContributions": [
+      1,
+      2,
+      3
+    ],
+    "sourceFiles": [
+      "Group2_Golden_Champions_Festival.xlsx"
+    ],
+    "currentContributionSettings": {
+      "year": 2026,
+      "units": 10,
+      "updatedAt": "2026-04-11T15:15:14.465Z"
+    },
+    "nextContributionSettings": {
+      "year": 2026,
+      "units": {
+        "revolving": 10,
+        "endwell": null,
+        "festive": 5
+      },
+      "updatedAt": "2026-06-02T13:43:48.139Z"
+    },
+    "updateFilter": {
+      "_id": "15b270e37381b76fb9879d58"
+    },
+    "updateDocument": {
+      "$set": {
+        "contributionSettings": {
+          "year": 2026,
+          "units": {
+            "revolving": 10,
+            "endwell": null,
+            "festive": 5
+          },
+          "updatedAt": "2026-06-02T13:43:48.139Z"
+        }
+      }
+    }
+  },
+  {
+    "seedKey": "profile-setting-festival-c895262779361acecee3f8ea-2026",
+    "profileId": "c895262779361acecee3f8ea",
+    "profileSeedKey": "profile-c895262779361acecee3f8ea",
+    "groupId": "f13266e9a87019f9d50f8c6c",
+    "groupSeedKey": "group-02",
+    "membershipId": "1675db3a13aa3b40822c92cd",
+    "membershipSeedKey": "membership-1675db3a13aa3b40822c92cd",
+    "memberSerial": "CRC/G2/0362",
+    "memberName": "Adekunle Busirat",
+    "type": "festival",
+    "contributionType": "festive",
+    "year": 2026,
+    "units": 5,
+    "expectedMonthlyAmount": 5000,
+    "monthsWithContributions": [
+      1,
+      2,
+      3
+    ],
+    "sourceFiles": [
+      "Group2_Golden_Champions_Festival.xlsx"
+    ],
+    "currentContributionSettings": {
+      "year": 2026,
+      "units": 5,
+      "updatedAt": "2026-04-11T15:15:14.465Z"
+    },
+    "nextContributionSettings": {
+      "year": 2026,
+      "units": {
+        "revolving": 5,
+        "endwell": null,
+        "festive": 5
+      },
+      "updatedAt": "2026-06-02T13:43:48.139Z"
+    },
+    "updateFilter": {
+      "_id": "c895262779361acecee3f8ea"
+    },
+    "updateDocument": {
+      "$set": {
+        "contributionSettings": {
+          "year": 2026,
+          "units": {
+            "revolving": 5,
+            "endwell": null,
+            "festive": 5
+          },
+          "updatedAt": "2026-06-02T13:43:48.139Z"
+        }
+      }
+    }
+  },
+  {
+    "seedKey": "profile-setting-festival-42f3b5f462c09e68f2e76275-2026",
+    "profileId": "42f3b5f462c09e68f2e76275",
+    "profileSeedKey": "profile-42f3b5f462c09e68f2e76275",
+    "groupId": "f13266e9a87019f9d50f8c6c",
+    "groupSeedKey": "group-02",
+    "membershipId": "661a3aae527b6b7c4dd4c68b",
+    "membershipSeedKey": "membership-661a3aae527b6b7c4dd4c68b",
+    "memberSerial": "CRC/G2/0404",
+    "memberName": "Ajibola Abidemi",
+    "type": "festival",
+    "contributionType": "festive",
+    "year": 2026,
+    "units": 5,
+    "expectedMonthlyAmount": 5000,
+    "monthsWithContributions": [
+      1,
+      2,
+      3
+    ],
+    "sourceFiles": [
+      "Group2_Golden_Champions_Festival.xlsx"
+    ],
+    "currentContributionSettings": {
+      "year": 2026,
+      "units": 50,
+      "updatedAt": "2026-04-11T15:15:14.465Z"
+    },
+    "nextContributionSettings": {
+      "year": 2026,
+      "units": {
+        "revolving": 50,
+        "endwell": null,
+        "festive": 5
+      },
+      "updatedAt": "2026-06-02T13:43:48.139Z"
+    },
+    "updateFilter": {
+      "_id": "42f3b5f462c09e68f2e76275"
+    },
+    "updateDocument": {
+      "$set": {
+        "contributionSettings": {
+          "year": 2026,
+          "units": {
+            "revolving": 50,
+            "endwell": null,
+            "festive": 5
+          },
+          "updatedAt": "2026-06-02T13:43:48.139Z"
+        }
+      }
+    }
+  },
+  {
+    "seedKey": "profile-setting-festival-b906c653d9513ea6603639af-2026",
+    "profileId": "b906c653d9513ea6603639af",
+    "profileSeedKey": "profile-b906c653d9513ea6603639af",
+    "groupId": "f13266e9a87019f9d50f8c6c",
+    "groupSeedKey": "group-02",
+    "membershipId": "c95c65ac293bd00305ac891f",
+    "membershipSeedKey": "membership-c95c65ac293bd00305ac891f",
+    "memberSerial": "CRC/G2/0376",
+    "memberName": "Gbadeyan Victoria",
+    "type": "festival",
+    "contributionType": "festive",
+    "year": 2026,
+    "units": 5,
+    "expectedMonthlyAmount": 5000,
+    "monthsWithContributions": [
+      1,
+      2,
+      3
+    ],
+    "sourceFiles": [
+      "Group2_Golden_Champions_Festival.xlsx"
+    ],
+    "currentContributionSettings": {
+      "year": 2026,
+      "units": 15,
+      "updatedAt": "2026-04-11T15:15:14.465Z"
+    },
+    "nextContributionSettings": {
+      "year": 2026,
+      "units": {
+        "revolving": 15,
+        "endwell": null,
+        "festive": 5
+      },
+      "updatedAt": "2026-06-02T13:43:48.139Z"
+    },
+    "updateFilter": {
+      "_id": "b906c653d9513ea6603639af"
+    },
+    "updateDocument": {
+      "$set": {
+        "contributionSettings": {
+          "year": 2026,
+          "units": {
+            "revolving": 15,
+            "endwell": null,
+            "festive": 5
+          },
+          "updatedAt": "2026-06-02T13:43:48.139Z"
+        }
+      }
+    }
+  },
+  {
+    "seedKey": "profile-setting-festival-a9bad8af8ad2ff655f788f37-2026",
+    "profileId": "a9bad8af8ad2ff655f788f37",
+    "profileSeedKey": "profile-a9bad8af8ad2ff655f788f37",
+    "groupId": "f13266e9a87019f9d50f8c6c",
+    "groupSeedKey": "group-02",
+    "membershipId": "70ad29d12799c2c2172faf41",
+    "membershipSeedKey": "membership-70ad29d12799c2c2172faf41",
+    "memberSerial": "CRC/G2/0400",
+    "memberName": "Kadiri Bimbo",
+    "type": "festival",
+    "contributionType": "festive",
+    "year": 2026,
+    "units": 5,
+    "expectedMonthlyAmount": 5000,
+    "monthsWithContributions": [
+      1,
+      2,
+      3
+    ],
+    "sourceFiles": [
+      "Group2_Golden_Champions_Festival.xlsx"
+    ],
+    "currentContributionSettings": {
+      "year": 2026,
+      "units": 45,
+      "updatedAt": "2026-04-11T15:15:14.465Z"
+    },
+    "nextContributionSettings": {
+      "year": 2026,
+      "units": {
+        "revolving": 45,
+        "endwell": null,
+        "festive": 5
+      },
+      "updatedAt": "2026-06-02T13:43:48.139Z"
+    },
+    "updateFilter": {
+      "_id": "a9bad8af8ad2ff655f788f37"
+    },
+    "updateDocument": {
+      "$set": {
+        "contributionSettings": {
+          "year": 2026,
+          "units": {
+            "revolving": 45,
+            "endwell": null,
+            "festive": 5
+          },
+          "updatedAt": "2026-06-02T13:43:48.139Z"
+        }
+      }
+    }
+  },
+  {
+    "seedKey": "profile-setting-festival-7749b019c74d62355d3458f6-2026",
+    "profileId": "7749b019c74d62355d3458f6",
+    "profileSeedKey": "profile-7749b019c74d62355d3458f6",
+    "groupId": "f13266e9a87019f9d50f8c6c",
+    "groupSeedKey": "group-02",
+    "membershipId": "87e1608e88443d0160a8e7d9",
+    "membershipSeedKey": "membership-87e1608e88443d0160a8e7d9",
+    "memberSerial": "CRC/G2/0383",
+    "memberName": "Ogunniyi Dupe",
+    "type": "festival",
+    "contributionType": "festive",
+    "year": 2026,
+    "units": 5,
+    "expectedMonthlyAmount": 5000,
+    "monthsWithContributions": [
+      1,
+      2,
+      3
+    ],
+    "sourceFiles": [
+      "Group2_Golden_Champions_Festival.xlsx"
+    ],
+    "currentContributionSettings": {
+      "year": 2026,
+      "units": 20,
+      "updatedAt": "2026-04-11T15:15:14.465Z"
+    },
+    "nextContributionSettings": {
+      "year": 2026,
+      "units": {
+        "revolving": 20,
+        "endwell": null,
+        "festive": 5
+      },
+      "updatedAt": "2026-06-02T13:43:48.139Z"
+    },
+    "updateFilter": {
+      "_id": "7749b019c74d62355d3458f6"
+    },
+    "updateDocument": {
+      "$set": {
+        "contributionSettings": {
+          "year": 2026,
+          "units": {
+            "revolving": 20,
+            "endwell": null,
+            "festive": 5
+          },
+          "updatedAt": "2026-06-02T13:43:48.139Z"
+        }
+      }
+    }
+  },
+  {
+    "seedKey": "profile-setting-festival-4c742c263b6d66070ea911e2-2026",
+    "profileId": "4c742c263b6d66070ea911e2",
+    "profileSeedKey": "profile-4c742c263b6d66070ea911e2",
+    "groupId": "f13266e9a87019f9d50f8c6c",
+    "groupSeedKey": "group-02",
+    "membershipId": "e9441ad2e8bf49f25eda3d23",
+    "membershipSeedKey": "membership-e9441ad2e8bf49f25eda3d23",
+    "memberSerial": "CRC/G2/0395",
+    "memberName": "Tijani Basirat",
+    "type": "festival",
+    "contributionType": "festive",
+    "year": 2026,
+    "units": 5,
+    "expectedMonthlyAmount": 5000,
+    "monthsWithContributions": [
+      1,
+      2,
+      3
+    ],
+    "sourceFiles": [
+      "Group2_Golden_Champions_Festival.xlsx"
+    ],
+    "currentContributionSettings": {
+      "year": 2026,
+      "units": 30,
+      "updatedAt": "2026-04-11T15:15:14.465Z"
+    },
+    "nextContributionSettings": {
+      "year": 2026,
+      "units": {
+        "revolving": 30,
+        "endwell": null,
+        "festive": 5
+      },
+      "updatedAt": "2026-06-02T13:43:48.139Z"
+    },
+    "updateFilter": {
+      "_id": "4c742c263b6d66070ea911e2"
+    },
+    "updateDocument": {
+      "$set": {
+        "contributionSettings": {
+          "year": 2026,
+          "units": {
+            "revolving": 30,
+            "endwell": null,
+            "festive": 5
+          },
+          "updatedAt": "2026-06-02T13:43:48.139Z"
+        }
+      }
+    }
+  },
+  {
+    "seedKey": "profile-setting-festival-edfe921c2e7c277a66e92ac3-2026",
+    "profileId": "edfe921c2e7c277a66e92ac3",
+    "profileSeedKey": "profile-edfe921c2e7c277a66e92ac3",
+    "groupId": "f13266e9a87019f9d50f8c6c",
+    "groupSeedKey": "group-02",
+    "membershipId": "92e288bcee48f148dd8e4903",
+    "membershipSeedKey": "membership-92e288bcee48f148dd8e4903",
+    "memberSerial": "CRC/G2/0393",
+    "memberName": "Ajibade Fatimo",
+    "type": "festival",
+    "contributionType": "festive",
+    "year": 2026,
+    "units": 10,
+    "expectedMonthlyAmount": 10000,
+    "monthsWithContributions": [
+      1,
+      2,
+      3
+    ],
+    "sourceFiles": [
+      "Group2_Golden_Champions_Festival.xlsx"
+    ],
+    "currentContributionSettings": {
+      "year": 2026,
+      "units": 30,
+      "updatedAt": "2026-04-11T15:15:14.465Z"
+    },
+    "nextContributionSettings": {
+      "year": 2026,
+      "units": {
+        "revolving": 30,
+        "endwell": null,
+        "festive": 10
+      },
+      "updatedAt": "2026-06-02T13:43:48.139Z"
+    },
+    "updateFilter": {
+      "_id": "edfe921c2e7c277a66e92ac3"
+    },
+    "updateDocument": {
+      "$set": {
+        "contributionSettings": {
+          "year": 2026,
+          "units": {
+            "revolving": 30,
+            "endwell": null,
+            "festive": 10
+          },
+          "updatedAt": "2026-06-02T13:43:48.139Z"
+        }
+      }
+    }
+  },
+  {
+    "seedKey": "profile-setting-festival-323f404baf9aa1bfca01663d-2026",
+    "profileId": "323f404baf9aa1bfca01663d",
+    "profileSeedKey": "profile-323f404baf9aa1bfca01663d",
+    "groupId": "f13266e9a87019f9d50f8c6c",
+    "groupSeedKey": "group-02",
+    "membershipId": "68212f892a0339198e5ace71",
+    "membershipSeedKey": "membership-68212f892a0339198e5ace71",
+    "memberSerial": "CRC/G2/0406",
+    "memberName": "Olawoyin Taiwo",
+    "type": "festival",
+    "contributionType": "festive",
+    "year": 2026,
+    "units": 10,
+    "expectedMonthlyAmount": 10000,
+    "monthsWithContributions": [
+      1,
+      2,
+      3
+    ],
+    "sourceFiles": [
+      "Group2_Golden_Champions_Festival.xlsx"
+    ],
+    "currentContributionSettings": {
+      "year": 2026,
+      "units": 50,
+      "updatedAt": "2026-04-11T15:15:14.465Z"
+    },
+    "nextContributionSettings": {
+      "year": 2026,
+      "units": {
+        "revolving": 50,
+        "endwell": null,
+        "festive": 10
+      },
+      "updatedAt": "2026-06-02T13:43:48.139Z"
+    },
+    "updateFilter": {
+      "_id": "323f404baf9aa1bfca01663d"
+    },
+    "updateDocument": {
+      "$set": {
+        "contributionSettings": {
+          "year": 2026,
+          "units": {
+            "revolving": 50,
+            "endwell": null,
+            "festive": 10
+          },
+          "updatedAt": "2026-06-02T13:43:48.139Z"
+        }
+      }
+    }
+  },
+  {
+    "seedKey": "profile-setting-festival-029b457625d4400c8c1d5afe-2026",
+    "profileId": "029b457625d4400c8c1d5afe",
+    "profileSeedKey": "profile-029b457625d4400c8c1d5afe",
+    "groupId": "f13266e9a87019f9d50f8c6c",
+    "groupSeedKey": "group-02",
+    "membershipId": "5e21af75b25df8cad26e6f8a",
+    "membershipSeedKey": "membership-5e21af75b25df8cad26e6f8a",
+    "memberSerial": "CRC/G2/0396",
+    "memberName": "Adekunle Tawakalitu",
+    "type": "festival",
+    "contributionType": "festive",
+    "year": 2026,
+    "units": 15,
+    "expectedMonthlyAmount": 15000,
+    "monthsWithContributions": [
+      1,
+      2,
+      3
+    ],
+    "sourceFiles": [
+      "Group2_Golden_Champions_Festival.xlsx"
+    ],
+    "currentContributionSettings": {
+      "year": 2026,
+      "units": 40,
+      "updatedAt": "2026-04-11T15:15:14.465Z"
+    },
+    "nextContributionSettings": {
+      "year": 2026,
+      "units": {
+        "revolving": 40,
+        "endwell": null,
+        "festive": 15
+      },
+      "updatedAt": "2026-06-02T13:43:48.139Z"
+    },
+    "updateFilter": {
+      "_id": "029b457625d4400c8c1d5afe"
+    },
+    "updateDocument": {
+      "$set": {
+        "contributionSettings": {
+          "year": 2026,
+          "units": {
+            "revolving": 40,
+            "endwell": null,
+            "festive": 15
+          },
+          "updatedAt": "2026-06-02T13:43:48.139Z"
+        }
+      }
+    }
+  },
+  {
+    "seedKey": "profile-setting-festival-8a47d60f496d68074fd09aa8-2026",
+    "profileId": "8a47d60f496d68074fd09aa8",
+    "profileSeedKey": "profile-8a47d60f496d68074fd09aa8",
+    "groupId": "f13266e9a87019f9d50f8c6c",
+    "groupSeedKey": "group-02",
+    "membershipId": "eedb9882b13a70ba67b38505",
+    "membershipSeedKey": "membership-eedb9882b13a70ba67b38505",
+    "memberSerial": "CRC/G2/0409",
+    "memberName": "Ashiru Olatunde",
+    "type": "festival",
+    "contributionType": "festive",
+    "year": 2026,
+    "units": 15,
+    "expectedMonthlyAmount": 15000,
+    "monthsWithContributions": [
+      1,
+      2,
+      3
+    ],
+    "sourceFiles": [
+      "Group2_Golden_Champions_Festival.xlsx"
+    ],
+    "currentContributionSettings": {
+      "year": 2026,
+      "units": 70,
+      "updatedAt": "2026-04-11T15:15:14.465Z"
+    },
+    "nextContributionSettings": {
+      "year": 2026,
+      "units": {
+        "revolving": 70,
+        "endwell": null,
+        "festive": 15
+      },
+      "updatedAt": "2026-06-02T13:43:48.139Z"
+    },
+    "updateFilter": {
+      "_id": "8a47d60f496d68074fd09aa8"
+    },
+    "updateDocument": {
+      "$set": {
+        "contributionSettings": {
+          "year": 2026,
+          "units": {
+            "revolving": 70,
+            "endwell": null,
+            "festive": 15
+          },
+          "updatedAt": "2026-06-02T13:43:48.139Z"
+        }
+      }
+    }
+  },
+  {
+    "seedKey": "profile-setting-festival-6dd6bc7b803d9b818a5a2962-2026",
+    "profileId": "6dd6bc7b803d9b818a5a2962",
+    "profileSeedKey": "profile-6dd6bc7b803d9b818a5a2962",
+    "groupId": "f13266e9a87019f9d50f8c6c",
+    "groupSeedKey": "group-02",
+    "membershipId": "b138e40c571e08d15242f2a5",
+    "membershipSeedKey": "membership-b138e40c571e08d15242f2a5",
+    "memberSerial": "CRC/G2/0413",
+    "memberName": "Raji Barakat",
+    "type": "festival",
+    "contributionType": "festive",
+    "year": 2026,
+    "units": 20,
+    "expectedMonthlyAmount": 20000,
+    "monthsWithContributions": [
+      1,
+      2,
+      3
+    ],
+    "sourceFiles": [
+      "Group2_Golden_Champions_Festival.xlsx"
+    ],
+    "currentContributionSettings": {
+      "year": 2026,
+      "units": 110,
+      "updatedAt": "2026-04-11T15:15:14.465Z"
+    },
+    "nextContributionSettings": {
+      "year": 2026,
+      "units": {
+        "revolving": 110,
+        "endwell": null,
+        "festive": 20
+      },
+      "updatedAt": "2026-06-02T13:43:48.139Z"
+    },
+    "updateFilter": {
+      "_id": "6dd6bc7b803d9b818a5a2962"
+    },
+    "updateDocument": {
+      "$set": {
+        "contributionSettings": {
+          "year": 2026,
+          "units": {
+            "revolving": 110,
+            "endwell": null,
+            "festive": 20
+          },
+          "updatedAt": "2026-06-02T13:43:48.139Z"
+        }
+      }
+    }
+  }
+]

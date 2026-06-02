@@ -30,7 +30,6 @@ import {
   assignGroupMemberSerial,
   formatGroupMemberSerial,
 } from "../utils/groupMemberSerial.js";
-import { hasNonZeroGroupMembership, isGeneralGroup } from "../utils/groupMembershipPolicy.js";
 import { normalizeNigerianPhone } from "../utils/phone.js";
 import {
   hasUserRole,
@@ -1481,23 +1480,52 @@ export const updateAdminMember = catchAsync(async (req, res, next) => {
         group,
       });
 
+      const hasEmailInput = hasOwn(req.body, "email");
+      const hasPhoneInput = hasOwn(req.body, "phone");
       const currentEmail = user.email ?? profile.email ?? null;
       const currentPhoneRaw = user.phone ?? profile.phone ?? null;
-      const nextEmail = hasOwn(req.body, "email")
+      const nextEmail = hasEmailInput
         ? sanitizeOptionalString(req.body?.email, { lowercase: true })
         : currentEmail;
-      const nextPhoneRaw = hasOwn(req.body, "phone")
+      const nextPhoneRaw = hasPhoneInput
         ? sanitizeOptionalString(req.body?.phone)
         : currentPhoneRaw;
-      const nextPhone = nextPhoneRaw ? normalizeNigerianPhone(nextPhoneRaw) : null;
-      const isUpdatingContact =
-        hasOwn(req.body, "email") || hasOwn(req.body, "phone");
+      let nextPhone = currentPhoneRaw;
+      let canWriteNextPhone = !nextPhone;
 
-      if (isUpdatingContact && !nextEmail && !nextPhoneRaw) {
-        throw new AppError("Either email or phone is required", 400);
+      if (hasPhoneInput) {
+        if (!nextPhoneRaw) {
+          nextPhone = null;
+          canWriteNextPhone = true;
+        } else {
+          const normalizedPhone = normalizeNigerianPhone(nextPhoneRaw);
+          const isUnchangedLegacyPhone =
+            !normalizedPhone &&
+            currentPhoneRaw &&
+            String(nextPhoneRaw) === String(currentPhoneRaw);
+
+          if (!normalizedPhone && !isUnchangedLegacyPhone) {
+            throw new AppError(
+              "Phone number must be a valid Nigerian number",
+              400,
+            );
+          }
+
+          nextPhone = normalizedPhone || currentPhoneRaw;
+          canWriteNextPhone = Boolean(normalizedPhone);
+        }
       }
-      if (hasOwn(req.body, "phone") && nextPhoneRaw && !nextPhone) {
-        throw new AppError("Phone number must be a valid Nigerian number", 400);
+
+      const isUpdatingContact = hasEmailInput || hasPhoneInput;
+      const userEmailChanged =
+        hasEmailInput && String(nextEmail ?? "") !== String(user.email ?? "");
+      const userPhoneChanged =
+        hasPhoneInput &&
+        canWriteNextPhone &&
+        String(nextPhone ?? "") !== String(user.phone ?? "");
+
+      if (isUpdatingContact && !nextEmail && !nextPhone) {
+        throw new AppError("Either email or phone is required", 400);
       }
 
       const nextRole = hasOwn(req.body, "role")
@@ -1546,7 +1574,7 @@ export const updateAdminMember = catchAsync(async (req, res, next) => {
 
       const [existingEmail, existingPhone, existingSerial, existingMemberNumber] =
         await Promise.all([
-        nextEmail && nextEmail !== user.email
+        nextEmail && userEmailChanged
           ? UserModel.findOne(
               { email: nextEmail, _id: { $ne: user._id } },
               { _id: 1 },
@@ -1554,7 +1582,7 @@ export const updateAdminMember = catchAsync(async (req, res, next) => {
               .session(session)
               .lean()
           : null,
-        nextPhone && nextPhone !== user.phone
+        nextPhone && userPhoneChanged
           ? UserModel.findOne(
               { phone: nextPhone, _id: { $ne: user._id } },
               { _id: 1 },
@@ -1601,16 +1629,6 @@ export const updateAdminMember = catchAsync(async (req, res, next) => {
 
       const activating = membership.status !== "active" && nextStatus === "active";
       if (activating) {
-        if (!isGeneralGroup(group)) {
-          const conflict = await hasNonZeroGroupMembership(profile._id, group._id);
-          if (conflict) {
-            throw new AppError(
-              "Member already belongs to another non-general group.",
-              400,
-            );
-          }
-        }
-
         const activeMemberCount = await GroupMembershipModel.countDocuments({
           groupId: group._id,
           status: "active",
@@ -1623,8 +1641,12 @@ export const updateAdminMember = catchAsync(async (req, res, next) => {
       profile.fullName = hasOwn(req.body, "fullName")
         ? sanitizeOptionalString(req.body?.fullName) || profile.fullName
         : profile.fullName;
-      profile.email = nextEmail;
-      profile.phone = nextPhone;
+      if (hasEmailInput) {
+        profile.email = nextEmail;
+      }
+      if (hasPhoneInput && canWriteNextPhone) {
+        profile.phone = nextPhone;
+      }
       if (hasOwn(req.body, "address")) {
         profile.address = sanitizeOptionalString(req.body?.address);
       }
@@ -1654,11 +1676,23 @@ export const updateAdminMember = catchAsync(async (req, res, next) => {
       if (nextProfileMembershipStatus !== undefined) {
         profile.membershipStatus = nextProfileMembershipStatus;
       }
-      await profile.save({ session, validateBeforeSave: true });
+      if (profile.isModified()) {
+        await profile.save({
+          session,
+          validateBeforeSave: true,
+          validateModifiedOnly: true,
+        });
+      }
 
-      user.email = nextEmail;
-      user.phone = nextPhone;
-      await user.save({ session, validateBeforeSave: false });
+      if (hasEmailInput) {
+        user.email = nextEmail;
+      }
+      if (hasPhoneInput && canWriteNextPhone) {
+        user.phone = nextPhone;
+      }
+      if (user.isModified()) {
+        await user.save({ session, validateBeforeSave: false });
+      }
 
       membership.role = nextRole;
       membership.status = nextStatus;
@@ -1677,7 +1711,13 @@ export const updateAdminMember = catchAsync(async (req, res, next) => {
           membership.memberNumber = null;
         }
       }
-      await membership.save({ session, validateBeforeSave: true });
+      if (membership.isModified()) {
+        await membership.save({
+          session,
+          validateBeforeSave: true,
+          validateModifiedOnly: true,
+        });
+      }
 
       await syncUserCoordinatorRole(profile._id, session);
       if (membership.status === "active") {

@@ -5,6 +5,12 @@ import { TransactionModel } from "../models/Transaction.js";
 import { UserModel } from "../models/User.js";
 import { getLoanFacility } from "../utils/loanPolicy.js";
 
+export const BSS_FORM_PAYMENT_TYPES = [
+  "bridging_loan",
+  "soft_loan",
+  "special_loan",
+];
+
 export const FORM_PAYMENT_CONFIG = {
   membership_registration: {
     formType: "membership_registration",
@@ -21,19 +27,19 @@ export const FORM_PAYMENT_CONFIG = {
   bridging_loan: {
     formType: "bridging_loan",
     formCategory: "loan",
-    formLabel: "BSS Bridging Loan Form",
+    formLabel: "BSS Loan Form",
     amount: 2000,
   },
   soft_loan: {
     formType: "soft_loan",
     formCategory: "loan",
-    formLabel: "BSS Soft Loan Form",
+    formLabel: "BSS Loan Form",
     amount: 2000,
   },
   special_loan: {
     formType: "special_loan",
     formCategory: "loan",
-    formLabel: "BSS Special Loan Form",
+    formLabel: "BSS Loan Form",
     amount: 2000,
   },
 };
@@ -60,6 +66,24 @@ function sanitizeDetails(value) {
 
 function buildFormPaymentTransactionReference(payment) {
   return `CRC-FORM-${String(payment?._id || "").toUpperCase()}`;
+}
+
+export function isBssFormPaymentType(formType) {
+  return BSS_FORM_PAYMENT_TYPES.includes(String(formType || ""));
+}
+
+export function resolveFormPaymentDisplayLabel(paymentOrType, fallback = null) {
+  const formType =
+    typeof paymentOrType === "string"
+      ? paymentOrType
+      : paymentOrType?.formType;
+  if (isBssFormPaymentType(formType)) return "BSS Loan Form";
+  return (
+    (typeof paymentOrType === "object" ? paymentOrType?.formLabel : null) ||
+    fallback ||
+    FORM_PAYMENT_CONFIG[formType]?.formLabel ||
+    "Form Payment"
+  );
 }
 
 function mapFormPaymentStatusToTransactionStatus(status) {
@@ -213,7 +237,11 @@ export function resolveLoanFormPaymentConfig(loanType) {
   return formType ? resolveFormPaymentConfig(formType) : null;
 }
 
-export async function upsertMembershipFormPayment({ membership, group }) {
+export async function upsertMembershipFormPayment({
+  membership,
+  group,
+  syncTransaction = true,
+}) {
   const plainMembership = toPlain(membership);
   if (!plainMembership?._id || !plainMembership.userId) return null;
 
@@ -263,11 +291,17 @@ export async function upsertMembershipFormPayment({ membership, group }) {
     },
   );
 
-  await syncFormPaymentTransaction(payment);
+  if (syncTransaction) {
+    await syncFormPaymentTransaction(payment);
+  }
   return payment;
 }
 
-export async function upsertLoanFormPayment({ application, group }) {
+export async function upsertLoanFormPayment({
+  application,
+  group,
+  syncTransaction = true,
+}) {
   const plainApplication = toPlain(application);
   if (
     !plainApplication?._id ||
@@ -321,7 +355,9 @@ export async function upsertLoanFormPayment({ application, group }) {
     },
   );
 
-  await syncFormPaymentTransaction(payment);
+  if (syncTransaction) {
+    await syncFormPaymentTransaction(payment);
+  }
   return payment;
 }
 

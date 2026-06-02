@@ -13,7 +13,11 @@ import {
   AuditEntityTypes,
   createAuditLog,
 } from "../services/auditLog.js";
-import { syncFormPaymentTransaction } from "../services/formPaymentService.js";
+import {
+  BSS_FORM_PAYMENT_TYPES,
+  resolveFormPaymentDisplayLabel,
+  syncFormPaymentTransaction,
+} from "../services/formPaymentService.js";
 import { generateGroupFormPaymentLedgerWorkbookBuffer } from "../services/groupFormPaymentLedgerWorkbook.js";
 import { generateGroupFormPaymentLedgerPdfBuffer } from "../services/pdf/groupFormPaymentLedgerPdf.js";
 
@@ -36,10 +40,11 @@ const SORT_MAP = {
 const FORM_TYPE_LABELS = {
   membership_registration: "Membership Registration",
   revolving_loan: "Revolving Loan",
-  bridging_loan: "BSS Bridging Loan",
-  soft_loan: "BSS Soft Loan",
-  special_loan: "BSS Special Loan",
+  bridging_loan: "BSS Loan Form",
+  soft_loan: "BSS Loan Form",
+  special_loan: "BSS Loan Form",
 };
+const VIRTUAL_FORM_TYPES = ["bss_loan"];
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -91,10 +96,9 @@ function formatDate(value) {
 }
 
 function resolveFormLabel(payment) {
-  return (
-    payment.formLabel ||
-    FORM_TYPE_LABELS[payment.formType] ||
-    "Form Payment"
+  return resolveFormPaymentDisplayLabel(
+    payment,
+    FORM_TYPE_LABELS[payment.formType],
   );
 }
 
@@ -120,6 +124,7 @@ function serializePayment(payment) {
     ...plain,
     id: String(plain._id),
     _id: String(plain._id),
+    formLabel: resolveFormLabel(plain),
     userId: plain.userId ? String(plain.userId) : null,
     userAccountId: plain.userAccountId ? String(plain.userAccountId) : null,
     groupId: plain.groupId ? String(plain.groupId) : null,
@@ -129,15 +134,33 @@ function serializePayment(payment) {
   };
 }
 
-function buildFilter(req) {
+function resolveSubmittedDateRange(req) {
+  const fromDate = parseDateParam(req.query?.from, "from");
+  const toDate = parseDateParam(req.query?.to, "to", true);
+
+  if (
+    fromDate &&
+    toDate &&
+    fromDate.getTime() > toDate.getTime()
+  ) {
+    throw new AppError("From date cannot be after to date", 400);
+  }
+
+  return { fromDate, toDate };
+}
+
+function buildFilter(req, dateRange = resolveSubmittedDateRange(req)) {
   const filter = {};
 
   const formType = String(req.query?.formType || "all").trim();
   if (formType && formType !== "all") {
-    if (!FormPaymentTypes.includes(formType)) {
+    if (formType === "bss_loan") {
+      filter.formType = { $in: BSS_FORM_PAYMENT_TYPES };
+    } else if (FormPaymentTypes.includes(formType)) {
+      filter.formType = formType;
+    } else if (!VIRTUAL_FORM_TYPES.includes(formType)) {
       throw new AppError("Invalid form type", 400);
     }
-    filter.formType = formType;
   }
 
   const paymentStatus = String(req.query?.paymentStatus || "all").trim();
@@ -156,20 +179,11 @@ function buildFilter(req) {
     filter.groupId = new mongoose.Types.ObjectId(groupId);
   }
 
-  const fromDate = parseDateParam(req.query?.from, "from");
-  const toDate = parseDateParam(req.query?.to, "to", true);
+  const { fromDate, toDate } = dateRange;
   if (fromDate || toDate) {
     filter.submittedAt = {};
     if (fromDate) filter.submittedAt.$gte = fromDate;
     if (toDate) filter.submittedAt.$lte = toDate;
-  }
-
-  if (
-    fromDate &&
-    toDate &&
-    fromDate.getTime() > toDate.getTime()
-  ) {
-    throw new AppError("From date cannot be after to date", 400);
   }
 
   const search = String(req.query?.search || "").trim();
@@ -267,7 +281,8 @@ export const listAdminFormPayments = catchAsync(async (req, res) => {
     MAX_LIMIT,
   );
   const skip = (page - 1) * limit;
-  const filter = buildFilter(req);
+  const dateRange = resolveSubmittedDateRange(req);
+  const filter = buildFilter(req, dateRange);
   const sort = resolveSort(req);
 
   const [payments, total, summary] = await Promise.all([
@@ -301,7 +316,8 @@ export const exportAdminFormPayments = catchAsync(async (req, res, next) => {
     return next(new AppError("Invalid export format", 400));
   }
 
-  const filter = buildFilter(req);
+  const dateRange = resolveSubmittedDateRange(req);
+  const filter = buildFilter(req, dateRange);
   const sort = resolveSort(req);
   const now = new Date();
 

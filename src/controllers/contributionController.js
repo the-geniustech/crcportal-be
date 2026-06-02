@@ -284,15 +284,9 @@ export const createGroupContribution = catchAsync(async (req, res, next) => {
   }
 
   if (!isContributionAmountValid(normalizedType, amount)) {
-    const cfg = getContributionTypeConfig(normalizedType);
-    const minLabel = cfg?.minAmount ? `NGN ${Number(cfg.minAmount).toLocaleString()}` : "the minimum amount";
-    const unitStep = cfg?.stepAmount || cfg?.unitAmount;
-    const unitLabel = unitStep
-      ? ` in multiples of NGN ${Number(unitStep).toLocaleString()}`
-      : "";
     return next(
       new AppError(
-        `Amount must be at least ${minLabel}${unitLabel} for ${cfg?.label || "this contribution type"}`,
+        "Contribution amount must be a positive multiple of NGN 1,000",
         400,
       ),
     );
@@ -381,7 +375,12 @@ export const updateContribution = catchAsync(async (req, res, next) => {
   if (Object.prototype.hasOwnProperty.call(updates, "amount")) {
     const normalizedType = normalizeContributionType(existing.contributionType);
     if (normalizedType && !isContributionAmountValid(normalizedType, updates.amount)) {
-      return next(new AppError("Updated amount does not meet contribution requirements", 400));
+      return next(
+        new AppError(
+          "Contribution amount must be a positive multiple of NGN 1,000",
+          400,
+        ),
+      );
     }
   }
 

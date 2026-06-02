@@ -10,7 +10,6 @@ import { GroupModel } from "../models/Group.js";
 import { GroupMembershipModel } from "../models/GroupMembership.js";
 import { LoanApplicationModel } from "../models/LoanApplication.js";
 import {
-  getContributionTypeConfig,
   isContributionAmountValid,
   normalizeContributionType,
 } from "../utils/contributionPolicy.js";
@@ -120,15 +119,9 @@ export const createRecurringPayment = catchAsync(async (req, res, next) => {
 
     const canonicalType = normalizeContributionType(contributionType) || "revolving";
     if (!isContributionAmountValid(canonicalType, amount)) {
-      const cfg = getContributionTypeConfig(canonicalType);
-      const minLabel = cfg?.minAmount ? `NGN ${Number(cfg.minAmount).toLocaleString()}` : "the minimum amount";
-      const unitStep = cfg?.stepAmount || cfg?.unitAmount;
-      const unitLabel = unitStep
-        ? ` in multiples of NGN ${Number(unitStep).toLocaleString()}`
-        : "";
       return next(
         new AppError(
-          `Amount must be at least ${minLabel}${unitLabel} for ${cfg?.label || "this contribution type"}`,
+          "Contribution amount must be a positive multiple of NGN 1,000",
           400,
         ),
       );
@@ -286,7 +279,12 @@ export const updateRecurringPayment = catchAsync(async (req, res, next) => {
 
     const canonicalType = normalizeContributionType(nextContributionTypeRaw) || "revolving";
     if (!isContributionAmountValid(canonicalType, payment.amount)) {
-      return next(new AppError("Updated amount does not meet contribution requirements", 400));
+      return next(
+        new AppError(
+          "Contribution amount must be a positive multiple of NGN 1,000",
+          400,
+        ),
+      );
     }
     payment.contributionType = canonicalType;
   }

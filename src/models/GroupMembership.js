@@ -43,6 +43,8 @@ export const GroupMembershipSchema = new Schema(
   { timestamps: true },
 );
 
+// Users can belong to multiple groups; this only prevents duplicate membership
+// rows for the same user inside the same group.
 GroupMembershipSchema.index({ userId: 1, groupId: 1 }, { unique: true });
 GroupMembershipSchema.index({ groupId: 1, role: 1 });
 GroupMembershipSchema.index(

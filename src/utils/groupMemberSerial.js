@@ -172,6 +172,7 @@ export async function assignGroupMemberSerial({
 
   await membership.save({
     validateBeforeSave: true,
+    validateModifiedOnly: true,
     ...(session ? { session } : {}),
   });
   return membership;

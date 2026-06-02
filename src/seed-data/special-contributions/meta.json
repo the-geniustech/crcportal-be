@@ -1,0 +1,43 @@
+{
+  "generatedAt": "2026-06-02T13:43:48.139Z",
+  "year": 2026,
+  "paymentDay": 5,
+  "inputDirectories": [
+    {
+      "type": "endwell",
+      "contributionType": "endwell",
+      "inputDir": "C:\\Users\\user\\Desktop\\crs\\backend\\src\\scripts\\ENDWELL_CONTRIBUTION"
+    },
+    {
+      "type": "festival",
+      "contributionType": "festive",
+      "inputDir": "C:\\Users\\user\\Desktop\\crs\\backend\\src\\scripts\\FESTIVAL_CONTRIBUTION"
+    }
+  ],
+  "outputDir": "C:\\Users\\user\\Desktop\\crs\\backend\\src\\seed-data\\special-contributions",
+  "totals": {
+    "workbooks": 1,
+    "matchedSerials": 13,
+    "contributions": 39,
+    "transactions": 39,
+    "profileContributionSettings": 13,
+    "warnings": 0
+  },
+  "files": [
+    {
+      "type": "festival",
+      "contributionType": "festive",
+      "fileName": "Group2_Golden_Champions_Festival.xlsx",
+      "inputPath": "C:\\Users\\user\\Desktop\\crs\\backend\\src\\scripts\\FESTIVAL_CONTRIBUTION\\Group2_Golden_Champions_Festival.xlsx",
+      "sheetName": "Festival",
+      "groupNumberFromFile": 2,
+      "groupNameFromFile": "Golden Champions",
+      "parsedRows": 13,
+      "matchedRows": 13,
+      "skippedRows": 0,
+      "generatedContributions": 39,
+      "generatedTransactions": 39,
+      "generatedProfileContributionSettings": 13
+    }
+  ]
+}

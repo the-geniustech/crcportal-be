@@ -13,6 +13,7 @@ import {
   listAdminLoanApplications,
   listAdminLoanRepayments,
   listAdminLoanTracker,
+  markAdminLoanRepaymentUnpaid,
   recordAdminLoanRepayment,
   reconcileAdminLoanApplication,
   reviewAdminLoanApplication,
@@ -185,6 +186,12 @@ router.post(
   loadLoanApplication,
   ensureAdminLoanAccess,
   recordAdminLoanRepayment,
+);
+router.post(
+  "/applications/:applicationId/mark-unpaid",
+  loadLoanApplication,
+  ensureAdminLoanAccess,
+  markAdminLoanRepaymentUnpaid,
 );
 
 export default router;

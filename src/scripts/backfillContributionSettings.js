@@ -39,12 +39,12 @@ const resolveHasPlan = (unitsRaw, storedYear, targetYear) => {
   if (storedYear !== targetYear) return false;
   if (typeof unitsRaw === "number" || typeof unitsRaw === "string") {
     const value = normalizeNumber(unitsRaw);
-    return value !== null && value > 0;
+    return value !== null && Number.isInteger(value) && value > 0;
   }
   if (!unitsRaw || typeof unitsRaw !== "object") return false;
   return PlannedContributionUnitTypes.some((key) => {
     const value = normalizeNumber(unitsRaw[key]);
-    return value !== null && value > 0;
+    return value !== null && Number.isInteger(value) && value > 0;
   });
 };
 
@@ -60,10 +60,10 @@ if (!Number.isFinite(targetYear)) {
   process.exit(1);
 }
 
-if (!Number.isFinite(defaultUnits) || defaultUnits < 5 || defaultUnits % 5 !== 0) {
+if (!Number.isFinite(defaultUnits) || !Number.isInteger(defaultUnits) || defaultUnits < 1) {
   // eslint-disable-next-line no-console
   console.error(
-    "Default units must be a number, minimum 5, in multiples of 5.",
+    "Default units must be a positive whole number.",
   );
   process.exit(1);
 }

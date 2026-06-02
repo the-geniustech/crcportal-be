@@ -15,9 +15,7 @@ const DEFAULT_STATUS = process.env.SEED_MEMBERSHIP_STATUS ?? "active";
 const DEFAULT_MONTHLY_CONTRIBUTION = Number(
   process.env.SEED_GROUP_MONTHLY_CONTRIBUTION ?? "5000",
 );
-const DEFAULT_MAX_MEMBERS = Number(
-  process.env.SEED_GROUP_MAX_MEMBERS ?? "120",
-);
+const DEFAULT_MAX_MEMBERS = Number(process.env.SEED_GROUP_MAX_MEMBERS ?? "120");
 const DEFAULT_GROUP_LOCATION = process.env.SEED_GROUP_LOCATION ?? "Nigeria";
 const DEFAULT_GROUP_CATEGORY = process.env.SEED_GROUP_CATEGORY ?? "Community";
 
@@ -90,21 +88,20 @@ const extractPhoneFromLine = (line) => {
 };
 
 const extractEmail = (line) => {
-  const match = line.match(
-    /([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/i,
-  );
+  const match = line.match(/([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/i);
   return match ? normalizeEmail(match[1]) : null;
 };
 
-const cleanMemberName = (line) =>
-  line.replace(/^\d+\s*[.)-]\s*/, "").trim();
+const cleanMemberName = (line) => line.replace(/^\d+\s*[.)-]\s*/, "").trim();
 
 const args = parseArgs(process.argv.slice(2));
 const inputPath = args.input ?? DEFAULT_INPUT;
 const outputDir = args.output ?? DEFAULT_OUTPUT;
 const defaultPassword = args.password ?? DEFAULT_PASSWORD;
 const membershipStatus = args.status ?? DEFAULT_STATUS;
-const monthlyContribution = Number(args.monthlyContribution ?? DEFAULT_MONTHLY_CONTRIBUTION);
+const monthlyContribution = Number(
+  args.monthlyContribution ?? DEFAULT_MONTHLY_CONTRIBUTION,
+);
 const maxMembers = Number(args.maxMembers ?? DEFAULT_MAX_MEMBERS);
 const groupLocation = args.location ?? DEFAULT_GROUP_LOCATION;
 const groupCategory = args.category ?? DEFAULT_GROUP_CATEGORY;
@@ -134,7 +131,8 @@ lines.forEach((rawLine) => {
   const groupMatch = line.match(/^group\s*(\d+)\s*(.*)$/i);
   if (groupMatch) {
     const groupNumber = Number(groupMatch[1]);
-    const groupName = normalizeLine(groupMatch[2] || "") || `Group ${groupNumber}`;
+    const groupName =
+      normalizeLine(groupMatch[2] || "") || `Group ${groupNumber}`;
     if (groupNumber >= 1 && groupNumber <= 28) {
       currentGroup = {
         groupNumber,
@@ -238,11 +236,15 @@ const ensureUniqueContact = (email, phone, fallbackName) => {
   let finalPhone = normalizePhone(phone);
 
   if (finalEmail && usedEmails.has(finalEmail)) {
-    warnings.push(`Duplicate email detected: ${finalEmail}. Generated placeholder.`);
+    warnings.push(
+      `Duplicate email detected: ${finalEmail}. Generated placeholder.`,
+    );
     finalEmail = null;
   }
   if (finalPhone && usedPhones.has(finalPhone)) {
-    warnings.push(`Duplicate phone detected: ${finalPhone}. Generated placeholder.`);
+    warnings.push(
+      `Duplicate phone detected: ${finalPhone}. Generated placeholder.`,
+    );
     finalPhone = null;
   }
 
@@ -286,8 +288,7 @@ groups.forEach((group) => {
     key,
     name,
     isCoordinator:
-      group.coordinatorName &&
-      key === normalizeNameKey(group.coordinatorName),
+      group.coordinatorName && key === normalizeNameKey(group.coordinatorName),
   }));
 
   let coordinatorProfileSeedKey = null;
@@ -300,7 +301,11 @@ groups.forEach((group) => {
 
     const desiredEmail = member.isCoordinator ? coordinatorEmail : null;
     const desiredPhone = member.isCoordinator ? coordinatorPhone : null;
-    const contact = ensureUniqueContact(desiredEmail, desiredPhone, member.name);
+    const contact = ensureUniqueContact(
+      desiredEmail,
+      desiredPhone,
+      member.name,
+    );
 
     if (member.isCoordinator) {
       coordinatorEmail = contact.email;
@@ -370,7 +375,13 @@ const meta = {
 
 if (isDryRun) {
   // eslint-disable-next-line no-console
-  console.log(JSON.stringify({ meta, groupsSeed, profilesSeed, usersSeed, membershipsSeed }, null, 2));
+  console.log(
+    JSON.stringify(
+      { meta, groupsSeed, profilesSeed, usersSeed, membershipsSeed },
+      null,
+      2,
+    ),
+  );
   process.exit(0);
 }
 
@@ -407,3 +418,8 @@ console.log(
     2,
   ),
 );
+/*
+You are still a senior full-stack engineer with 30+ years of experience building scalable SaaS platforms, now create a script that take in all the .xlsx endwell and festival contribution files in the "C:\Users\user\Desktop\crs\backend\src\scripts\ENDWELL_CONTRIBUTION" and "C:\Users\user\Desktop\crs\backend\src\scripts\FESTIVAL_CONTRIBUTION" directories, parse them, and generate JSON files in the "C:\Users\user\Desktop\crs\backend\src\seed-data" directory that can be used to seed the database with contribution records with refrence to each member's "serialNumber" in the serial column. What we'll be seeding are the members contributions for the endwell and festival records with the corresponding transactions records, profile contribution settings for both the endwell and festival contributions using what we have in the unit column. To get member's profile, first fetch the "GroupMembership" record using the "serial" column in the .xlsx file and then get the corresponding profile using the "userId" field in the "GroupMembership" record. For each contribution record, make sure to include the following fields: "profileSeedKey", "groupSeedKey", "type" (either "endwell" or "festival"), "amount", "date", and any other relevant fields you think are necessary. For the profile contribution settings, include fields like "profileSeedKey", "type" (either "endwell" or "festival"), and any settings related to their contributions that can be inferred from the unit column in the .xlsx files. Make sure to handle any edge cases, such as missing serial numbers or mismatched records, and log appropriate warnings for those cases.
+
+You can improvice in the process of the implementation, but make sure to follow as perfect and professional as possible and don't go out of context of the requirements. The goal is to create a comprehensive seeding script that can populate the database with accurate contribution records and profile settings based on the provided .xlsx files.
+*/

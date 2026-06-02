@@ -56,6 +56,11 @@ const OTP_RESEND_COOLDOWN_MS = 60_000;
 
 const PlannedContributionUnitTypes = ["revolving", "endwell", "festive"];
 
+function isValidContributionUnitCount(value) {
+  const num = Number(value);
+  return Number.isInteger(num) && num >= 1;
+}
+
 function normalizeContributionUnits(rawUnits, storedYear, currentYear) {
   const base = {
     revolving: null,
@@ -510,9 +515,9 @@ export const updateMyContributionSettings = catchAsync(
       if (!Number.isFinite(num)) {
         return next(new AppError("units must be a valid number", 400));
       }
-      if (num < 5 || num % 5 !== 0) {
+      if (!isValidContributionUnitCount(num)) {
         return next(
-          new AppError("units must be at least 5 and in multiples of 5", 400),
+          new AppError("units must be a positive whole number", 400),
         );
       }
       parsedUnits.revolving = num;
@@ -530,10 +535,10 @@ export const updateMyContributionSettings = catchAsync(
         if (!Number.isFinite(num)) {
           return next(new AppError(`${key} units must be a valid number`, 400));
         }
-        if (num < 5 || num % 5 !== 0) {
+        if (!isValidContributionUnitCount(num)) {
           return next(
             new AppError(
-              `${key} units must be at least 5 and in multiples of 5`,
+              `${key} units must be a positive whole number`,
               400,
             ),
           );

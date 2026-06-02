@@ -52,6 +52,13 @@ function autoSizeColumns(worksheet, minWidth = 12, maxWidth = 40) {
   });
 }
 
+function amountToContributionUnits(amount) {
+  const value = Number(amount || 0);
+  if (!Number.isFinite(value) || value <= 0) return 0;
+  const units = value / 1000;
+  return Number.isInteger(units) ? units : Number(units.toFixed(2));
+}
+
 export async function generateAdminContributionTrackerWorkbookBuffer({
   contributionTypeLabel,
   periodLabel,
@@ -103,10 +110,10 @@ export async function generateAdminContributionTrackerWorkbookBuffer({
     ["Group Filter", groupLabel, "Status Filter", statusLabel, "Sort", sortLabel],
     ["Search", searchLabel, "Records", records.length, "Collection Rate", `${Number(summary?.collectionRate || 0).toFixed(1)}%`],
     [
-      "Total Expected",
-      Number(summary?.totalExpected || 0),
-      "Total Collected",
-      Number(summary?.totalPaid || 0),
+      "Total Expected Units",
+      amountToContributionUnits(summary?.totalExpected),
+      "Total Collected Units",
+      amountToContributionUnits(summary?.totalPaid),
       "Defaulters",
       Number(summary?.defaulters || 0),
     ],
@@ -130,16 +137,16 @@ export async function generateAdminContributionTrackerWorkbookBuffer({
     });
   });
 
-  worksheet.getRow(6).getCell(2).numFmt = `"NGN" #,##0`;
-  worksheet.getRow(6).getCell(4).numFmt = `"NGN" #,##0`;
+  worksheet.getRow(6).getCell(2).numFmt = `#,##0.##`;
+  worksheet.getRow(6).getCell(4).numFmt = `#,##0.##`;
 
   const columns = [
     { header: "S/N", key: "sn" },
     { header: "Member Serial", key: "memberSerial" },
     { header: "Member Name", key: "memberName" },
     { header: "Group", key: "groupName" },
-    { header: "Expected", key: "expectedAmount" },
-    { header: "Paid", key: "paidAmount" },
+    { header: "Expected Units", key: "expectedUnits" },
+    { header: "Paid Units", key: "paidUnits" },
     { header: "Due Date", key: "dueDate" },
     { header: "Status", key: "status" },
     { header: "Months Defaulted", key: "monthsDefaulted" },
@@ -164,8 +171,8 @@ export async function generateAdminContributionTrackerWorkbookBuffer({
       memberSerial: record.memberSerial || "-",
       memberName: record.memberName || "Member",
       groupName: record.groupName || "Group",
-      expectedAmount: Number(record.expectedAmount || 0),
-      paidAmount: Number(record.paidAmount || 0),
+      expectedUnits: amountToContributionUnits(record.expectedAmount),
+      paidUnits: amountToContributionUnits(record.paidAmount),
       dueDate: record.dueDate ? formatDate(record.dueDate) : "Anytime",
       status: String(record.status || "-").toUpperCase(),
       monthsDefaulted: Number(record.monthsDefaulted || 0),
@@ -177,8 +184,8 @@ export async function generateAdminContributionTrackerWorkbookBuffer({
     memberSerial: "-",
     memberName: `${records.length} records`,
     groupName: groupLabel,
-    expectedAmount: Number(summary?.totalExpected || 0),
-    paidAmount: Number(summary?.totalPaid || 0),
+    expectedUnits: amountToContributionUnits(summary?.totalExpected),
+    paidUnits: amountToContributionUnits(summary?.totalPaid),
     dueDate: "-",
     status: Number(summary?.defaulters || 0) > 0 ? "DEFAULTERS PRESENT" : "CLEAR",
     monthsDefaulted: Number(summary?.defaulters || 0),
@@ -203,7 +210,7 @@ export async function generateAdminContributionTrackerWorkbookBuffer({
   });
 
   ["E", "F"].forEach((columnKey) => {
-    worksheet.getColumn(columnKey).numFmt = `"NGN" #,##0`;
+    worksheet.getColumn(columnKey).numFmt = `#,##0.##`;
     worksheet.getColumn(columnKey).alignment = { horizontal: "right" };
   });
   worksheet.getColumn("A").alignment = { horizontal: "right" };

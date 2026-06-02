@@ -599,6 +599,53 @@ async function syncLoanRecurringPaymentStats({
   await target.save();
 }
 
+async function rebuildLoanRecurringPaymentStats({ userId, loanId } = {}) {
+  if (!userId || !loanId) return;
+
+  const target = await RecurringPaymentModel.findOne({
+    userId,
+    paymentType: "loan_repayment",
+    loanId,
+    isActive: true,
+  }).sort({ nextPaymentDate: 1, createdAt: 1 });
+
+  if (!target) return;
+
+  const transactions = await TransactionModel.find({
+    userId,
+    loanId,
+    type: "loan_repayment",
+    status: "success",
+  }).sort({ date: 1, createdAt: 1 });
+
+  const totalAmountPaid = transactions.reduce(
+    (sum, transaction) => sum + roundCurrency(transaction.amount ?? 0),
+    0,
+  );
+  const settledInstallmentCount = transactions.reduce(
+    (sum, transaction) =>
+      sum + Math.max(0, Number(transaction.metadata?.settledInstallmentCount || 0)),
+    0,
+  );
+  const lastTransaction = transactions[transactions.length - 1] || null;
+
+  target.totalPaymentsMade = transactions.length;
+  target.totalAmountPaid = roundCurrency(totalAmountPaid);
+  target.lastPaymentDate = lastTransaction?.date || null;
+  target.lastPaymentStatus = lastTransaction ? "success" : null;
+
+  let nextDate =
+    parseDate(target.startDate, null) ||
+    parseDate(target.nextPaymentDate, null) ||
+    new Date();
+  for (let index = 0; index < settledInstallmentCount; index += 1) {
+    nextDate = addFrequency(nextDate, target.frequency);
+  }
+  target.nextPaymentDate = nextDate;
+
+  await target.save();
+}
+
 export function getLoanRepaymentToDate(application) {
   const totalPrincipalPaid = roundCurrency(application?.totalPrincipalPaid ?? 0);
   const totalInterestPaid = roundCurrency(application?.totalInterestPaid ?? 0);
@@ -829,6 +876,174 @@ export async function buildLoanNextPaymentMap(applications) {
   }
 
   return map;
+}
+
+function normalizeRepaymentAllocations(transaction) {
+  const allocations = Array.isArray(transaction?.metadata?.allocations)
+    ? transaction.metadata.allocations
+    : [];
+
+  return allocations
+    .map((allocation) => ({
+      scheduleItemId: allocation?.scheduleItemId || null,
+      allocationType: allocation?.allocationType || "schedule_due",
+      interestApplied: roundCurrency(allocation?.interestApplied ?? 0),
+      principalApplied: roundCurrency(allocation?.principalApplied ?? 0),
+      appliedAmount: roundCurrency(allocation?.appliedAmount ?? 0),
+    }))
+    .filter(
+      (allocation) =>
+        allocation.interestApplied > 0 ||
+        allocation.principalApplied > 0 ||
+        allocation.appliedAmount > 0,
+    );
+}
+
+export async function reverseLatestLoanRepayment({
+  application,
+  actorProfileId = null,
+  reason = "",
+} = {}) {
+  if (!application?._id) throw new AppError("Loan application not found", 404);
+
+  const transaction = await TransactionModel.findOne({
+    loanId: application._id,
+    type: "loan_repayment",
+    status: "success",
+    "metadata.reversed": { $ne: true },
+  }).sort({ date: -1, createdAt: -1 });
+
+  if (!transaction) {
+    throw new AppError("No successful loan repayment found to mark unpaid", 404);
+  }
+
+  const allocations = normalizeRepaymentAllocations(transaction);
+  if (allocations.length === 0) {
+    throw new AppError(
+      "The latest repayment cannot be reversed safely because allocation details are missing",
+      400,
+    );
+  }
+
+  const scheduleItemIds = allocations
+    .map((allocation) => allocation.scheduleItemId)
+    .filter(Boolean);
+  const scheduleItems = scheduleItemIds.length
+    ? await LoanRepaymentScheduleItemModel.find({
+        loanApplicationId: application._id,
+        _id: { $in: scheduleItemIds },
+      })
+    : [];
+  const scheduleItemById = new Map(
+    scheduleItems.map((item) => [String(item._id), item]),
+  );
+
+  const now = new Date();
+  let reversedPrincipal = 0;
+  let reversedInterest = 0;
+
+  for (const allocation of allocations) {
+    const interestApplied = roundCurrency(allocation.interestApplied);
+    const principalApplied = roundCurrency(
+      allocation.principalApplied ||
+        Math.max(0, allocation.appliedAmount - interestApplied),
+    );
+
+    reversedInterest = roundCurrency(reversedInterest + interestApplied);
+    reversedPrincipal = roundCurrency(reversedPrincipal + principalApplied);
+
+    if (allocation.scheduleItemId) {
+      const item = scheduleItemById.get(String(allocation.scheduleItemId));
+      if (!item) {
+        throw new AppError("Repayment schedule item not found for reversal", 404);
+      }
+
+      attachNormalizedPaymentFields(item);
+      item.paidInterestAmount = Math.max(
+        0,
+        roundCurrency(Number(item.paidInterestAmount ?? 0) - interestApplied),
+      );
+      item.paidPrincipalAmount = Math.max(
+        0,
+        roundCurrency(Number(item.paidPrincipalAmount ?? 0) - principalApplied),
+      );
+      attachNormalizedPaymentFields(item);
+
+      if (getLoanScheduleOutstandingAmount(item) <= 0) {
+        item.status = "paid";
+      } else {
+        item.status = getScheduleStatusForDueDate(
+          parseDate(item.dueDate, now),
+          now,
+          { projected: false },
+        );
+        item.paidAt = null;
+        item.transactionId = null;
+        item.reference = null;
+      }
+    }
+  }
+
+  application.totalInterestPaid = Math.max(
+    0,
+    roundCurrency(Number(application.totalInterestPaid ?? 0) - reversedInterest),
+  );
+  application.accruedInterestBalance = roundCurrency(
+    Number(application.accruedInterestBalance ?? 0) + reversedInterest,
+  );
+  application.totalPrincipalPaid = Math.max(
+    0,
+    roundCurrency(Number(application.totalPrincipalPaid ?? 0) - reversedPrincipal),
+  );
+  application.principalOutstanding = roundCurrency(
+    Number(application.principalOutstanding ?? 0) + reversedPrincipal,
+  );
+
+  recalculateApplicationBalances(application);
+
+  await Promise.all(scheduleItems.map((item) => item.save()));
+  await syncLoanRepaymentState(application, { asOf: now });
+
+  transaction.status = "failed";
+  transaction.description = transaction.description?.includes("(reversed)")
+    ? transaction.description
+    : `${transaction.description || "Loan repayment"} (reversed)`;
+  transaction.metadata = {
+    ...(transaction.metadata || {}),
+    reversed: true,
+    reversalReason: String(reason || "").trim() || null,
+    reversedBy: actorProfileId || null,
+    reversedAt: now.toISOString(),
+    reversedPrincipal,
+    reversedInterest,
+    reversedAmount: roundCurrency(reversedPrincipal + reversedInterest),
+  };
+  await transaction.save();
+
+  await rebuildLoanRecurringPaymentStats({
+    userId: application.userId,
+    loanId: application._id,
+  });
+
+  const nextPaymentMap = await buildLoanNextPaymentMap([application]);
+  const nextPaymentItem = nextPaymentMap.get(String(application._id)) || null;
+
+  return {
+    application,
+    transaction,
+    reversedAmount: roundCurrency(reversedPrincipal + reversedInterest),
+    reversedPrincipal,
+    reversedInterest,
+    nextPayment: nextPaymentItem
+      ? {
+          scheduleItemId: nextPaymentItem._id || nextPaymentItem.scheduleItemId || null,
+          installmentNumber: nextPaymentItem.installmentNumber ?? null,
+          dueDate: nextPaymentItem.dueDate ?? null,
+          status: nextPaymentItem.status,
+          amountDue: roundCurrency(nextPaymentItem.amountDue ?? 0),
+        }
+      : null,
+  };
 }
 
 export async function applyLoanRepayment({

@@ -229,11 +229,11 @@ async function getRecipientPhonesForTarget(req, { target, groupNumbers, month, y
       const rawUnits = settings?.units;
       if (typeof rawUnits === "number" || typeof rawUnits === "string") {
         const num = Number(rawUnits);
-        return Number.isFinite(num) && num > 0 ? num : null;
+        return Number.isInteger(num) && num > 0 ? num : null;
       }
       if (!rawUnits || typeof rawUnits !== "object") return null;
       const num = Number(rawUnits.revolving);
-      return Number.isFinite(num) && num > 0 ? num : null;
+      return Number.isInteger(num) && num > 0 ? num : null;
     };
 
     const resolveExpectedAmount = (group, profile) => {

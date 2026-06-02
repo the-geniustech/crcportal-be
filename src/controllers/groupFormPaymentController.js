@@ -7,6 +7,10 @@ import {
   FormPaymentTypes,
 } from "../models/FormPayment.js";
 import { hasUserRole } from "../utils/roles.js";
+import {
+  BSS_FORM_PAYMENT_TYPES,
+  resolveFormPaymentDisplayLabel,
+} from "../services/formPaymentService.js";
 import { generateGroupFormPaymentLedgerWorkbookBuffer } from "../services/groupFormPaymentLedgerWorkbook.js";
 import { generateGroupFormPaymentLedgerPdfBuffer } from "../services/pdf/groupFormPaymentLedgerPdf.js";
 
@@ -35,10 +39,11 @@ const SORT_MAP = {
 const FORM_TYPE_LABELS = {
   membership_registration: "Membership Registration",
   revolving_loan: "Revolving Loan",
-  bridging_loan: "BSS Bridging Loan",
-  soft_loan: "BSS Soft Loan",
-  special_loan: "BSS Special Loan",
+  bridging_loan: "BSS Loan Form",
+  soft_loan: "BSS Loan Form",
+  special_loan: "BSS Loan Form",
 };
+const VIRTUAL_FORM_TYPES = ["bss_loan"];
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -88,10 +93,9 @@ function formatDate(value) {
 }
 
 function resolveFormLabel(payment) {
-  return (
-    payment.formLabel ||
-    FORM_TYPE_LABELS[payment.formType] ||
-    "Form Payment"
+  return resolveFormPaymentDisplayLabel(
+    payment,
+    FORM_TYPE_LABELS[payment.formType],
   );
 }
 
@@ -145,6 +149,7 @@ function serializePayment(payment) {
     ...plain,
     id: String(plain._id),
     _id: String(plain._id),
+    formLabel: resolveFormLabel(plain),
     userId: plain.userId ? String(plain.userId) : null,
     userAccountId: plain.userAccountId ? String(plain.userAccountId) : null,
     groupId: plain.groupId ? String(plain.groupId) : null,
@@ -167,10 +172,13 @@ function buildFilter(req) {
 
   const formType = String(req.query?.formType || "all").trim();
   if (formType && formType !== "all") {
-    if (!FormPaymentTypes.includes(formType)) {
+    if (formType === "bss_loan") {
+      filter.formType = { $in: BSS_FORM_PAYMENT_TYPES };
+    } else if (FormPaymentTypes.includes(formType)) {
+      filter.formType = formType;
+    } else if (!VIRTUAL_FORM_TYPES.includes(formType)) {
       throw new AppError("Invalid form type", 400);
     }
-    filter.formType = formType;
   }
 
   const paymentStatus = String(req.query?.paymentStatus || "all").trim();

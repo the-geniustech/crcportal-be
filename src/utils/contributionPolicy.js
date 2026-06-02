@@ -36,34 +36,38 @@ export const ContributionTypeConfig = {
   revolving: {
     key: "revolving",
     label: "Revolving Contribution",
-    minAmount: 5000,
+    minAmount: ContributionUnitBase,
     unitAmount: 1000,
-    stepAmount: 5000,
+    stepAmount: ContributionUnitBase,
     notes:
-      "Uniform monthly contribution with NGN 1,000 per unit. Minimum NGN 5,000 per month.",
+      "Uniform monthly contribution with NGN 1,000 per unit. Amounts must be positive multiples of NGN 1,000.",
   },
   special: {
     key: "special",
     label: "Special Contribution",
-    minAmount: 1000000,
+    minAmount: ContributionUnitBase,
     unitAmount: 1000,
-    stepAmount: 5000,
+    stepAmount: ContributionUnitBase,
     notes:
-      "Flexible savings with NGN 1,000 per unit. Minimum NGN 1,000,000 per contribution.",
+      "Flexible savings with NGN 1,000 per unit. Amounts must be positive multiples of NGN 1,000.",
   },
   endwell: {
     key: "endwell",
     label: "Endwell Contribution",
-    minAmount: 5000,
+    minAmount: ContributionUnitBase,
+    unitAmount: 1000,
+    stepAmount: ContributionUnitBase,
     notes:
-      "Saved towards retirement for a minimum of five years. Notify the association one month before withdrawal.",
+      "Saved towards retirement for a minimum of five years. Amounts must be positive multiples of NGN 1,000.",
   },
   festive: {
     key: "festive",
     label: "Festive Contribution",
-    minAmount: 2000,
+    minAmount: ContributionUnitBase,
+    unitAmount: 1000,
+    stepAmount: ContributionUnitBase,
     notes:
-      "Contribution tied to a specific festival. Withdrawals are only for the intended festival.",
+      "Contribution tied to a specific festival. Amounts must be positive multiples of NGN 1,000.",
   },
 };
 
@@ -98,11 +102,11 @@ export function resolvePlannedContributionUnits(settings, year, type = "revolvin
   const rawUnits = settings?.units;
   if (typeof rawUnits === "number" || typeof rawUnits === "string") {
     const num = Number(rawUnits);
-    return Number.isFinite(num) && num > 0 ? num : null;
+    return Number.isInteger(num) && num > 0 ? num : null;
   }
   if (!rawUnits || typeof rawUnits !== "object") return null;
   const num = Number(rawUnits?.[type]);
-  return Number.isFinite(num) && num > 0 ? num : null;
+  return Number.isInteger(num) && num > 0 ? num : null;
 }
 
 export function resolveExpectedContributionAmount({
@@ -168,13 +172,10 @@ export function isContributionAmountValid(type, amount) {
   const cfg = getContributionTypeConfig(type);
   if (!cfg) return false;
   const value = Number(amount);
-  if (!Number.isFinite(value) || value < Number(cfg.minAmount || 0))
-    return false;
-  const step = cfg.stepAmount || cfg.unitAmount;
-  if (step) {
-    return value % step === 0;
-  }
-  return true;
+  const step = Number(cfg.stepAmount || cfg.unitAmount || ContributionUnitBase);
+  if (!Number.isFinite(value) || value <= 0) return false;
+  if (!Number.isFinite(step) || step <= 0) return false;
+  return value >= Number(cfg.minAmount || ContributionUnitBase) && value % step === 0;
 }
 
 export function calculateContributionUnits(amount) {

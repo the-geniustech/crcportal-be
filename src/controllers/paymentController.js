@@ -21,7 +21,6 @@ import {
 import {
   calculateContributionUnits,
   calculateContributionInterestForType,
-  getContributionTypeConfig,
   isContributionAmountValid,
   normalizeContributionType,
 } from "../utils/contributionPolicy.js";
@@ -536,17 +535,9 @@ export const initializePaystackPayment = catchAsync(async (req, res, next) => {
       normalizeContributionType(contributionType) || "revolving";
 
     if (!isContributionAmountValid(canonicalType, parsedAmount)) {
-      const cfg = getContributionTypeConfig(canonicalType);
-      const minLabel = cfg?.minAmount
-        ? `NGN ${Number(cfg.minAmount).toLocaleString()}`
-        : "the minimum amount";
-      const unitStep = cfg?.stepAmount || cfg?.unitAmount;
-      const unitLabel = unitStep
-        ? ` in multiples of NGN ${Number(unitStep).toLocaleString()}`
-        : "";
       return next(
         new AppError(
-          `Amount must be at least ${minLabel}${unitLabel} for ${cfg?.label || "this contribution type"}`,
+          "Contribution amount must be a positive multiple of NGN 1,000",
           400,
         ),
       );
@@ -791,17 +782,9 @@ export const initializePaystackBulkPayment = catchAsync(
         }
 
         if (!isContributionAmountValid(canonicalType, item.amount)) {
-          const cfg = getContributionTypeConfig(canonicalType);
-          const minLabel = cfg?.minAmount
-            ? `NGN ${Number(cfg.minAmount).toLocaleString()}`
-            : "the minimum amount";
-          const unitStep = cfg?.stepAmount || cfg?.unitAmount;
-          const unitLabel = unitStep
-            ? ` in multiples of NGN ${Number(unitStep).toLocaleString()}`
-            : "";
           return next(
             new AppError(
-              `Amount must be at least ${minLabel}${unitLabel} for ${cfg?.label || "this contribution type"}`,
+              "Contribution amount must be a positive multiple of NGN 1,000",
               400,
             ),
           );

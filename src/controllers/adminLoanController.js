@@ -31,6 +31,7 @@ import {
   getLoanRemainingBreakdown,
   getLoanRepaymentToDate,
   getLoanScheduleOutstandingAmount,
+  reverseLatestLoanRepayment,
   syncLoanRepaymentState,
 } from "../services/loanRepaymentService.js";
 import {
@@ -1293,6 +1294,52 @@ export const recordAdminLoanRepayment = catchAsync(async (req, res, next) => {
     },
   });
 });
+
+export const markAdminLoanRepaymentUnpaid = catchAsync(
+  async (req, res, next) => {
+    if (!req.user) return next(new AppError("Not authenticated", 401));
+    if (!req.user.profileId)
+      return next(new AppError("User profile not found", 400));
+    if (!req.loanApplication)
+      return next(new AppError("Missing loan context", 500));
+
+    const reason = req.body?.reason ? String(req.body.reason).trim() : "";
+    const result = await reverseLatestLoanRepayment({
+      application: req.loanApplication,
+      actorProfileId: req.user.profileId,
+      reason,
+    });
+
+    createNotification({
+      userId: req.loanApplication.userId,
+      title: "Loan repayment marked unpaid",
+      message: `The latest repayment for ${req.loanApplication.loanCode || "your loan"} has been reversed.`,
+      type: "payment_received",
+      metadata: {
+        loanId: req.loanApplication._id,
+        loanCode: req.loanApplication.loanCode,
+        reversedAmount: result.reversedAmount,
+        reversedTransactionId: result.transaction?._id || null,
+        reversedBy: req.user.profileId,
+      },
+    }).catch((error) => {
+      console.error("Failed to create loan unpaid notification", error);
+    });
+
+    return sendSuccess(res, {
+      statusCode: 200,
+      message: "Latest loan repayment marked as unpaid",
+      data: {
+        transaction: result.transaction,
+        application: result.application,
+        reversedAmount: result.reversedAmount,
+        reversedPrincipal: result.reversedPrincipal,
+        reversedInterest: result.reversedInterest,
+        nextPayment: result.nextPayment,
+      },
+    });
+  },
+);
 
 export const reviewAdminLoanApplication = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
