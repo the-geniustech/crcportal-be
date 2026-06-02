@@ -441,7 +441,10 @@ function buildLoanRepaymentHistoryCsv({ loan, summary, repayments }) {
     ["Remaining Balance", Number(summary?.remainingBalance || 0)],
     ["Repaid So Far", Number(summary?.repaidSoFar || 0)],
     ["Next Payment Amount", Number(summary?.nextPaymentAmount || 0)],
-    ["Next Payment Due Date", formatRepaymentHistoryDate(summary?.nextPaymentDueDate)],
+    [
+      "Next Payment Due Date",
+      formatRepaymentHistoryDate(summary?.nextPaymentDueDate),
+    ],
     [""],
     header,
     ...rows,
@@ -516,7 +519,9 @@ async function buildAdminLoanRepaymentHistoryData(loanDoc) {
       transactions
         .map((tx) => {
           const metadata =
-            tx?.metadata && typeof tx.metadata === "object" ? tx.metadata : null;
+            tx?.metadata && typeof tx.metadata === "object"
+              ? tx.metadata
+              : null;
           return metadata?.recordedBy ? String(metadata.recordedBy) : null;
         })
         .filter(Boolean),
@@ -821,14 +826,20 @@ export const exportAdminLoanRepaymentHistory = catchAsync(
       return next(new AppError("Missing loan context", 500));
     }
 
-    const format = String(req.query?.format || "csv").trim().toLowerCase();
+    const format = String(req.query?.format || "csv")
+      .trim()
+      .toLowerCase();
     if (!["csv", "pdf"].includes(format)) {
       return next(new AppError("Invalid format. Use csv or pdf.", 400));
     }
 
-    const history = await buildAdminLoanRepaymentHistoryData(req.loanApplication);
+    const history = await buildAdminLoanRepaymentHistoryData(
+      req.loanApplication,
+    );
     const safeRef = String(
-      history.loan?.loanCode || req.loanApplication.loanCode || req.loanApplication._id,
+      history.loan?.loanCode ||
+        req.loanApplication.loanCode ||
+        req.loanApplication._id,
     )
       .toLowerCase()
       .replace(/[^a-z0-9-]+/g, "-");
@@ -1023,8 +1034,10 @@ export const listAdminLoanTracker = catchAsync(async (req, res, next) => {
     filter.loanType = loanType;
   }
 
-  const applications = await LoanApplicationModel.find(filter)
-    .sort({ disbursedAt: -1, createdAt: -1 });
+  const applications = await LoanApplicationModel.find(filter).sort({
+    disbursedAt: -1,
+    createdAt: -1,
+  });
 
   if (applications.length === 0) {
     return sendSuccess(res, {
@@ -1056,7 +1069,9 @@ export const listAdminLoanTracker = catchAsync(async (req, res, next) => {
     );
   }
 
-  const profileIds = applications.map((application) => application.userId).filter(Boolean);
+  const profileIds = applications
+    .map((application) => application.userId)
+    .filter(Boolean);
   const [profiles, nextPaymentMap, scheduleItems] = await Promise.all([
     ProfileModel.find(
       { _id: { $in: profileIds } },
@@ -1064,13 +1079,17 @@ export const listAdminLoanTracker = catchAsync(async (req, res, next) => {
     ).lean(),
     buildLoanNextPaymentMap(applications),
     LoanRepaymentScheduleItemModel.find({
-      loanApplicationId: { $in: applications.map((application) => application._id) },
+      loanApplicationId: {
+        $in: applications.map((application) => application._id),
+      },
     })
       .sort({ installmentNumber: 1 })
       .lean(),
   ]);
 
-  const profileById = new Map(profiles.map((profile) => [String(profile._id), profile]));
+  const profileById = new Map(
+    profiles.map((profile) => [String(profile._id), profile]),
+  );
   const scheduleStatsByLoan = new Map();
   const now = new Date();
 
@@ -1106,7 +1125,9 @@ export const listAdminLoanTracker = catchAsync(async (req, res, next) => {
     scheduleStatsByLoan.set(loanId, current);
   }
 
-  const statusFilter = String(req.query?.status || "active").trim().toLowerCase();
+  const statusFilter = String(req.query?.status || "active")
+    .trim()
+    .toLowerCase();
   const rows = applications
     .map((application) => {
       const loanId = String(application._id);
@@ -1121,7 +1142,10 @@ export const listAdminLoanTracker = catchAsync(async (req, res, next) => {
       };
 
       const totalRepayable = Number(
-        application.totalRepayable ?? application.approvedAmount ?? application.loanAmount ?? 0,
+        application.totalRepayable ??
+          application.approvedAmount ??
+          application.loanAmount ??
+          0,
       );
       const remainingBalance = Number(application.remainingBalance ?? 0);
       const repaidSoFar = getLoanRepaymentToDate(application);
@@ -1145,7 +1169,9 @@ export const listAdminLoanTracker = catchAsync(async (req, res, next) => {
         loanType: application.loanType || null,
         loanStatus: application.status,
         trackerStatus,
-        approvedAmount: Number(application.approvedAmount ?? application.loanAmount ?? 0),
+        approvedAmount: Number(
+          application.approvedAmount ?? application.loanAmount ?? 0,
+        ),
         totalRepayable,
         remainingBalance,
         repaidSoFar,
@@ -1171,7 +1197,8 @@ export const listAdminLoanTracker = catchAsync(async (req, res, next) => {
     })
     .filter((row) => {
       if (statusFilter === "all") return true;
-      if (statusFilter === "completed") return row.trackerStatus === "completed";
+      if (statusFilter === "completed")
+        return row.trackerStatus === "completed";
       if (statusFilter === "overdue") return row.trackerStatus === "overdue";
       if (statusFilter === "active") return row.trackerStatus !== "completed";
       return row.loanStatus === statusFilter;
@@ -1208,21 +1235,24 @@ export const listAdminLoanTracker = catchAsync(async (req, res, next) => {
 
 export const recordAdminLoanRepayment = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));
-  if (!req.user.profileId) return next(new AppError("User profile not found", 400));
-  if (!req.loanApplication) return next(new AppError("Missing loan context", 500));
+  if (!req.user.profileId)
+    return next(new AppError("User profile not found", 400));
+  if (!req.loanApplication)
+    return next(new AppError("Missing loan context", 500));
 
   const amount = Number(req.body?.amount);
-  const paymentMethod = String(
-    req.body?.paymentMethod || "bank_transfer",
-  ).trim().toLowerCase();
+  const paymentMethod = String(req.body?.paymentMethod || "bank_transfer")
+    .trim()
+    .toLowerCase();
   const manualPaymentReference = req.body?.paymentReference
     ? String(req.body.paymentReference).trim()
     : null;
   const notes = req.body?.notes ? String(req.body.notes).trim() : "";
-  const receivedAt = req.body?.receivedAt ? new Date(req.body.receivedAt) : new Date();
+  const receivedAt = req.body?.receivedAt
+    ? new Date(req.body.receivedAt)
+    : new Date();
   const hasReceiptInput =
-    req.body &&
-    Object.prototype.hasOwnProperty.call(req.body, "receipt");
+    req.body && Object.prototype.hasOwnProperty.call(req.body, "receipt");
   const receipt = hasReceiptInput
     ? normalizeManualRepaymentReceipt(req.body?.receipt)
     : null;
@@ -1247,7 +1277,8 @@ export const recordAdminLoanRepayment = catchAsync(async (req, res, next) => {
     reference,
     channel: paymentMethod,
     description:
-      notes || `Manual loan repayment for ${req.loanApplication.loanCode || "loan"}`,
+      notes ||
+      `Manual loan repayment for ${req.loanApplication.loanCode || "loan"}`,
     gateway: "manual",
     metadata: {
       manual: true,
@@ -1929,3 +1960,12 @@ export const emailAdminLoanApplicationPdf = catchAsync(
     });
   },
 );
+
+/*
+You're still acting as a senior full-stack engineer with 30+ years of experience building scalable SaaS platforms, now let's quickly work on seeding the existing loan data.
+- This is the existing loan data excel file `backend\src\seed-data\loan\CRC_Existing_Loan_Data.xlsx`, now create a seed script that can read this excel file and populate the database with the loan applications, ensuring to create any related records such as guarantors, documents, etc. as needed based on the data in the excel file.
+
+Ensure all the requirements are consistent with backend <=> frontend flows and implemented in an highly professional way and industry standard of doing things.
+
+You can improvice whenever needed, just ensure you don't digress from the context of this project and you're always highly professional as much as possible.
+*/
