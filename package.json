@@ -45,6 +45,7 @@
     "seed:contributions": "node src/scripts/contribution-ingestion/seedContributionData.js",
     "seed:special-contributions:generate": "node src/scripts/special-contribution-ingestion/generateSpecialContributionSeeds.js",
     "seed:special-contributions": "node src/scripts/special-contribution-ingestion/seedSpecialContributionData.js",
+    "seed:existing-loans": "node src/scripts/seedExistingLoanApplicationsFromXlsx.js",
     "audit:january-contributions": "node src/scripts/contribution-ingestion/auditJanuaryContributionOverstatement.js",
     "repair:january-contributions": "node src/scripts/contribution-ingestion/repairJanuaryContributionOverstatement.js",
     "move:user-group": "node src/scripts/moveUserBetweenGroups.js",

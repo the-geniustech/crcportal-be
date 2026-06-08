@@ -16,6 +16,7 @@ import {
   calculateContributionInterestForType,
   calculateContributionUnits,
   getContributionTypeMatch,
+  getContributionSettingsWindowStatus,
   isContributionAmountValid,
   normalizeContributionType,
   resolveExpectedContributionAmount,
@@ -134,6 +135,7 @@ const MonthlyTrackedContributionTypes = new Set([
   "endwell",
   "festive",
 ]);
+const PlannedContributionUnitTypes = ["revolving", "endwell", "festive"];
 const ContributionTrackerSortLabels = {
   member_name_asc: "Member name (A-Z)",
   member_name_desc: "Member name (Z-A)",
@@ -335,6 +337,107 @@ function amountToContributionUnits(amount) {
   const units = calculateContributionUnits(Number(amount || 0));
   if (!Number.isFinite(units)) return 0;
   return Number.isInteger(units) ? units : Number(units.toFixed(2));
+}
+
+function isValidContributionUnitCount(value) {
+  const num = Number(value);
+  return Number.isInteger(num) && num >= 1;
+}
+
+function normalizeContributionSettingsUnits(rawUnits, storedYear, targetYear) {
+  const base = {
+    revolving: null,
+    endwell: null,
+    festive: null,
+  };
+  if (storedYear !== targetYear) return base;
+  if (typeof rawUnits === "number" || typeof rawUnits === "string") {
+    const num = Number(rawUnits);
+    if (Number.isInteger(num) && num > 0) base.revolving = num;
+    return base;
+  }
+  if (!rawUnits || typeof rawUnits !== "object") return base;
+  PlannedContributionUnitTypes.forEach((key) => {
+    const value = rawUnits[key];
+    if (value === null) {
+      base[key] = null;
+      return;
+    }
+    const num = Number(value);
+    if (Number.isInteger(num) && num > 0) {
+      base[key] = num;
+    }
+  });
+  return base;
+}
+
+function resolveAdminContributionSettings(profile, year, now = new Date()) {
+  const stored = profile?.contributionSettings || {};
+  const storedYear = Number(stored.year);
+  const units = normalizeContributionSettingsUnits(
+    stored?.units,
+    storedYear,
+    year,
+  );
+  const windowStatus = getContributionSettingsWindowStatus(now);
+  return {
+    year,
+    units,
+    updatedAt: stored?.updatedAt ?? null,
+    canEdit: true,
+    window: {
+      startMonth: windowStatus.startMonth,
+      endMonth: windowStatus.endMonth,
+    },
+  };
+}
+
+function parseContributionSettingsUnitPayload(rawUnits) {
+  const parsedUnits = {};
+  if (rawUnits === null || typeof rawUnits === "undefined") {
+    return { error: "units must be provided" };
+  }
+
+  if (typeof rawUnits === "number" || typeof rawUnits === "string") {
+    const num = Number(rawUnits);
+    if (!Number.isFinite(num)) {
+      return { error: "units must be a valid number" };
+    }
+    if (!isValidContributionUnitCount(num)) {
+      return { error: "units must be a positive whole number" };
+    }
+    parsedUnits.revolving = num;
+    return { units: parsedUnits };
+  }
+
+  if (!rawUnits || typeof rawUnits !== "object") {
+    return { error: "units must be a valid object" };
+  }
+
+  let hasAny = false;
+  for (const key of PlannedContributionUnitTypes) {
+    if (!Object.prototype.hasOwnProperty.call(rawUnits, key)) continue;
+    hasAny = true;
+    const value = rawUnits[key];
+    if (value === null) {
+      parsedUnits[key] = null;
+      continue;
+    }
+    const num = Number(value);
+    if (!Number.isFinite(num)) {
+      return { error: `${key} units must be a valid number` };
+    }
+    if (!isValidContributionUnitCount(num)) {
+      return { error: `${key} units must be a positive whole number` };
+    }
+    parsedUnits[key] = num;
+  }
+
+  if (!hasAny) {
+    return { error: "At least one contribution unit value must be provided" };
+  }
+
+  return { units: parsedUnits };
 }
 
 async function resolveContributionRecurringScheduleIds(
@@ -1023,6 +1126,7 @@ async function buildContributionTrackerRecords({
 
   const due = dueDateUtc(year, month);
   const now = new Date();
+  const contributionSettingsYear = now.getFullYear();
 
   const records = memberships.map((membership) => {
     const userId = String(membership.userId);
@@ -1080,6 +1184,11 @@ async function buildContributionTrackerRecords({
       paidAmount,
       expectedUnits: calculateContributionUnits(expectedAmount),
       paidUnits: calculateContributionUnits(paidAmount),
+      contributionSettings: resolveAdminContributionSettings(
+        profile,
+        contributionSettingsYear,
+        now,
+      ),
       dueDate: isMonthlyTrackedType ? due.toISOString().slice(0, 10) : null,
       status,
       monthsDefaulted: clamp(monthsDefaulted, 0, 12),
@@ -1300,6 +1409,113 @@ export const listContributionTracker = catchAsync(async (req, res, next) => {
     },
   });
 });
+
+export const updateMemberContributionSettings = catchAsync(
+  async (req, res, next) => {
+    if (!req.user) return next(new AppError("Not authenticated", 401));
+    if (!req.user.profileId)
+      return next(new AppError("User profile not found", 400));
+
+    if (!hasUserRole(req.user, "admin", "groupCoordinator")) {
+      return next(
+        new AppError(
+          "Only admins and group coordinators can update contribution settings",
+          403,
+        ),
+      );
+    }
+
+    const userId = String(req.body?.userId || "").trim();
+    const groupId = String(req.body?.groupId || "").trim();
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const year = Number(req.body?.year ?? currentYear);
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return next(new AppError("Invalid userId", 400));
+    }
+    if (!mongoose.Types.ObjectId.isValid(groupId)) {
+      return next(new AppError("Invalid groupId", 400));
+    }
+    if (!Number.isFinite(year) || year !== currentYear) {
+      return next(
+        new AppError(
+          "Contribution settings are only for the current year",
+          400,
+        ),
+      );
+    }
+
+    const parsed = parseContributionSettingsUnitPayload(req.body?.units);
+    if (parsed.error) return next(new AppError(parsed.error, 400));
+
+    const manageableGroupIds = await getManageableGroupIds(req);
+    if (manageableGroupIds && !manageableGroupIds.includes(groupId)) {
+      return next(new AppError("You cannot manage this group", 403));
+    }
+
+    const membership = await GroupMembershipModel.findOne({
+      userId,
+      groupId,
+      status: "active",
+    }).lean();
+    if (!membership) {
+      return next(new AppError("Member is not active in this group", 400));
+    }
+
+    const profile = await ProfileModel.findById(userId, {
+      fullName: 1,
+      contributionSettings: 1,
+    });
+    if (!profile) return next(new AppError("Profile not found", 404));
+
+    const existing = profile?.contributionSettings || {};
+    const currentUnits = normalizeContributionSettingsUnits(
+      existing?.units,
+      Number(existing?.year),
+      currentYear,
+    );
+    const nextUnits = {
+      ...currentUnits,
+      ...parsed.units,
+    };
+    const updatedContributionSettings = {
+      year: currentYear,
+      units: nextUnits,
+      updatedAt: now,
+    };
+
+    const updatedProfile = await ProfileModel.findByIdAndUpdate(
+      profile._id,
+      {
+        $set: {
+          contributionSettings: updatedContributionSettings,
+        },
+      },
+      {
+        new: true,
+        runValidators: true,
+        projection: {
+          fullName: 1,
+          contributionSettings: 1,
+        },
+      },
+    );
+    if (!updatedProfile) return next(new AppError("Profile not found", 404));
+
+    return sendSuccess(res, {
+      statusCode: 200,
+      message: "Contribution settings updated",
+      data: {
+        settings: resolveAdminContributionSettings(
+          updatedProfile,
+          currentYear,
+          now,
+        ),
+      },
+    });
+  },
+);
 
 export const exportContributionTracker = catchAsync(async (req, res, next) => {
   if (!req.user) return next(new AppError("Not authenticated", 401));

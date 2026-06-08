@@ -12,6 +12,7 @@ import {
   markContributionPaid,
   rejectMemberApplication,
   sendContributionReminders,
+  updateMemberContributionSettings,
   updateTrackedContribution,
 } from "../controllers/adminController.js";
 import { getAdminFinancialReports } from "../controllers/adminFinancialReportsController.js";
@@ -163,6 +164,11 @@ router.post(
   "/contributions/mark-unpaid",
   restrictTo("admin", "groupCoordinator"),
   markContributionUnpaid,
+);
+router.put(
+  "/contributions/member-settings",
+  restrictTo("admin", "groupCoordinator"),
+  updateMemberContributionSettings,
 );
 router.patch(
   "/contributions/:contributionId",
