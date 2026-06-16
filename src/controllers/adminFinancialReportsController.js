@@ -17,7 +17,7 @@ import {
 import { hasUserRole } from "../utils/roles.js";
 import {
   computeAggregateInterestSchedule,
-  getMonthlyInterestRates,
+  getMonthlyInterestRateContext,
   resolveMonthsToCompute,
 } from "../utils/contributionInterest.js";
 
@@ -93,6 +93,10 @@ function pctChange(cur, prev) {
 }
 
 const PaidContributionStatuses = ["completed", "verified"];
+
+function setFinancialReportCacheHeaders(res) {
+  res.set("Cache-Control", "no-store");
+}
 
 function contributionDateExpr() {
   return { $ifNull: ["$verifiedAt", "$createdAt"] };
@@ -239,16 +243,23 @@ export const getAdminFinancialReports = catchAsync(async (req, res, next) => {
 
   const yearsInPeriod = Array.from(new Set(months.map((m) => m.year)));
   const interestByYm = new Map();
+  const interestSettingsByYear = [];
   for (const yr of yearsInPeriod) {
     const monthlyTotals = await getContributionTotalsByMonth({
       year: yr,
       groupObjectIds,
     });
-    const monthlyRates = await getMonthlyInterestRates(yr);
+    const rateContext = await getMonthlyInterestRateContext(yr);
+    interestSettingsByYear.push({
+      year: yr,
+      rates: rateContext.rates,
+      updatedAt: rateContext.settingsUpdatedAt,
+      updatedBy: rateContext.settingsUpdatedBy,
+    });
     const monthsToCompute = resolveMonthsToCompute({ year: yr, now });
     const { schedule } = computeAggregateInterestSchedule({
       monthlyContributions: monthlyTotals,
-      monthlyRates,
+      monthlyRates: rateContext.monthlyRates,
       monthsToCompute,
     });
     schedule.forEach((row) => {
@@ -286,6 +297,7 @@ export const getAdminFinancialReports = catchAsync(async (req, res, next) => {
     .map((id) => new mongoose.Types.ObjectId(id));
 
   if (groups.length === 0) {
+    setFinancialReportCacheHeaders(res);
     return sendSuccess(res, {
       statusCode: 200,
       data: {
@@ -298,6 +310,7 @@ export const getAdminFinancialReports = catchAsync(async (req, res, next) => {
           interestRatePct: 0,
         },
         period: { months: periodMonths, end: endMonth },
+        interestSettings: interestSettingsByYear,
       },
     });
   }
@@ -470,6 +483,7 @@ export const getAdminFinancialReports = catchAsync(async (req, res, next) => {
   const repaymentRatePct = totals.loans > 0 ? (totals.repayments / totals.loans) * 100 : 0;
   const interestRatePct = totals.contributions > 0 ? (totals.interest / totals.contributions) * 100 : 0;
 
+  setFinancialReportCacheHeaders(res);
   return sendSuccess(res, {
     statusCode: 200,
     data: {
@@ -482,6 +496,7 @@ export const getAdminFinancialReports = catchAsync(async (req, res, next) => {
         interestRatePct: clamp(interestRatePct, 0, 999),
       },
       period: { months: periodMonths, end: endMonth },
+      interestSettings: interestSettingsByYear,
     },
   });
 });

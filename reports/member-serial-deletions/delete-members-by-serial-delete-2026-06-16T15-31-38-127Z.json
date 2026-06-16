@@ -1,0 +1,11 @@
+{
+  "ok": 0,
+  "startedAt": "2026-06-16T15:31:38.115Z",
+  "completedAt": "2026-06-16T15:31:38.120Z",
+  "dryRun": false,
+  "useTransaction": true,
+  "error": "Refusing to delete without --confirm DELETE_MEMBERS_BY_SERIAL. Run with --dry-run first.",
+  "serials": [
+    "CRC/G15/0491"
+  ]
+}

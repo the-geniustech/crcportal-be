@@ -1,0 +1,510 @@
+{
+  "ok": 1,
+  "startedAt": "2026-06-16T15:42:53.043Z",
+  "completedAt": "2026-06-16T15:43:08.899Z",
+  "dryRun": false,
+  "useTransaction": true,
+  "result": {
+    "dryRun": false,
+    "confirmationRequired": null,
+    "serials": [
+      {
+        "input": "CRC/G17/0893",
+        "normalized": "CRC/G17/0893",
+        "status": "matched",
+        "membershipId": "6a1f0be5ff1801861548d535",
+        "profileId": "6a1f0be2ff1801861548d4f4",
+        "groupId": "f6c87206a9219384df938118",
+        "userId": "6a1f0be2ff1801861548d4fc",
+        "fullName": "Form Olanrewaju",
+        "email": "form.olanrewaju.g17@crc.local",
+        "phone": "+234 812 303 4747"
+      },
+      {
+        "input": "CRC/G15/0891",
+        "normalized": "CRC/G15/0891",
+        "status": "matched",
+        "membershipId": "6a146770634577cad4163bf5",
+        "profileId": "6a14676d634577cad4163bb1",
+        "groupId": "aa92a9d867f075b5065af283",
+        "userId": "6a14676d634577cad4163bbb",
+        "fullName": "Form Maboreje",
+        "email": "form.maboreje.g14@crc.local",
+        "phone": "+234 803 834 5758"
+      },
+      {
+        "input": "CRC/G13/0890",
+        "normalized": "CRC/G13/0890",
+        "status": "matched",
+        "membershipId": "6a146631634577cad416119e",
+        "profileId": "6a14662d634577cad4161156",
+        "groupId": "ebc300194c68c8f709ab7789",
+        "userId": "6a14662d634577cad416115a",
+        "fullName": "Form Mulika",
+        "email": "form.mulika.g13@crc.local",
+        "phone": "+234 703 434 6757"
+      },
+      {
+        "input": "CRC/G12/0889",
+        "normalized": "CRC/G12/0889",
+        "status": "matched",
+        "membershipId": "6a1465aa634577cad416022a",
+        "profileId": "6a1465a7634577cad41601f6",
+        "groupId": "4e40f742d959783c0b659609",
+        "userId": "6a1465a7634577cad41601fe",
+        "fullName": "Form Jimoh",
+        "email": "form.jimoh.g12@crc.local",
+        "phone": "+234 703 434 5713"
+      },
+      {
+        "input": "CRC/G11/0888",
+        "normalized": "CRC/G11/0888",
+        "status": "matched",
+        "membershipId": "6a1464c8634577cad415e50c",
+        "profileId": "6a1464c5634577cad415e4c6",
+        "groupId": "97bb1fde9f730a3d0fde7e67",
+        "userId": "6a1464c5634577cad415e4c8",
+        "fullName": "Form Oyetayo",
+        "email": "form.oyetayo.g11@crc.local",
+        "phone": "+234 903 434 5777"
+      },
+      {
+        "input": "CRC/G10/0887",
+        "normalized": "CRC/G10/0887",
+        "status": "matched",
+        "membershipId": "6a146427634577cad415d184",
+        "profileId": "6a146424634577cad415d144",
+        "groupId": "964d3d213a30badc53e290af",
+        "userId": "6a146424634577cad415d150",
+        "fullName": "Form Hassan",
+        "email": "form.hassan.g10@crc.local",
+        "phone": "+234 903 474 5758"
+      },
+      {
+        "input": "CRC/G9/0886",
+        "normalized": "CRC/G9/0886",
+        "status": "matched",
+        "membershipId": "6a146333634577cad415b74f",
+        "profileId": "6a146330634577cad415b709",
+        "groupId": "82c283b1ef26fdbf0224484e",
+        "userId": "6a146330634577cad415b710",
+        "fullName": "Form Gbadeyan",
+        "email": "form.gbadeyan.g9@crc.local",
+        "phone": "+234 903 434 5758"
+      },
+      {
+        "input": "CRC/G8/0885",
+        "normalized": "CRC/G8/0885",
+        "status": "matched",
+        "membershipId": "6a146206634577cad415973b",
+        "profileId": "6a146203634577cad4159705",
+        "groupId": "767afcf8d419258aad6ac939",
+        "userId": "6a146203634577cad4159707",
+        "fullName": "Form Oyeniyi",
+        "email": "form.oyeniyi.g8@crc.local",
+        "phone": "+234 803 434 5758"
+      },
+      {
+        "input": "CRC/G7/0884",
+        "normalized": "CRC/G7/0884",
+        "status": "matched",
+        "membershipId": "6a146178634577cad4158790",
+        "profileId": "6a146175634577cad4158752",
+        "groupId": "1821cc754fffe69bebefacd6",
+        "userId": "6a146175634577cad4158758",
+        "fullName": "Form Bamigbola",
+        "email": "form.bamigbola.g7@crc.local",
+        "phone": "+234 703 464 5758"
+      },
+      {
+        "input": "CRC/G6/0883",
+        "normalized": "CRC/G6/0883",
+        "status": "matched",
+        "membershipId": "6a1460cb634577cad41574b5",
+        "profileId": "6a1460c8634577cad4157477",
+        "groupId": "ea200386d2a2185f26c4b45c",
+        "userId": "6a1460c8634577cad415747f",
+        "fullName": "Form Babarinlo",
+        "email": "form.babarinlo.g6@crc.local",
+        "phone": "+234 703 434 5767"
+      },
+      {
+        "input": "CRC/G5/0882",
+        "normalized": "CRC/G5/0882",
+        "status": "matched",
+        "membershipId": "6a14600c634577cad4155f5a",
+        "profileId": "6a146009634577cad4155f1b",
+        "groupId": "94b4cccc63ed160cab174347",
+        "userId": "6a146009634577cad4155f25",
+        "fullName": "Form Akintonde",
+        "email": "form.akintonde.g5@crc.local",
+        "phone": "+234 703 434 5757"
+      },
+      {
+        "input": "CRC/G4/0881",
+        "normalized": "CRC/G4/0881",
+        "status": "matched",
+        "membershipId": "6a145c26634577cad414fc7e",
+        "profileId": "6a145c24634577cad414fc52",
+        "groupId": "ef96a2caeb56c7cb6afaa184",
+        "userId": "6a145c24634577cad414fc54",
+        "fullName": "Form Akinade",
+        "email": "form.akinade.g4@crc.local",
+        "phone": "+234 703 434 5788"
+      },
+      {
+        "input": "CRC/G3/0880",
+        "normalized": "CRC/G3/0880",
+        "status": "matched",
+        "membershipId": "6a145b01634577cad414e6ac",
+        "profileId": "6a145afe634577cad414e684",
+        "groupId": "77828f8ff0e18c9d363d6f5f",
+        "userId": "6a145afe634577cad414e686",
+        "fullName": "Form Adeleke",
+        "email": "form.adeleke.g3@crc.local",
+        "phone": "+234 703 434 5799"
+      },
+      {
+        "input": "CRC/G2/0879",
+        "normalized": "CRC/G2/0879",
+        "status": "matched",
+        "membershipId": "6a14596c634577cad414c942",
+        "profileId": "6a145969634577cad414c916",
+        "groupId": "f13266e9a87019f9d50f8c6c",
+        "userId": "6a145969634577cad414c91a",
+        "fullName": "Form Adekunle",
+        "email": "form.adekunle.g2@crc.local",
+        "phone": "+234 703 434 5758"
+      },
+      {
+        "input": "CRC/G2/0870",
+        "normalized": "CRC/G2/0870",
+        "status": "matched",
+        "membershipId": "69ef7407559a1cec5b5d3c13",
+        "profileId": "69ef7405262071c6280e59b3",
+        "groupId": "68e37bd49b1e9ee4a491baeb",
+        "userId": "69ef7405262071c6280e59b5",
+        "fullName": "Form Adedeji",
+        "email": "hannahadeola99@gmail.com",
+        "phone": "+234 812 895 4115"
+      }
+    ],
+    "uniqueProfiles": [
+      {
+        "profileId": "69ef7405262071c6280e59b3",
+        "fullName": "Form Adedeji",
+        "email": "hannahadeola99@gmail.com",
+        "phone": "+234 812 895 4115",
+        "userId": "69ef7405262071c6280e59b5"
+      },
+      {
+        "profileId": "6a145969634577cad414c916",
+        "fullName": "Form Adekunle",
+        "email": "form.adekunle.g2@crc.local",
+        "phone": "+234 703 434 5758",
+        "userId": "6a145969634577cad414c91a"
+      },
+      {
+        "profileId": "6a145afe634577cad414e684",
+        "fullName": "Form Adeleke",
+        "email": "form.adeleke.g3@crc.local",
+        "phone": "+234 703 434 5799",
+        "userId": "6a145afe634577cad414e686"
+      },
+      {
+        "profileId": "6a145c24634577cad414fc52",
+        "fullName": "Form Akinade",
+        "email": "form.akinade.g4@crc.local",
+        "phone": "+234 703 434 5788",
+        "userId": "6a145c24634577cad414fc54"
+      },
+      {
+        "profileId": "6a146009634577cad4155f1b",
+        "fullName": "Form Akintonde",
+        "email": "form.akintonde.g5@crc.local",
+        "phone": "+234 703 434 5757",
+        "userId": "6a146009634577cad4155f25"
+      },
+      {
+        "profileId": "6a1460c8634577cad4157477",
+        "fullName": "Form Babarinlo",
+        "email": "form.babarinlo.g6@crc.local",
+        "phone": "+234 703 434 5767",
+        "userId": "6a1460c8634577cad415747f"
+      },
+      {
+        "profileId": "6a146175634577cad4158752",
+        "fullName": "Form Bamigbola",
+        "email": "form.bamigbola.g7@crc.local",
+        "phone": "+234 703 464 5758",
+        "userId": "6a146175634577cad4158758"
+      },
+      {
+        "profileId": "6a146203634577cad4159705",
+        "fullName": "Form Oyeniyi",
+        "email": "form.oyeniyi.g8@crc.local",
+        "phone": "+234 803 434 5758",
+        "userId": "6a146203634577cad4159707"
+      },
+      {
+        "profileId": "6a146330634577cad415b709",
+        "fullName": "Form Gbadeyan",
+        "email": "form.gbadeyan.g9@crc.local",
+        "phone": "+234 903 434 5758",
+        "userId": "6a146330634577cad415b710"
+      },
+      {
+        "profileId": "6a146424634577cad415d144",
+        "fullName": "Form Hassan",
+        "email": "form.hassan.g10@crc.local",
+        "phone": "+234 903 474 5758",
+        "userId": "6a146424634577cad415d150"
+      },
+      {
+        "profileId": "6a1464c5634577cad415e4c6",
+        "fullName": "Form Oyetayo",
+        "email": "form.oyetayo.g11@crc.local",
+        "phone": "+234 903 434 5777",
+        "userId": "6a1464c5634577cad415e4c8"
+      },
+      {
+        "profileId": "6a1465a7634577cad41601f6",
+        "fullName": "Form Jimoh",
+        "email": "form.jimoh.g12@crc.local",
+        "phone": "+234 703 434 5713",
+        "userId": "6a1465a7634577cad41601fe"
+      },
+      {
+        "profileId": "6a14662d634577cad4161156",
+        "fullName": "Form Mulika",
+        "email": "form.mulika.g13@crc.local",
+        "phone": "+234 703 434 6757",
+        "userId": "6a14662d634577cad416115a"
+      },
+      {
+        "profileId": "6a14676d634577cad4163bb1",
+        "fullName": "Form Maboreje",
+        "email": "form.maboreje.g14@crc.local",
+        "phone": "+234 803 834 5758",
+        "userId": "6a14676d634577cad4163bbb"
+      },
+      {
+        "profileId": "6a1f0be2ff1801861548d4f4",
+        "fullName": "Form Olanrewaju",
+        "email": "form.olanrewaju.g17@crc.local",
+        "phone": "+234 812 303 4747",
+        "userId": "6a1f0be2ff1801861548d4fc"
+      }
+    ],
+    "summary": {
+      "profiles": {
+        "matched": 15
+      },
+      "users": {
+        "matched": 15
+      },
+      "memberships": {
+        "matched": 15
+      },
+      "contributions": {
+        "matched": 1
+      },
+      "contributionSettings": {
+        "matched": 0
+      },
+      "withdrawals": {
+        "matched": 0
+      },
+      "bankAccounts": {
+        "matched": 0
+      },
+      "recurringPayments": {
+        "matched": 0
+      },
+      "notifications": {
+        "matched": 0
+      },
+      "notificationPreferences": {
+        "matched": 0
+      },
+      "meetingAttendances": {
+        "matched": 0
+      },
+      "meetingRsvps": {
+        "matched": 0
+      },
+      "voteResponses": {
+        "matched": 0
+      },
+      "loanApplications": {
+        "matched": 0
+      },
+      "loanScheduleItems": {
+        "matched": 60
+      },
+      "loanGuarantors": {
+        "matched": 5
+      },
+      "guarantorNotifications": {
+        "matched": 0
+      },
+      "loanEditRequests": {
+        "matched": 0
+      },
+      "formPayments": {
+        "matched": 20
+      },
+      "transactions": {
+        "matched": 21
+      },
+      "communicationLogs": {
+        "matched": 0
+      },
+      "refreshTokens": {
+        "matched": 1
+      },
+      "loginHistory": {
+        "matched": 1
+      },
+      "phoneOtpSessions": {
+        "matched": 0
+      },
+      "auditLogs": {
+        "matched": 31
+      },
+      "affectedGroups": [
+        "68e37bd49b1e9ee4a491baeb",
+        "f13266e9a87019f9d50f8c6c",
+        "77828f8ff0e18c9d363d6f5f",
+        "ef96a2caeb56c7cb6afaa184",
+        "94b4cccc63ed160cab174347",
+        "ea200386d2a2185f26c4b45c",
+        "1821cc754fffe69bebefacd6",
+        "767afcf8d419258aad6ac939",
+        "82c283b1ef26fdbf0224484e",
+        "964d3d213a30badc53e290af",
+        "97bb1fde9f730a3d0fde7e67",
+        "4e40f742d959783c0b659609",
+        "ebc300194c68c8f709ab7789",
+        "aa92a9d867f075b5065af283",
+        "f6c87206a9219384df938118"
+      ],
+      "affectedVotes": []
+    },
+    "deleted": {
+      "guarantorNotifications": 0,
+      "loanGuarantors": 5,
+      "loanScheduleItems": 60,
+      "loanEditRequests": 0,
+      "formPayments": 20,
+      "transactions": 21,
+      "withdrawals": 0,
+      "contributions": 1,
+      "contributionSettings": 0,
+      "recurringPayments": 0,
+      "loanApplications": 0,
+      "bankAccounts": 0,
+      "notifications": 0,
+      "notificationPreferences": 0,
+      "meetingAttendances": 0,
+      "meetingRsvps": 0,
+      "voteResponses": 0,
+      "communicationLogs": 0,
+      "refreshTokens": 1,
+      "loginHistory": 1,
+      "phoneOtpSessions": 0,
+      "auditLogs": 31,
+      "memberships": 15,
+      "users": 15,
+      "profiles": 15
+    },
+    "sharedReferenceCleanup": {
+      "groupCoordinatorRefs": 0,
+      "membershipReviewRefs": 0,
+      "contributionVerifierRefs": 0,
+      "formPaymentReviewRefs": 0,
+      "voteCreatorRefs": 0,
+      "embeddedGuarantorRefs": 5,
+      "loanActorRefs": 0,
+      "withdrawalActorRefs": 0,
+      "voteSnapshots": []
+    },
+    "groupSnapshots": [
+      {
+        "groupId": "68e37bd49b1e9ee4a491baeb",
+        "memberCount": 10,
+        "totalSavings": 0
+      },
+      {
+        "groupId": "f13266e9a87019f9d50f8c6c",
+        "memberCount": 58,
+        "totalSavings": 0
+      },
+      {
+        "groupId": "77828f8ff0e18c9d363d6f5f",
+        "memberCount": 33,
+        "totalSavings": 0
+      },
+      {
+        "groupId": "ef96a2caeb56c7cb6afaa184",
+        "memberCount": 13,
+        "totalSavings": 0
+      },
+      {
+        "groupId": "94b4cccc63ed160cab174347",
+        "memberCount": 13,
+        "totalSavings": 0
+      },
+      {
+        "groupId": "ea200386d2a2185f26c4b45c",
+        "memberCount": 17,
+        "totalSavings": 0
+      },
+      {
+        "groupId": "1821cc754fffe69bebefacd6",
+        "memberCount": 36,
+        "totalSavings": 0
+      },
+      {
+        "groupId": "767afcf8d419258aad6ac939",
+        "memberCount": 46,
+        "totalSavings": 0
+      },
+      {
+        "groupId": "82c283b1ef26fdbf0224484e",
+        "memberCount": 36,
+        "totalSavings": 0
+      },
+      {
+        "groupId": "964d3d213a30badc53e290af",
+        "memberCount": 39,
+        "totalSavings": 0
+      },
+      {
+        "groupId": "97bb1fde9f730a3d0fde7e67",
+        "memberCount": 50,
+        "totalSavings": 0
+      },
+      {
+        "groupId": "4e40f742d959783c0b659609",
+        "memberCount": 20,
+        "totalSavings": 0
+      },
+      {
+        "groupId": "ebc300194c68c8f709ab7789",
+        "memberCount": 24,
+        "totalSavings": 0
+      },
+      {
+        "groupId": "aa92a9d867f075b5065af283",
+        "memberCount": 20,
+        "totalSavings": 0
+      },
+      {
+        "groupId": "f6c87206a9219384df938118",
+        "memberCount": 98,
+        "totalSavings": 0
+      }
+    ]
+  }
+}

@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+import { FormPaymentModel } from "../models/FormPayment.js";
 import { GuarantorNotificationModel } from "../models/GuarantorNotification.js";
 import { LoanApplicationEditRequestModel } from "../models/LoanApplicationEditRequest.js";
 import { LoanApplicationModel } from "../models/LoanApplication.js";
@@ -34,8 +35,14 @@ async function collectLoanIds({ profileId, specificLoanId, session }) {
     return [specificLoanId];
   }
 
-  const [applications, transactions, recurringPayments, editRequests, notifications] =
-    await Promise.all([
+  const [
+    applications,
+    transactions,
+    formPayments,
+    recurringPayments,
+    editRequests,
+    notifications,
+  ] = await Promise.all([
       withSession(
         LoanApplicationModel.find({ userId: profileId }, { _id: 1 }).lean(),
         session,
@@ -51,6 +58,17 @@ async function collectLoanIds({ profileId, specificLoanId, session }) {
             ],
           },
           { loanId: 1 },
+        ).lean(),
+        session,
+      ),
+      withSession(
+        FormPaymentModel.find(
+          {
+            userId: profileId,
+            sourceModel: "LoanApplication",
+            formCategory: "loan",
+          },
+          { sourceId: 1 },
         ).lean(),
         session,
       ),
@@ -89,10 +107,17 @@ async function collectLoanIds({ profileId, specificLoanId, session }) {
   return toIdStrings([
     ...applications.map((application) => application._id),
     ...transactions.map((transaction) => transaction.loanId),
+    ...formPayments.map((payment) => payment.sourceId),
     ...recurringPayments.map((payment) => payment.loanId),
     ...editRequests.map((request) => request.loanApplicationId),
     ...notifications.map((notification) => notification?.metadata?.loanId),
   ]);
+}
+
+function compactOrFilter(base, conditions) {
+  const $or = conditions.filter(Boolean);
+  if ($or.length === 0) return { ...base, _id: null };
+  return { ...base, $or };
 }
 
 async function executeLoanCleanup({
@@ -142,18 +167,16 @@ async function executeLoanCleanup({
       });
 
       const mixedLoanIds = buildMixedIdValues(loanIds);
-      const loanTransactionsFilter = specificLoanId
+      const formPaymentsFilter = specificLoanId
         ? {
             userId: profile._id,
-            loanId: specificLoanId,
+            sourceModel: "LoanApplication",
+            sourceId: specificLoanId,
           }
         : {
             userId: profile._id,
-            $or: [
-              { loanId: { $in: loanIds } },
-              { type: "loan_disbursement" },
-              { type: "loan_repayment" },
-            ],
+            sourceModel: "LoanApplication",
+            formCategory: "loan",
           };
       const recurringPaymentsFilter = specificLoanId
         ? {
@@ -184,6 +207,45 @@ async function executeLoanCleanup({
               { type: { $in: LOAN_NOTIFICATION_TYPES } },
             ],
           };
+
+      const formPayments = await withSession(
+        FormPaymentModel.find(formPaymentsFilter).lean(),
+        session,
+      );
+      const formPaymentIds = formPayments.map((payment) => payment._id);
+      const formPaymentTransactionIds = formPayments
+        .map((payment) => payment.transactionId)
+        .filter(Boolean);
+      const formPaymentTransactionReferences = formPayments
+        .map((payment) => payment.transactionReference)
+        .filter(Boolean);
+
+      const loanTransactionsFilter = compactOrFilter(
+        { userId: profile._id },
+        [
+          mixedLoanIds.length > 0 ? { loanId: { $in: mixedLoanIds } } : null,
+          mixedLoanIds.length > 0
+            ? { "metadata.loanApplicationId": { $in: mixedLoanIds } }
+            : null,
+          mixedLoanIds.length > 0
+            ? { "metadata.loanId": { $in: mixedLoanIds } }
+            : null,
+          mixedLoanIds.length > 0
+            ? { "metadata.sourceId": { $in: mixedLoanIds } }
+            : null,
+          formPaymentIds.length > 0
+            ? { "metadata.formPaymentId": { $in: formPaymentIds } }
+            : null,
+          formPaymentTransactionIds.length > 0
+            ? { _id: { $in: formPaymentTransactionIds } }
+            : null,
+          formPaymentTransactionReferences.length > 0
+            ? { reference: { $in: formPaymentTransactionReferences } }
+            : null,
+          !specificLoanId ? { type: "loan_disbursement" } : null,
+          !specificLoanId ? { type: "loan_repayment" } : null,
+        ],
+      );
 
       const [
         transactions,
@@ -256,6 +318,9 @@ async function executeLoanCleanup({
         recurringPayments: {
           matched: recurringPayments.length,
         },
+        formPayments: {
+          matched: formPayments.length,
+        },
         transactions: {
           matched: transactions.length,
         },
@@ -273,6 +338,7 @@ async function executeLoanCleanup({
         guarantorNotifications.length === 0 &&
         editRequests.length === 0 &&
         recurringPayments.length === 0 &&
+        formPayments.length === 0 &&
         transactions.length === 0 &&
         notifications.length === 0
       ) {
@@ -289,6 +355,7 @@ async function executeLoanCleanup({
         scheduleDeleteResult,
         editRequestDeleteResult,
         recurringDeleteResult,
+        formPaymentDeleteResult,
         transactionDeleteResult,
         notificationDeleteResult,
         loanDeleteResult,
@@ -322,6 +389,12 @@ async function executeLoanCleanup({
         recurringPayments.length > 0
           ? RecurringPaymentModel.deleteMany(
               { _id: { $in: recurringPayments.map((item) => item._id) } },
+              mongoOptions(session),
+            )
+          : Promise.resolve({ deletedCount: 0 }),
+        formPayments.length > 0
+          ? FormPaymentModel.deleteMany(
+              { _id: { $in: formPayments.map((item) => item._id) } },
               mongoOptions(session),
             )
           : Promise.resolve({ deletedCount: 0 }),
@@ -371,6 +444,10 @@ async function executeLoanCleanup({
           ...summary.recurringPayments,
           deleted: Number(recurringDeleteResult?.deletedCount ?? 0),
         },
+        formPayments: {
+          ...summary.formPayments,
+          deleted: Number(formPaymentDeleteResult?.deletedCount ?? 0),
+        },
         transactions: {
           ...summary.transactions,
           deleted: Number(transactionDeleteResult?.deletedCount ?? 0),
@@ -396,7 +473,7 @@ const runCli = async () => {
         "",
         "Notes:",
         "  Without --loanApplicationId, the script deletes the user's full loan domain data.",
-        "  Cleanup includes loan applications, repayment schedules, guarantors, guarantor notifications, edit requests, borrower notifications, recurring loan payments, and loan transactions.",
+        "  Cleanup includes loan applications, repayment schedules, guarantors, guarantor notifications, edit requests, borrower notifications, recurring loan payments, loan form payments, and related loan/form-payment transactions.",
         "  Single-record mode targets one loan application and its related records.",
       ].join("\n"),
     );

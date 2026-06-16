@@ -1,0 +1,26 @@
+{
+  "ok": 0,
+  "startedAt": "2026-06-16T15:36:47.153Z",
+  "completedAt": "2026-06-16T15:36:47.156Z",
+  "dryRun": false,
+  "useTransaction": true,
+  "error": "Refusing to delete without --confirm DELETE_MEMBERS_BY_SERIAL. Run with --dry-run first.",
+  "serials": [
+    "CRC/G17/0893",
+    "CRC/G15/0891",
+    "CRC/G13/0890",
+    "CRC/G12/0889",
+    "CRC/G11/0888",
+    "CRC/G10/0887",
+    "CRC/G9/0886",
+    "CRC/G8/0885",
+    "CRC/G7/0884",
+    "CRC/G6/0883",
+    "CRC/G5/0882",
+    "CRC/G4/0881",
+    "CRC/G3/0880",
+    "CRC/G2/0879",
+    "CRC/G2/0870",
+    "DELETE_MEMBERS_BY_SERIAL"
+  ]
+}

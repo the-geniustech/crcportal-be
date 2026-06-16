@@ -1,0 +1,115 @@
+{
+  "ok": 1,
+  "startedAt": "2026-06-16T15:31:03.439Z",
+  "completedAt": "2026-06-16T15:31:14.390Z",
+  "dryRun": true,
+  "useTransaction": true,
+  "result": {
+    "dryRun": true,
+    "confirmationRequired": "DELETE_MEMBERS_BY_SERIAL",
+    "serials": [
+      {
+        "input": "CRC/G15/0491",
+        "normalized": "CRC/G15/0491",
+        "status": "matched",
+        "membershipId": "08ca70c898c4c83a05088055",
+        "profileId": "1af096e1beda3ce35d480518",
+        "groupId": "02e6c3e37ecca53fe4e616ac",
+        "userId": "eacc2d3678f1292157090572",
+        "fullName": "Michael Oluranti",
+        "email": "michael.oluranti.g15@crc.local",
+        "phone": "+234 900 150 0003"
+      }
+    ],
+    "uniqueProfiles": [
+      {
+        "profileId": "1af096e1beda3ce35d480518",
+        "fullName": "Michael Oluranti",
+        "email": "michael.oluranti.g15@crc.local",
+        "phone": "+234 900 150 0003",
+        "userId": "eacc2d3678f1292157090572"
+      }
+    ],
+    "summary": {
+      "profiles": {
+        "matched": 1
+      },
+      "users": {
+        "matched": 1
+      },
+      "memberships": {
+        "matched": 1
+      },
+      "contributions": {
+        "matched": 12
+      },
+      "contributionSettings": {
+        "matched": 1
+      },
+      "withdrawals": {
+        "matched": 0
+      },
+      "bankAccounts": {
+        "matched": 0
+      },
+      "recurringPayments": {
+        "matched": 0
+      },
+      "notifications": {
+        "matched": 0
+      },
+      "notificationPreferences": {
+        "matched": 0
+      },
+      "meetingAttendances": {
+        "matched": 0
+      },
+      "meetingRsvps": {
+        "matched": 0
+      },
+      "voteResponses": {
+        "matched": 0
+      },
+      "loanApplications": {
+        "matched": 3
+      },
+      "loanScheduleItems": {
+        "matched": 48
+      },
+      "loanGuarantors": {
+        "matched": 4
+      },
+      "guarantorNotifications": {
+        "matched": 0
+      },
+      "loanEditRequests": {
+        "matched": 0
+      },
+      "formPayments": {
+        "matched": 5
+      },
+      "transactions": {
+        "matched": 17
+      },
+      "communicationLogs": {
+        "matched": 0
+      },
+      "refreshTokens": {
+        "matched": 3
+      },
+      "loginHistory": {
+        "matched": 3
+      },
+      "phoneOtpSessions": {
+        "matched": 0
+      },
+      "auditLogs": {
+        "matched": 0
+      },
+      "affectedGroups": [
+        "02e6c3e37ecca53fe4e616ac"
+      ],
+      "affectedVotes": []
+    }
+  }
+}

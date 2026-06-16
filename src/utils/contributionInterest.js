@@ -125,12 +125,39 @@ export function buildMonthlyRatesResponse(monthlyRates) {
 }
 
 export async function getMonthlyInterestRates(year) {
-  if (!year) return buildDefaultMonthlyRates();
-  const existing = await ContributionInterestSettingModel.findOne({ year }).lean();
+  const context = await getMonthlyInterestRateContext(year);
+  return context.monthlyRates;
+}
+
+export async function getMonthlyInterestRateContext(year) {
   const defaults = buildDefaultMonthlyRates();
-  if (!existing?.monthlyRates) return defaults;
+  if (!year) {
+    return {
+      monthlyRates: defaults,
+      rates: buildMonthlyRatesResponse(defaults),
+      settingsUpdatedAt: null,
+      settingsUpdatedBy: null,
+    };
+  }
+
+  const existing = await ContributionInterestSettingModel.findOne({ year }).lean();
+  if (!existing?.monthlyRates) {
+    return {
+      monthlyRates: defaults,
+      rates: buildMonthlyRatesResponse(defaults),
+      settingsUpdatedAt: existing?.updatedAt ?? null,
+      settingsUpdatedBy: existing?.updatedBy ?? null,
+    };
+  }
+
   const updates = parseMonthlyRatesInput(existing.monthlyRates);
-  return { ...defaults, ...updates };
+  const monthlyRates = { ...defaults, ...updates };
+  return {
+    monthlyRates,
+    rates: buildMonthlyRatesResponse(monthlyRates),
+    settingsUpdatedAt: existing.updatedAt ?? null,
+    settingsUpdatedBy: existing.updatedBy ?? null,
+  };
 }
 
 export async function upsertMonthlyInterestRates({ year, rates, updatedBy }) {

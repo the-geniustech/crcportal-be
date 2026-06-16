@@ -6,6 +6,7 @@ import { ContributionModel } from "../models/Contribution.js";
 import {
   buildMonthlyRatesResponse,
   computeAggregateInterestSchedule,
+  getMonthlyInterestRateContext,
   getMonthlyInterestRates,
   INTEREST_SHARING_CATEGORIES,
   resolveMonthsToCompute,
@@ -27,6 +28,10 @@ import {
 const PaidContributionStatuses = ["completed", "verified"];
 
 const CSV_BOM = "\uFEFF";
+
+function setInterestReportCacheHeaders(res) {
+  res.set("Cache-Control", "no-store");
+}
 
 function csvEscape(value) {
   const raw = String(value ?? "");
@@ -96,14 +101,16 @@ export const getContributionInterestSettings = catchAsync(async (req, res, next)
   const year = parseYear(req.query?.year, now.getFullYear());
   if (!year) return next(new AppError("Invalid year", 400));
 
-  const monthlyRates = await getMonthlyInterestRates(year);
-  const rates = buildMonthlyRatesResponse(monthlyRates);
+  const rateContext = await getMonthlyInterestRateContext(year);
+  setInterestReportCacheHeaders(res);
 
   return sendSuccess(res, {
     statusCode: 200,
     data: {
       year,
-      rates,
+      rates: rateContext.rates,
+      updatedAt: rateContext.settingsUpdatedAt,
+      updatedBy: rateContext.settingsUpdatedBy,
     },
   });
 });
@@ -126,6 +133,7 @@ export const updateContributionInterestSettings = catchAsync(async (req, res, ne
 
   const monthlyRates = await getMonthlyInterestRates(year);
   const rates = buildMonthlyRatesResponse(monthlyRates);
+  setInterestReportCacheHeaders(res);
 
   return sendSuccess(res, {
     statusCode: 200,
@@ -153,13 +161,14 @@ export const getContributionIncomeSummary = catchAsync(async (req, res, next) =>
     year,
     contributionType,
   });
-  const monthlyRates = await getMonthlyInterestRates(year);
+  const rateContext = await getMonthlyInterestRateContext(year);
   const monthsToCompute = resolveMonthsToCompute({ year, now });
   const { schedule, totals } = computeAggregateInterestSchedule({
     monthlyContributions,
-    monthlyRates,
+    monthlyRates: rateContext.monthlyRates,
     monthsToCompute,
   });
+  setInterestReportCacheHeaders(res);
 
   return sendSuccess(res, {
     statusCode: 200,
@@ -172,6 +181,11 @@ export const getContributionIncomeSummary = catchAsync(async (req, res, next) =>
         contributions: roundMoney(totals.contributions),
         interest: roundMoney(totals.interest),
         total: roundMoney(totals.total),
+      },
+      interestSettings: {
+        rates: rateContext.rates,
+        updatedAt: rateContext.settingsUpdatedAt,
+        updatedBy: rateContext.settingsUpdatedBy,
       },
     },
   });
@@ -191,11 +205,11 @@ export const getContributionInterestSharing = catchAsync(async (req, res, next) 
     year,
     contributionType,
   });
-  const monthlyRates = await getMonthlyInterestRates(year);
+  const rateContext = await getMonthlyInterestRateContext(year);
   const monthsToCompute = resolveMonthsToCompute({ year, now });
   const { totals } = computeAggregateInterestSchedule({
     monthlyContributions,
-    monthlyRates,
+    monthlyRates: rateContext.monthlyRates,
     monthsToCompute,
   });
 
@@ -210,6 +224,7 @@ export const getContributionInterestSharing = catchAsync(async (req, res, next) 
       amountShared: amount,
     };
   });
+  setInterestReportCacheHeaders(res);
 
   return sendSuccess(res, {
     statusCode: 200,
@@ -219,6 +234,11 @@ export const getContributionInterestSharing = catchAsync(async (req, res, next) 
       monthsComputed: monthsToCompute,
       totalInterest,
       categories,
+      interestSettings: {
+        rates: rateContext.rates,
+        updatedAt: rateContext.settingsUpdatedAt,
+        updatedBy: rateContext.settingsUpdatedBy,
+      },
     },
   });
 });
@@ -242,11 +262,11 @@ export const exportContributionIncomeSummary = catchAsync(async (req, res, next)
     year,
     contributionType,
   });
-  const monthlyRates = await getMonthlyInterestRates(year);
+  const rateContext = await getMonthlyInterestRateContext(year);
   const monthsToCompute = resolveMonthsToCompute({ year, now });
   const { schedule, totals } = computeAggregateInterestSchedule({
     monthlyContributions,
-    monthlyRates,
+    monthlyRates: rateContext.monthlyRates,
     monthsToCompute,
   });
 
@@ -257,6 +277,8 @@ export const exportContributionIncomeSummary = catchAsync(async (req, res, next)
     const rows = [
       [
         "Month",
+        "Rate / 1000",
+        "Rate (%)",
         "Monthly Contributions",
         "Interest",
         "Total",
@@ -264,6 +286,8 @@ export const exportContributionIncomeSummary = catchAsync(async (req, res, next)
       ],
       ...schedule.map((row) => [
         row.label,
+        roundMoney(row.ratePerThousand),
+        roundMoney(row.ratePct),
         roundMoney(row.contributions),
         roundMoney(row.interest),
         roundMoney(row.total),
@@ -278,6 +302,8 @@ export const exportContributionIncomeSummary = catchAsync(async (req, res, next)
 
     rows.push([
       "Totals",
+      "",
+      "",
       roundMoney(totals.contributions),
       roundMoney(totals.interest),
       roundMoney(totals.total),
@@ -286,6 +312,7 @@ export const exportContributionIncomeSummary = catchAsync(async (req, res, next)
 
     const csv = CSV_BOM + buildCsv(rows);
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    setInterestReportCacheHeaders(res);
     res.setHeader(
       "Content-Disposition",
       `attachment; filename="${filenameBase}.csv"`,
@@ -307,6 +334,7 @@ export const exportContributionIncomeSummary = catchAsync(async (req, res, next)
   });
 
   res.setHeader("Content-Type", "application/pdf");
+  setInterestReportCacheHeaders(res);
   res.setHeader(
     "Content-Disposition",
     `attachment; filename="${filenameBase}.pdf"`,
@@ -333,11 +361,11 @@ export const exportContributionInterestSharing = catchAsync(async (req, res, nex
     year,
     contributionType,
   });
-  const monthlyRates = await getMonthlyInterestRates(year);
+  const rateContext = await getMonthlyInterestRateContext(year);
   const monthsToCompute = resolveMonthsToCompute({ year, now });
   const { totals } = computeAggregateInterestSchedule({
     monthlyContributions,
-    monthlyRates,
+    monthlyRates: rateContext.monthlyRates,
     monthsToCompute,
   });
 
@@ -370,6 +398,7 @@ export const exportContributionInterestSharing = catchAsync(async (req, res, nex
 
     const csv = CSV_BOM + buildCsv(rows);
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    setInterestReportCacheHeaders(res);
     res.setHeader(
       "Content-Disposition",
       `attachment; filename="${filenameBase}.csv"`,
@@ -387,6 +416,7 @@ export const exportContributionInterestSharing = catchAsync(async (req, res, nex
   });
 
   res.setHeader("Content-Type", "application/pdf");
+  setInterestReportCacheHeaders(res);
   res.setHeader(
     "Content-Disposition",
     `attachment; filename="${filenameBase}.pdf"`,

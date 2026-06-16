@@ -20,6 +20,12 @@ function formatDate(value) {
   }).format(date);
 }
 
+function formatRatePerThousand(value) {
+  const rate = Number(value || 0);
+  if (!Number.isFinite(rate)) return "-";
+  return `${rate.toLocaleString("en-NG")}/1000`;
+}
+
 function drawHeader(doc, { year, contributionTypeLabel, generatedAt }) {
   const { left, right, top } = doc.page.margins;
   const width = doc.page.width - left - right;
@@ -195,11 +201,12 @@ export async function generateContributionIncomeSummaryPdfBuffer({
     const { left, right } = doc.page.margins;
     const width = doc.page.width - left - right;
     const columns = [
-      { key: "month", label: "Month", width: width * 0.22 },
-      { key: "contributions", label: "Contributions", width: width * 0.2 },
-      { key: "interest", label: "Interest", width: width * 0.18 },
-      { key: "total", label: "Total", width: width * 0.2 },
-      { key: "cumulative", label: "Cumulative", width: width * 0.2 },
+      { key: "month", label: "Month", width: width * 0.16 },
+      { key: "rate", label: "Rate", width: width * 0.13 },
+      { key: "contributions", label: "Contributions", width: width * 0.19 },
+      { key: "interest", label: "Interest", width: width * 0.16 },
+      { key: "total", label: "Total", width: width * 0.17 },
+      { key: "cumulative", label: "Cumulative", width: width * 0.19 },
     ];
 
     drawTableHeader(doc, columns);
@@ -213,6 +220,7 @@ export async function generateContributionIncomeSummaryPdfBuffer({
       }
       drawTableRow(doc, columns, {
         month: row.label,
+        rate: formatRatePerThousand(row.ratePerThousand),
         contributions: formatCurrency(row.contributions),
         interest: row.interest > 0 ? formatCurrency(row.interest) : "-",
         total: formatCurrency(row.total),
@@ -230,6 +238,7 @@ export async function generateContributionIncomeSummaryPdfBuffer({
       columns,
       {
         month: "Totals",
+        rate: "",
         contributions: formatCurrency(totals.contributions),
         interest: formatCurrency(totals.interest),
         total: formatCurrency(totals.total),

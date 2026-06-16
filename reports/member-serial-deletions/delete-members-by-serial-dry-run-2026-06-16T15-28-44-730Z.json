@@ -1,0 +1,11 @@
+{
+  "ok": 0,
+  "startedAt": "2026-06-16T15:28:02.313Z",
+  "completedAt": "2026-06-16T15:28:44.726Z",
+  "dryRun": true,
+  "useTransaction": true,
+  "error": "querySrv ETIMEOUT _mongodb._tcp.cluster0.71bvugo.mongodb.net",
+  "serials": [
+    "CRC/G15/0491"
+  ]
+}
